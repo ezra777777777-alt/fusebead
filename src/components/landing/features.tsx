@@ -1,117 +1,124 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useInView } from "framer-motion";
-import {
-  ImagePlus,
-  Pencil,
-  Palette,
-  FileDown,
-  ShoppingBag,
-  Zap,
-} from "lucide-react";
+import { motion } from "framer-motion";
+import { Upload, Palette, Download, Grid3X3, Sparkles, Zap } from "lucide-react";
 
 const features = [
   {
-    icon: ImagePlus,
-    title: "Image to Pattern",
+    icon: Upload,
+    title: "Upload Any Image",
     description:
-      "Upload any JPG, PNG, or WebP image and get an instant bead pattern. Smart color matching maps each pixel to real bead colors.",
-    color: "from-rose-500 to-orange-500",
+      "Drop in a photo, drawing, or screenshot. JPG, PNG, WebP — we handle them all. No size limits on the free tier.",
+    gradient: "gradient-coral",
   },
   {
-    icon: Pencil,
-    title: "Built-in Pixel Editor",
+    icon: Grid3X3,
+    title: "Smart Color Matching",
     description:
-      "Fine-tune your pattern with draw, fill, erase, and color replace tools. Full undo/redo support — edit until it's perfect.",
-    color: "from-blue-500 to-cyan-500",
+      "60 authentic Perler colors with weighted color-distance matching. Floyd-Steinberg dithering for smooth gradients.",
+    gradient: "gradient-mint",
   },
   {
     icon: Palette,
-    title: "Multi-Brand Palettes",
+    title: "Adjust & Preview",
     description:
-      "Switch between Perler, Hama, Artkal S, MARD, COCO, and more. 420+ colors across all brands — every pixel stays accurate.",
-    color: "from-purple-500 to-pink-500",
+      "Tweak grid size from 20 to 150 beads wide. Limit colors. Toggle dithering. See your pattern update in real-time.",
+    gradient: "gradient-warm",
   },
   {
-    icon: FileDown,
-    title: "PDF & Image Export",
+    icon: Download,
+    title: "Materials List + Export",
     description:
-      "Download print-ready PDF with color codes, grid lines, and board layout. Or export as high-res PNG for sharing online.",
-    color: "from-green-500 to-emerald-500",
+      "Get a bead-by-bead count for every color. Export as PNG to take to your craft table. PDF export coming soon.",
+    gradient: "gradient-coral",
   },
   {
-    icon: ShoppingBag,
-    title: "Materials List",
+    icon: Sparkles,
+    title: "Multi-Brand Support",
     description:
-      "Get exact counts of every bead color you need. Know how many packs to buy — no more guessing or running out mid-project.",
-    color: "from-amber-500 to-yellow-500",
+      "Perler today, Hama tomorrow. Artkal and MARD color converters in the works. One pattern, any bead brand.",
+    gradient: "gradient-mint",
   },
   {
     icon: Zap,
-    title: "Lightning Fast",
+    title: "Free & Unlimited",
     description:
-      "All processing happens in your browser. Your images never leave your device — complete privacy, instant results.",
-    color: "from-indigo-500 to-violet-500",
+      "No sign-up. No credit card. No watermarks. Generate as many patterns as you want. Craft without limits.",
+    gradient: "gradient-warm",
   },
 ];
 
-function FeatureCard({
-  feature,
-  index,
-}: {
-  feature: (typeof features)[0];
-  index: number;
-}) {
-  const ref = useRef<HTMLDivElement>(null);
-  const inView = useInView(ref, { once: true, margin: "-80px" });
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
 
-  return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 40 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group relative rounded-2xl border border-black/[0.06] dark:border-white/[0.06] bg-background p-6 sm:p-8 hover:shadow-lg hover:-translate-y-1 transition-all duration-300"
-    >
-      <div
-        className={`inline-flex rounded-xl bg-gradient-to-br ${feature.color} p-3 text-white mb-4`}
-      >
-        <feature.icon className="h-6 w-6" />
-      </div>
-      <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
-      <p className="text-sm text-foreground/60 leading-relaxed">
-        {feature.description}
-      </p>
-    </motion.div>
-  );
-}
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 },
+};
 
 export function Features() {
   return (
-    <section className="relative px-4 py-24 sm:py-32">
-      <div className="mx-auto max-w-7xl">
+    <section id="features" className="py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Section header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-            Everything You Need to{" "}
-            <span className="bead-gradient-text">Create</span>
+          <h2
+            className="text-3xl sm:text-4xl font-bold tracking-tight mb-4"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            From Photo to{" "}
+            <span className="bead-gradient-text">Bead Pattern</span> in Seconds
           </h2>
-          <p className="text-foreground/60 max-w-xl mx-auto">
-            From idea to finished artwork — all the tools a bead artist needs,
-            in one place.
+          <p className="text-lg text-foreground/60 max-w-2xl mx-auto">
+            Everything you need to turn your favorite images into bead art.
+            No design skills required — just upload and create.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {features.map((f, i) => (
-            <FeatureCard key={f.title} feature={f} index={i} />
+        {/* Feature grid */}
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {features.map((feature) => (
+            <motion.div
+              key={feature.title}
+              variants={item}
+              className="group relative rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6 hover:border-transparent hover:shadow-lg transition-all duration-300"
+            >
+              {/* Gradient icon */}
+              <div
+                className={`inline-flex rounded-xl ${feature.gradient} p-3 text-white mb-4`}
+              >
+                <feature.icon className="h-5 w-5" />
+              </div>
+
+              <h3 
+                className="text-lg font-semibold mb-2"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                {feature.title}
+              </h3>
+              <p className="text-sm text-foreground/60 leading-relaxed">
+                {feature.description}
+              </p>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

@@ -134,7 +134,7 @@ export default function GeneratorPage() {
           >
             <ChevronLeft className="h-4 w-4" /> Back
           </Link>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2" style={{ fontFamily: "var(--font-display)" }}>
             <span className="bead-gradient-text">Pattern Generator</span>
           </h1>
           <p className="text-foreground/60">
@@ -275,7 +275,11 @@ export default function GeneratorPage() {
             <button
               onClick={generatePattern}
               disabled={!image || processing}
-              className="w-full inline-flex items-center justify-center gap-2 rounded-full bg-foreground px-6 py-3 text-sm font-semibold text-background hover:opacity-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              className="w-full inline-flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white hover:opacity-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
+              style={{ 
+                background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))",
+                fontFamily: "var(--font-display)",
+              }}
             >
               {processing ? (
                 <>
@@ -318,12 +322,13 @@ export default function GeneratorPage() {
             {pattern && (
               <div className="rounded-2xl border border-black/[0.06] dark:border-white/[0.06] p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-semibold">
+                  <h3 className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>
                     Materials List ({Object.keys(pattern.colorCounts).length} colors)
                   </h3>
                   <button
                     onClick={exportPNG}
-                    className="inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-1.5 text-xs font-semibold text-background hover:opacity-90 transition-opacity"
+                    className="inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-semibold text-white hover:opacity-90 transition-opacity"
+                    style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))" }}
                   >
                     <Download className="h-3.5 w-3.5" />
                     Download PNG

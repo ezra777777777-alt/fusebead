@@ -1,109 +1,101 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Palette } from "lucide-react";
+import { useState } from "react";
+import { Menu, X } from "lucide-react";
 
 const navLinks = [
   { href: "/generator", label: "Generator" },
   { href: "/editor", label: "Editor" },
-  { href: "/converter", label: "Color Converter" },
+  { href: "/converter", label: "Converter" },
 ];
 
 export function Navbar() {
-  const [open, setOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 10);
-    window.addEventListener("scroll", h);
-    return () => window.removeEventListener("scroll", h);
-  }, []);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <motion.nav
-      initial={{ y: -80 }}
-      animate={{ y: 0 }}
-      transition={{ duration: 0.5, ease: "easeOut" }}
-      className={`fixed top-0 z-50 w-full transition-colors duration-300 ${
-        scrolled
-          ? "bg-background/80 backdrop-blur-xl border-b border-black/[0.06] dark:border-white/[0.06]"
-          : "bg-transparent"
-      }`}
-    >
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-lg">
+      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2 group">
-            <span className="text-2xl">🧩</span>
-            <span className="text-lg font-bold tracking-tight bead-gradient-text">
-              FuseBead.art
+            <span
+              className="text-2xl"
+              role="img"
+              aria-label="bead"
+            >
+              🔴🟠🟡🟢🔵
+            </span>
+            <span
+              className="text-lg font-bold tracking-tight"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              FuseBead<span className="text-[var(--bead-coral)]">.art</span>
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-1">
+          {/* Desktop nav */}
+          <div className="hidden md:flex items-center gap-8">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="relative px-3 py-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.05]"
+                className="text-sm font-medium text-foreground/60 hover:text-foreground transition-colors"
+                style={{ fontFamily: "var(--font-display)" }}
               >
                 {link.label}
               </Link>
             ))}
-            <div className="ml-2 h-6 w-px bg-black/10 dark:bg-white/10" />
             <Link
               href="/generator"
-              className="ml-2 inline-flex items-center gap-1.5 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background hover:opacity-90 transition-opacity"
+              className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90"
+              style={{
+                background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))",
+                fontFamily: "var(--font-display)",
+              }}
             >
-              <Palette className="h-4 w-4" />
               Start Creating
             </Link>
           </div>
 
-          {/* Mobile Toggle */}
+          {/* Mobile toggle */}
           <button
-            onClick={() => setOpen(!open)}
-            className="md:hidden p-2 rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.05]"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            className="md:hidden p-2 rounded-lg hover:bg-[var(--surface-hover)]"
+            aria-label="Toggle menu"
           >
-            {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
-      </div>
 
-      {/* Mobile Menu */}
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            className="md:hidden border-t border-black/[0.06] dark:border-white/[0.06] bg-background/95 backdrop-blur-xl"
-          >
-            <div className="px-4 py-4 space-y-1">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="block px-3 py-2.5 text-sm font-medium rounded-lg hover:bg-black/[0.05] dark:hover:bg-white/[0.05]"
-                >
-                  {link.label}
-                </Link>
-              ))}
+        {/* Mobile menu */}
+        {mobileOpen && (
+          <div className="md:hidden py-4 border-t border-[var(--border)] space-y-3">
+            {navLinks.map((link) => (
               <Link
-                href="/generator"
-                onClick={() => setOpen(false)}
-                className="block mt-2 text-center rounded-full bg-foreground px-4 py-2.5 text-sm font-semibold text-background"
+                key={link.href}
+                href={link.href}
+                onClick={() => setMobileOpen(false)}
+                className="block px-2 py-2 text-sm font-medium text-foreground/70 hover:text-foreground transition-colors"
+                style={{ fontFamily: "var(--font-display)" }}
               >
-                Start Creating
+                {link.label}
               </Link>
-            </div>
-          </motion.div>
+            ))}
+            <Link
+              href="/generator"
+              onClick={() => setMobileOpen(false)}
+              className="block w-full text-center rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+              style={{
+                background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))",
+                fontFamily: "var(--font-display)",
+              }}
+            >
+              Start Creating
+            </Link>
+          </div>
         )}
-      </AnimatePresence>
-    </motion.nav>
+      </nav>
+    </header>
   );
 }

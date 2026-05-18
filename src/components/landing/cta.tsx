@@ -1,44 +1,49 @@
 "use client";
 
+import { motion } from "framer-motion";
 import Link from "next/link";
-import { motion, useInView } from "framer-motion";
-import { useRef } from "react";
 import { ArrowRight } from "lucide-react";
 
 export function CTA() {
-  const ref = useRef<HTMLElement>(null);
-  const inView = useInView(ref, { once: true });
-
   return (
-    <section ref={ref} className="relative px-4 py-24 sm:py-32">
-      <div className="mx-auto max-w-3xl text-center">
+    <section className="py-24 sm:py-32">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={inView ? { opacity: 1, scale: 1 } : {}}
-          transition={{ duration: 0.5 }}
-          className="relative rounded-3xl border border-black/[0.06] dark:border-white/[0.06] bg-black/[0.02] dark:bg-white/[0.02] px-8 py-12 sm:px-12 sm:py-16 overflow-hidden"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="relative overflow-hidden rounded-3xl px-6 py-16 sm:px-12 sm:py-20 text-center"
+          style={{
+            background: "linear-gradient(135deg, var(--bead-coral) 0%, var(--bead-amber) 50%, var(--bead-sunflower) 100%)",
+          }}
         >
-          {/* Background glow */}
-          <div className="absolute inset-0 -z-10">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full bg-gradient-to-br from-rose-500/10 via-purple-500/10 to-blue-500/10 blur-3xl" />
+          {/* Decorative bead dots */}
+          <div className="absolute inset-0 bead-dot-bg opacity-10" />
+
+          <div className="relative z-10 max-w-2xl mx-auto">
+            <h2
+              className="text-3xl sm:text-4xl font-bold tracking-tight text-white mb-4"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Ready to Make Something Beautiful?
+            </h2>
+            <p className="text-lg text-white/80 mb-8">
+              No sign-up. No limits. Just upload your image and start creating 
+              bead patterns in seconds.
+            </p>
+            <Link
+              href="/generator"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-3.5 text-base font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+              style={{ 
+                color: "var(--bead-coral)",
+                fontFamily: "var(--font-display)",
+              }}
+            >
+              Start Creating Free
+              <ArrowRight className="h-5 w-5" />
+            </Link>
           </div>
-
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">
-            Ready to Start{" "}
-            <span className="bead-gradient-text">Creating</span>?
-          </h2>
-          <p className="text-foreground/60 mb-8 max-w-lg mx-auto">
-            No sign-up, no downloads, no cost. Just upload your image and
-            start beading.
-          </p>
-
-          <Link
-            href="/generator"
-            className="group inline-flex items-center gap-2 rounded-full bg-foreground px-8 py-4 text-base font-semibold text-background hover:opacity-90 transition-all hover:scale-[1.02]"
-          >
-            Get Started — It&apos;s Free
-            <ArrowRight className="h-5 w-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
         </motion.div>
       </div>
     </section>

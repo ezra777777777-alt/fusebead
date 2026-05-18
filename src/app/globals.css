@@ -1,29 +1,49 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap');
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --font-sans: 'Nunito', sans-serif;
+  --font-display: 'Fredoka', sans-serif;
 }
 
 :root {
-  --background: #fafafa;
-  --foreground: #171717;
-  --bead-red: #ef4444;
-  --bead-orange: #f97316;
-  --bead-yellow: #eab308;
-  --bead-green: #22c55e;
-  --bead-blue: #3b82f6;
-  --bead-purple: #a855f7;
-  --bead-pink: #ec4899;
-  --bead-cyan: #06b6d4;
+  /* Warm bead-inspired palette — no blue-purple gradient */
+  --background: #fefaf6;
+  --foreground: #2d1b14;
+  --primary: #e8734a;
+  --accent: #f4a261;
+  --bead-coral: #e8734a;
+  --bead-amber: #f4a261;
+  --bead-sunflower: #e9c46a;
+  --bead-mint: #76c893;
+  --bead-sky: #52b2cf;
+  --bead-lavender: #b39ddb;
+  --bead-rose: #f08a8a;
+  --surface: #ffffff;
+  --surface-hover: #fef5ee;
+  --border: #f0e0d0;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1a1410;
+    --foreground: #f5e6d8;
+    --primary: #f08c5a;
+    --accent: #f6b878;
+    --bead-coral: #f08c5a;
+    --bead-amber: #f6b878;
+    --bead-sunflower: #f0d678;
+    --bead-mint: #86d4a2;
+    --bead-sky: #6ac4dd;
+    --bead-lavender: #c4b0e8;
+    --bead-rose: #f5a0a0;
+    --surface: #241914;
+    --surface-hover: #2d1f19;
+    --border: #3d2a20;
   }
 }
 
@@ -34,35 +54,53 @@ html {
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+  font-family: var(--font-sans, sans-serif);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Bead-themed utility */
+/* Bead gradient — warm rainbow across the bead spectrum */
 .bead-gradient-text {
   background: linear-gradient(
     135deg,
-    var(--bead-red),
-    var(--bead-orange),
-    var(--bead-yellow),
-    var(--bead-green),
-    var(--bead-blue),
-    var(--bead-purple)
+    var(--bead-coral) 0%,
+    var(--bead-amber) 25%,
+    var(--bead-sunflower) 50%,
+    var(--bead-mint) 75%,
+    var(--bead-sky) 100%
   );
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
+/* Subtle bead-inspired shadow */
 .bead-shadow {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-    0 2px 4px -2px rgba(0, 0, 0, 0.1),
-    0 0 0 2px rgba(239, 68, 68, 0.1),
-    0 0 0 4px rgba(249, 115, 22, 0.05);
+  box-shadow: 
+    0 4px 14px -4px rgba(232, 115, 74, 0.15),
+    0 2px 8px -2px rgba(244, 162, 97, 0.1);
 }
 
+/* Pixel rendering for bead patterns */
 .pixel-render {
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
+}
+
+/* Bead dot pattern background */
+.bead-dot-bg {
+  background-image: radial-gradient(circle, var(--primary) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* Feature card gradient alternatives — warm palette */
+.gradient-coral {
+  background: linear-gradient(135deg, var(--bead-coral), var(--bead-amber));
+}
+.gradient-mint {
+  background: linear-gradient(135deg, var(--bead-mint), var(--bead-sky));
+}
+.gradient-warm {
+  background: linear-gradient(135deg, var(--bead-sunflower), var(--bead-coral));
 }
