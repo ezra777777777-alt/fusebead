@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+:root {
+  --background: #fafafa;
+  --foreground: #171717;
+  --bead-red: #ef4444;
+  --bead-orange: #f97316;
+  --bead-yellow: #eab308;
+  --bead-green: #22c55e;
+  --bead-blue: #3b82f6;
+  --bead-purple: #a855f7;
+  --bead-pink: #ec4899;
+  --bead-cyan: #06b6d4;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-sans, Arial, Helvetica, sans-serif);
+  overflow-x: hidden;
+}
+
+/* Bead-themed utility */
+.bead-gradient-text {
+  background: linear-gradient(
+    135deg,
+    var(--bead-red),
+    var(--bead-orange),
+    var(--bead-yellow),
+    var(--bead-green),
+    var(--bead-blue),
+    var(--bead-purple)
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bead-shadow {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -2px rgba(0, 0, 0, 0.1),
+    0 0 0 2px rgba(239, 68, 68, 0.1),
+    0 0 0 4px rgba(249, 115, 22, 0.05);
+}
+
+.pixel-render {
+  image-rendering: pixelated;
+  image-rendering: -moz-crisp-edges;
+  image-rendering: crisp-edges;
+}
