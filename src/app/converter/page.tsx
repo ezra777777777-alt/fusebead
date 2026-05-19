@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ArrowRightLeft, Search } from "lucide-react";
 import { PALETTES, findClosestColor, BRAND_NAMES } from "@/lib/bead-colors";
 import { useLang } from "@/lib/LangContext";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export default function ConverterPage() {
   const { t } = useLang();
@@ -34,6 +35,7 @@ export default function ConverterPage() {
     : mapping;
 
   return (
+    <RequireAuth>
     <div className="min-h-screen pt-16 bg-[var(--background)]">
       <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
@@ -152,5 +154,6 @@ export default function ConverterPage() {
         </div>
       </div>
     </div>
+    </RequireAuth>
   );
 }

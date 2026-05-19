@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, Undo2, Redo2, PaintBucket, Eraser, Download } from "lucide-react";
 import { PALETTES } from "@/lib/bead-colors";
 import { useLang } from "@/lib/LangContext";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 const GRID = 29;
 const CELL = 16;
@@ -191,12 +192,13 @@ export default function EditorPage() {
   grid.forEach(row => row.forEach(code => { if (code) colorCounts[code] = (colorCounts[code] || 0) + 1; }));
 
   return (
+    <RequireAuth>
     <div className="min-h-screen pt-16 bg-[var(--background)]">
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="mb-6">
           <Link href="/" className="inline-flex items-center gap-1 text-sm text-foreground/50 hover:text-foreground transition-colors mb-4">
-            <ChevronLeft className="h-4 w-4" /> Back
+            <ChevronLeft className="h-4 w-4" /> {t("common.back")}
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
             {t("editor.title")}
@@ -320,5 +322,6 @@ export default function EditorPage() {
         </div>
       </div>
     </div>
+    </RequireAuth>
   );
 }

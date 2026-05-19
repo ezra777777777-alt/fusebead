@@ -30,9 +30,15 @@ export function Navbar() {
 
           <div className="hidden md:flex items-center gap-5">
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href}
-                className="text-sm font-medium text-foreground/60 hover:text-foreground transition-colors"
-                style={{ fontFamily: "var(--font-display)" }}>{link.label}</Link>
+              user ? (
+                <Link key={link.href} href={link.href}
+                  className="text-sm font-medium text-foreground/60 hover:text-foreground transition-colors"
+                  style={{ fontFamily: "var(--font-display)" }}>{link.label}</Link>
+              ) : (
+                <button key={link.href} onClick={openAuth}
+                  className="text-sm font-medium text-foreground/60 hover:text-foreground transition-colors"
+                  style={{ fontFamily: "var(--font-display)" }}>{link.label}</button>
+              )
             ))}
             <Link href="/pricing" className="text-sm font-medium text-foreground/40 hover:text-foreground transition-colors" style={{ fontFamily: "var(--font-display)" }}>
               {lang === "zh" ? "定价" : "Pricing"}
@@ -53,11 +59,19 @@ export function Navbar() {
                 <LogIn className="h-4 w-4" /> {lang === "zh" ? "登录" : "Sign In"}
               </button>
             )}
-            <Link href="/generator"
-              className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90"
-              style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
-              {t("nav.start")}
-            </Link>
+            {user ? (
+              <Link href="/generator"
+                className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90"
+                style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
+                {t("nav.start")}
+              </Link>
+            ) : (
+              <button onClick={openAuth}
+                className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90"
+                style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
+                {t("nav.start")}
+              </button>
+            )}
           </div>
 
           <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 rounded-lg hover:bg-[var(--surface-hover)]">
@@ -68,8 +82,13 @@ export function Navbar() {
         {mobileOpen && (
           <div className="md:hidden py-4 border-t border-[var(--border)] space-y-3">
             {navLinks.map((link) => (
-              <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
-                className="block px-2 py-2 text-sm font-medium text-foreground/70" style={{ fontFamily: "var(--font-display)" }}>{link.label}</Link>
+              user ? (
+                <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
+                  className="block px-2 py-2 text-sm font-medium text-foreground/70" style={{ fontFamily: "var(--font-display)" }}>{link.label}</Link>
+              ) : (
+                <button key={link.href} onClick={() => { openAuth(); setMobileOpen(false); }}
+                  className="block px-2 py-2 text-sm font-medium text-foreground/70 w-full text-left" style={{ fontFamily: "var(--font-display)" }}>{link.label}</button>
+              )
             ))}
             <Link href="/pricing" onClick={() => setMobileOpen(false)} className="block px-2 py-2 text-sm text-foreground/50" style={{ fontFamily: "var(--font-display)" }}>
               {lang === "zh" ? "定价" : "Pricing"}

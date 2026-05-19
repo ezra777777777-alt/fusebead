@@ -10,6 +10,7 @@ import {
 import { PALETTES } from "@/lib/bead-colors";
 import { processImage, samplePixel, DEFAULT_ADJUSTMENTS, type ProcessedPattern, type ImageAdjustments } from "@/lib/image-processor";
 import { useLang } from "@/lib/LangContext";
+import { RequireAuth } from "@/components/auth/RequireAuth";
 
 type Config = { gridSize: number; dithering: boolean; maxColors: number; brand: string; };
 
@@ -177,6 +178,7 @@ export default function GeneratorPage() {
   };
 
   return (
+    <RequireAuth>
     <div className="min-h-screen pt-16 bg-[var(--background)]">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
@@ -353,5 +355,6 @@ export default function GeneratorPage() {
         </div>
       </div>
     </div>
+    </RequireAuth>
   );
 }
