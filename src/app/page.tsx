@@ -1,12 +1,13 @@
-import { Hero, Features, CTA, HowItWorks } from "@/components/landing/hero";
+import { Hero, FeatureEntryCards, PatternRecommendations, HowItWorks, CTASimplified } from "@/components/landing/hero";
 
 export default function Home() {
   return (
     <>
       <Hero />
-      <Features />
+      <FeatureEntryCards />
+      <PatternRecommendations />
       <HowItWorks />
-      <CTA />
+      <CTASimplified />
     </>
   );
 }

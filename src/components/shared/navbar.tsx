@@ -15,16 +15,17 @@ export function Navbar() {
     { href: "/generator", label: t("nav.generator") },
     { href: "/editor", label: t("nav.editor") },
     { href: "/converter", label: t("nav.converter") },
+    { href: "/gallery", label: t("nav.gallery") },
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-lg">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--primary)]/20 bg-white/80 backdrop-blur-lg">
       <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl">🧶</span>
-            <span className="text-lg font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-              FuseBead<span className="text-[var(--bead-coral)]">.art</span>
+            <span className="text-xl">🧩</span>
+            <span className="text-lg font-bold tracking-tight" style={{ fontFamily: "var(--font-display)", color: "var(--primary)" }}>
+              FuseBead<span className="text-foreground">.art</span>
             </span>
           </Link>
 
@@ -32,11 +33,11 @@ export function Navbar() {
             {navLinks.map((link) => (
               user ? (
                 <Link key={link.href} href={link.href}
-                  className="text-sm font-medium text-foreground/60 hover:text-foreground transition-colors"
+                  className="text-sm font-medium text-foreground/60 hover:text-[var(--primary)] transition-colors"
                   style={{ fontFamily: "var(--font-display)" }}>{link.label}</Link>
               ) : (
                 <button key={link.href} onClick={openAuth}
-                  className="text-sm font-medium text-foreground/60 hover:text-foreground transition-colors"
+                  className="text-sm font-medium text-foreground/60 hover:text-[var(--primary)] transition-colors"
                   style={{ fontFamily: "var(--font-display)" }}>{link.label}</button>
               )
             ))}
@@ -61,13 +62,13 @@ export function Navbar() {
             )}
             {user ? (
               <Link href="/generator"
-                className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 hover:shadow-lg hover:shadow-[var(--bead-coral)]/20"
                 style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
                 {t("nav.start")}
               </Link>
             ) : (
               <button onClick={openAuth}
-                className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90"
+                className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 hover:shadow-lg hover:shadow-[var(--bead-coral)]/20"
                 style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
                 {t("nav.start")}
               </button>
@@ -106,11 +107,19 @@ export function Navbar() {
                 <LogIn className="h-4 w-4" /> {lang === "zh" ? "登录" : "Sign In"}
               </button>
             )}
-            <Link href="/generator" onClick={() => setMobileOpen(false)}
-              className="block w-full text-center rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
-              {t("nav.start")}
-            </Link>
+            {user ? (
+              <Link href="/generator" onClick={() => setMobileOpen(false)}
+                className="block w-full text-center rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
+                {t("nav.start")}
+              </Link>
+            ) : (
+              <button onClick={() => { openAuth(); setMobileOpen(false); }}
+                className="block w-full text-center rounded-full px-5 py-2.5 text-sm font-semibold text-white"
+                style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
+                {t("nav.start")}
+              </button>
+            )}
           </div>
         )}
       </nav>

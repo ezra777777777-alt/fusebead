@@ -10,40 +10,27 @@
 }
 
 :root {
-  /* Warm bead-inspired palette — no blue-purple gradient */
-  --background: #fefaf6;
-  --foreground: #2d1b14;
-  --primary: #e8734a;
-  --accent: #f4a261;
-  --bead-coral: #e8734a;
-  --bead-amber: #f4a261;
-  --bead-sunflower: #e9c46a;
-  --bead-mint: #76c893;
-  --bead-sky: #52b2cf;
-  --bead-lavender: #b39ddb;
-  --bead-rose: #f08a8a;
-  --surface: #ffffff;
-  --surface-hover: #fef5ee;
-  --border: #f0e0d0;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #1a1410;
-    --foreground: #f5e6d8;
-    --primary: #f08c5a;
-    --accent: #f6b878;
-    --bead-coral: #f08c5a;
-    --bead-amber: #f6b878;
-    --bead-sunflower: #f0d678;
-    --bead-mint: #86d4a2;
-    --bead-sky: #6ac4dd;
-    --bead-lavender: #c4b0e8;
-    --bead-rose: #f5a0a0;
-    --surface: #241914;
-    --surface-hover: #2d1f19;
-    --border: #3d2a20;
-  }
+  --pink-primary: #FF9EB5;
+  --pink-light: #FFD1DC;
+  --blue-primary: #87CEEB;
+  --blue-light: #B8E4F0;
+  --yellow-primary: #FFE082;
+  --yellow-light: #FFF3C4;
+  --background: #FFFBFC;
+  --foreground: #5D4E5D;
+  --primary: #FF9EB5;
+  --accent: #87CEEB;
+  --bead-coral: #FF9EB5;
+  --bead-amber: #FFE082;
+  --bead-sunflower: #FFE082;
+  --bead-mint: #87CEEB;
+  --bead-sky: #87CEEB;
+  --bead-lavender: #D4B8E0;
+  --bead-rose: #FF9EB5;
+  --surface: #FFFFFF;
+  --surface-hover: #FFF0F3;
+  --border: #F5E0E8;
+  --card-shadow: 0 4px 20px rgba(255, 158, 181, 0.15);
 }
 
 html {
@@ -60,14 +47,7 @@ body {
 
 /* Bead gradient — warm rainbow across the bead spectrum */
 .bead-gradient-text {
-  background: linear-gradient(
-    135deg,
-    var(--bead-coral) 0%,
-    var(--bead-amber) 25%,
-    var(--bead-sunflower) 50%,
-    var(--bead-mint) 75%,
-    var(--bead-sky) 100%
-  );
+  background: linear-gradient(135deg, #FF9EB5, #FFE082, #87CEEB);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -75,9 +55,9 @@ body {
 
 /* Subtle bead-inspired shadow */
 .bead-shadow {
-  box-shadow: 
-    0 4px 14px -4px rgba(232, 115, 74, 0.15),
-    0 2px 8px -2px rgba(244, 162, 97, 0.1);
+  box-shadow:
+    0 4px 14px -4px rgba(255, 158, 181, 0.2),
+    0 2px 8px -2px rgba(255, 158, 181, 0.12);
 }
 
 /* Pixel rendering for bead patterns */
@@ -98,8 +78,17 @@ body {
   background: linear-gradient(135deg, var(--bead-coral), var(--bead-amber));
 }
 .gradient-mint {
-  background: linear-gradient(135deg, var(--bead-mint), var(--bead-sky));
+  background: linear-gradient(135deg, var(--blue-primary), var(--blue-light));
 }
 .gradient-warm {
   background: linear-gradient(135deg, var(--bead-sunflower), var(--bead-coral));
+}
+
+/* Hide scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
