@@ -117,7 +117,7 @@ export default function GeneratorPage() {
   const palette = PALETTES[config.brand] || PALETTES.perler;
 
   const handleImage = useCallback((file: File) => {
-    if (!file.type.startsWith("image/")) { setError("Please upload an image file (JPG, PNG, WebP)."); return; }
+    if (!file.type.startsWith("image/")) { setError(t("gen.uploadErr")); return; }
     setError(null); setPattern(null);
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -138,7 +138,7 @@ export default function GeneratorPage() {
       const h = Math.round(config.gridSize * (image.height / image.width));
       const result = await processImage(image, config.gridSize, h, colors, config.maxColors > 0 ? config.maxColors : undefined, config.dithering, adjustments);
       setPattern(result);
-    } catch { setError("Failed to process image."); }
+    } catch { setError(t("gen.error")); }
     finally { setProcessing(false); }
   }, [image, config, palette, adjustments]);
 

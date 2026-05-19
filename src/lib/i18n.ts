@@ -65,7 +65,8 @@ export const T: Record<string, Record<Lang, string>> = {
   "gen.processing": { en: "Processing...", zh: "处理中..." },
   "gen.materials": { en: "Materials List", zh: "材料清单" },
   "gen.upload": { en: "Drop image or click to upload", zh: "拖拽或点击上传图片" },
-  "gen.format": { en: "JPG, PNG, WebP", zh: "支持JPG、PNG、WebP" },
+  "gen.uploadErr": { en: "Please upload an image file (JPG, PNG, WebP).", zh: "请上传图片文件（支持JPG、PNG、WebP）" },
+  "gen.error": { en: "Failed to process image.", zh: "图片处理失败，请重试。" },
   "gen.empty": { en: "Upload an image and click Generate", zh: "上传图片后点击生成" },
   "gen.all": { en: "All", zh: "全部" },
 
