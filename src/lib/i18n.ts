@@ -1,0 +1,110 @@
+// Simple i18n — Chinese + English
+export const LANGUAGES = { en: "English", zh: "中文" } as const;
+export type Lang = keyof typeof LANGUAGES;
+
+export const T: Record<string, Record<Lang, string>> = {
+  // Nav
+  "nav.generator": { en: "Generator", zh: "生成器" },
+  "nav.editor": { en: "Editor", zh: "编辑器" },
+  "nav.converter": { en: "Converter", zh: "转换器" },
+  "nav.start": { en: "Start Creating", zh: "开始创作" },
+
+  // Home
+  "home.badge": { en: "Now with 60+ Perler colors", zh: "支持60+ Perler颜色" },
+  "home.title1": { en: "Turn", zh: "把任意图片" },
+  "home.title2": { en: "Any Image", zh: "变成拼豆图案" },
+  "home.title3": { en: "into Bead Art", zh: "" },
+  "home.subtitle": { en: "Upload a photo, pick your bead brand, and get a pixel-perfect pattern with color-matched materials list. No sign-up. No limits. Just beads.", zh: "上传照片，选择品牌，立即生成像素级拼豆图案和材料清单。无需注册，完全免费。" },
+  "home.cta": { en: "Start Creating", zh: "开始创作" },
+  "home.how": { en: "How It Works", zh: "了解更多" },
+  "home.stat1": { en: "Perler Colors", zh: "色号支持" },
+  "home.stat2": { en: "Free Generations", zh: "免费生成" },
+  "home.stat3": { en: "Sign-up Required", zh: "无需注册" },
+  "home.feature_title": { en: "Features", zh: "产品特性" },
+  "home.feature_sub": { en: "Everything you need to turn your favorite images into bead art. No design skills required — just upload and create.", zh: "把喜欢的照片变成拼豆艺术品的全套工具。无需设计技能——上传即可创作。" },
+
+  // Features
+  "feat.upload.title": { en: "Upload Any Image", zh: "上传任意图片" },
+  "feat.upload.desc": { en: "Drop in a photo, drawing, or screenshot. JPG, PNG, WebP — we handle them all.", zh: "拖入照片、手绘或截图。支持JPG、PNG、WebP格式。" },
+  "feat.match.title": { en: "Smart Color Matching", zh: "智能颜色匹配" },
+  "feat.match.desc": { en: "60 authentic Perler colors with weighted color-distance matching. Floyd-Steinberg dithering for smooth gradients.", zh: "60色Perler官方色库，加权色差匹配算法，Floyd-Steinberg抖动保留渐变细节。" },
+  "feat.preview.title": { en: "Adjust & Preview", zh: "实时调节预览" },
+  "feat.preview.desc": { en: "Tweak grid size from 20 to 150 beads wide. Limit colors. Toggle dithering. Real-time preview.", zh: "网格20-150可调。颜色上限。抖动开关。所见即所得。" },
+  "feat.export.title": { en: "Materials List + Export", zh: "材料清单+导出" },
+  "feat.export.desc": { en: "Get a bead-by-bead count for every color. Export as PNG or PDF to take to your craft table.", zh: "每种颜色精确计数。导出PNG或PDF，带网格线和色号标注。" },
+  "feat.brands.title": { en: "Multi-Brand Support", zh: "多品牌支持" },
+  "feat.brands.desc": { en: "Perler, Hama, Artkal — 180+ colors across 3 brands. Cross-brand color converter included.", zh: "Perler、Hama、Artkal三大品牌，180+色全覆盖。内置跨品牌色号转换器。" },
+  "feat.free.title": { en: "Free & Unlimited", zh: "永久免费" },
+  "feat.free.desc": { en: "No sign-up. No credit card. No watermarks. Generate as many patterns as you want.", zh: "无需注册、无需付费、无水印。无限生成。" },
+
+  // CTA
+  "cta.title": { en: "Ready to Make Something Beautiful?", zh: "准备好开始创作了吗？" },
+  "cta.sub": { en: "No sign-up. No limits. Just upload and create.", zh: "无需注册，完全免费。上传即可创作。" },
+  "cta.btn": { en: "Start Creating Free", zh: "免费开始创作" },
+
+  // Generator
+  "gen.title": { en: "Pattern Generator", zh: "图案生成器" },
+  "gen.sub": { en: "Upload an image and convert it into a bead pattern.", zh: "上传图片，一键转化为拼豆图案。" },
+  "gen.quick": { en: "Quick start", zh: "快速预设" },
+  "gen.heart": { en: "Heart", zh: "爱心" },
+  "gen.cat": { en: "Cat Face", zh: "猫脸" },
+  "gen.star": { en: "Star", zh: "星星" },
+  "gen.flower": { en: "Flower", zh: "花朵" },
+  "gen.settings": { en: "Settings", zh: "设置" },
+  "gen.brand": { en: "Brand", zh: "品牌" },
+  "gen.grid": { en: "Grid Size", zh: "网格大小" },
+  "gen.colors": { en: "Max Colors", zh: "最大颜色数" },
+  "gen.dithering": { en: "Dithering", zh: "抖动算法" },
+  "gen.adjustments": { en: "Image Adjustments", zh: "图片调整" },
+  "gen.brightness": { en: "Brightness", zh: "亮度" },
+  "gen.contrast": { en: "Contrast", zh: "对比度" },
+  "gen.saturation": { en: "Saturation", zh: "饱和度" },
+  "gen.removeBg": { en: "Remove Background", zh: "去除背景" },
+  "gen.pickBg": { en: "Click image to pick bg color", zh: "点击图片取背景色" },
+  "gen.generate": { en: "Generate Pattern", zh: "生成图案" },
+  "gen.processing": { en: "Processing...", zh: "处理中..." },
+  "gen.materials": { en: "Materials List", zh: "材料清单" },
+  "gen.upload": { en: "Drop image or click to upload", zh: "拖拽或点击上传图片" },
+  "gen.format": { en: "JPG, PNG, WebP", zh: "支持JPG、PNG、WebP" },
+  "gen.empty": { en: "Upload an image and click Generate", zh: "上传图片后点击生成" },
+  "gen.all": { en: "All", zh: "全部" },
+
+  // Editor
+  "editor.title": { en: "Pixel Editor", zh: "像素编辑器" },
+  "editor.sub": { en: "Draw your own bead pattern on a 29×29 grid.", zh: "在29×29网格上自由绘制拼豆图案。" },
+  "editor.paint": { en: "Paint", zh: "画笔" },
+  "editor.fill": { en: "Fill", zh: "填充" },
+  "editor.erase": { en: "Erase", zh: "橡皮" },
+  "editor.undo": { en: "Undo", zh: "撤销" },
+  "editor.redo": { en: "Redo", zh: "重做" },
+  "editor.colors": { en: "Colors", zh: "颜色" },
+  "editor.export": { en: "Export PNG", zh: "导出PNG" },
+  "editor.clear": { en: "Clear All", zh: "清空画布" },
+  "editor.count": { en: "Bead Count", zh: "珠子统计" },
+
+  // Converter
+  "conv.title": { en: "Color Converter", zh: "颜色转换器" },
+  "conv.sub": { en: "Cross-reference bead colors between Perler, Hama, and Artkal brands.", zh: "跨品牌拼豆颜色对照转换。" },
+  "conv.search": { en: "Search color name...", zh: "搜索颜色名称..." },
+  "conv.good": { en: "Good match", zh: "精准匹配" },
+  "conv.ok": { en: "OK match", zh: "接近匹配" },
+  "conv.poor": { en: "Poor match", zh: "偏差较大" },
+  "conv.summary": { en: "Colors matched using weighted RGB distance algorithm.", zh: "颜色匹配使用加权RGB色差算法。" },
+
+  // Common
+  "common.back": { en: "Back", zh: "返回" },
+  "common.coming": { en: "Coming soon", zh: "即将上线" },
+  "common.free": { en: "Free", zh: "免费" },
+  "common.unlimited": { en: "Unlimited", zh: "无限" },
+  "common.colors": { en: "colors", zh: "色" },
+  "common.download": { en: "Download PNG", zh: "下载PNG" },
+  "common.pdf": { en: "Download PDF", zh: "下载PDF" },
+
+  // Footer
+  "footer.desc": { en: "Free online Perler bead pattern maker. Turn any image into a printable bead pattern in seconds.", zh: "免费在线拼豆图案生成器。上传任意图片，秒变可打印的拼豆图案。" },
+  "footer.tools": { en: "Tools", zh: "工具" },
+  "footer.about": { en: "About", zh: "关于" },
+  "footer.aboutText": { en: "Built with love for the bead art community. Support for Perler, Hama, Artkal, and MARD color palettes.", zh: "为拼豆艺术社区打造。支持Perler、Hama、Artkal、MARD品牌色库。" },
+  "footer.copyright": { en: "Free for everyone", zh: "所有人免费使用" },
+  "footer.made": { en: "Made with", zh: "为手工社区用心打造" },
+};
