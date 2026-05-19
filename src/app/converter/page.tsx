@@ -4,8 +4,10 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, ArrowRightLeft, Search } from "lucide-react";
 import { PALETTES, findClosestColor, BRAND_NAMES } from "@/lib/bead-colors";
+import { useLang } from "@/lib/LangContext";
 
 export default function ConverterPage() {
+  const { t } = useLang();
   const [fromBrand, setFromBrand] = useState("perler");
   const [toBrand, setToBrand] = useState("hama");
   const [search, setSearch] = useState("");
@@ -67,7 +69,7 @@ export default function ConverterPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30" />
             <input
               type="text"
-              placeholder="Search color name..."
+              placeholder={t("conv.search")}
               value={search}
               onChange={e => setSearch(e.target.value)}
               className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-3 py-2.5 text-sm"
@@ -78,13 +80,13 @@ export default function ConverterPage() {
         {/* Legend */}
         <div className="flex items-center gap-6 mb-4 text-xs text-foreground/40">
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-green-400" /> Good match
+            <span className="w-2.5 h-2.5 rounded-full bg-green-400" /> {t("conv.good")}
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" /> OK match
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" /> {t("conv.ok")}
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-400" /> Poor match
+            <span className="w-2.5 h-2.5 rounded-full bg-red-400" /> {t("conv.poor")}
           </span>
         </div>
 
@@ -148,7 +150,7 @@ export default function ConverterPage() {
         {/* Summary */}
         <div className="mt-4 text-center text-xs text-foreground/30">
           Showing {filtered.length} of {mapping.length} color mappings. 
-          Colors matched using weighted RGB distance algorithm.
+          {t("conv.summary")}
         </div>
       </div>
     </div>

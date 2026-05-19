@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { PALETTES } from "@/lib/bead-colors";
 import { processImage, samplePixel, DEFAULT_ADJUSTMENTS, type ProcessedPattern, type ImageAdjustments } from "@/lib/image-processor";
+import { useLang } from "@/lib/LangContext";
 
 type Config = { gridSize: number; dithering: boolean; maxColors: number; brand: string; };
 
@@ -99,6 +100,7 @@ function generatePDF(pattern: ProcessedPattern, brand: string) {
 }
 
 export default function GeneratorPage() {
+  const { t } = useLang();
   const [image, setImage] = useState<HTMLImageElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [pattern, setPattern] = useState<ProcessedPattern | null>(null);
@@ -182,18 +184,18 @@ export default function GeneratorPage() {
             <ChevronLeft className="h-4 w-4" /> Back
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-            Pattern Generator
+            {t("gen.title")}
           </h1>
-          <p className="text-sm text-foreground/50 mt-1">Upload an image and convert it into a bead pattern.</p>
+          <p className="text-sm text-foreground/50 mt-1">{t("gen.sub")}</p>
         </div>
 
         {/* Templates */}
         <div className="mb-6 flex flex-wrap gap-2">
-          <span className="text-xs text-foreground/40 self-center mr-1">Quick start:</span>
-          {TEMPLATES.map(t => (
-            <button key={t.name} onClick={() => setConfig(c => ({ ...c, gridSize: t.gridSize, maxColors: t.maxColors, dithering: t.dithering }))}
+          <span className="text-xs text-foreground/40 self-center mr-1">{t("gen.quick")}:</span>
+          {TEMPLATES.map(tmpl => (
+            <button key={tmpl.name} onClick={() => setConfig(c => ({ ...c, gridSize: tmpl.gridSize, maxColors: tmpl.maxColors, dithering: tmpl.dithering }))}
               className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs hover:bg-[var(--surface-hover)] transition-colors"
-            >{t.emoji} {t.name}</button>
+            >{tmpl.emoji} {t(tmpl.name)}</button>
           ))}
         </div>
 
@@ -318,7 +320,7 @@ export default function GeneratorPage() {
               <div className="rounded-2xl border border-[var(--border)] p-5">
                 <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
                   <h3 className="text-sm font-semibold" style={{ fontFamily: "var(--font-display)" }}>
-                    Materials ({Object.keys(pattern.colorCounts).length} colors)
+                    {t("gen.materials")} ({Object.keys(pattern.colorCounts).length} {t("common.colors")})
                   </h3>
                   <div className="flex gap-2">
                     <button onClick={() => generatePDF(pattern, config.brand)}

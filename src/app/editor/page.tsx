@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { ChevronLeft, Undo2, Redo2, PaintBucket, Eraser, Download } from "lucide-react";
 import { PALETTES } from "@/lib/bead-colors";
+import { useLang } from "@/lib/LangContext";
 
 const GRID = 29;
 const CELL = 16;
@@ -16,6 +17,7 @@ interface HistoryEntry {
 }
 
 export default function EditorPage() {
+  const { t } = useLang();
   const [brand, setBrand] = useState("perler");
   const palette = PALETTES[brand] || PALETTES.perler;
   
@@ -197,9 +199,9 @@ export default function EditorPage() {
             <ChevronLeft className="h-4 w-4" /> Back
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
-            Pixel Editor
+            {t("editor.title")}
           </h1>
-          <p className="text-sm text-foreground/50 mt-1">Draw your own bead pattern on a 29×29 grid.</p>
+          <p className="text-sm text-foreground/50 mt-1">{t("editor.sub")}</p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -207,7 +209,7 @@ export default function EditorPage() {
           <div className="lg:col-span-1 space-y-4">
             {/* Brand selector */}
             <div>
-              <label className="text-xs text-foreground/50 mb-1 block">Brand</label>
+              <label className="text-xs text-foreground/50 mb-1 block">{t("gen.brand")}</label>
               <select
                 value={brand}
                 onChange={e => setBrand(e.target.value)}
@@ -222,9 +224,9 @@ export default function EditorPage() {
             {/* Tools */}
             <div className="flex gap-2">
               {([
-                ["paint", PaintBucket, "Paint"],
-                ["fill", PaintBucket, "Fill"],
-                ["erase", Eraser, "Erase"],
+                ["paint", PaintBucket, t("editor.paint")],
+                ["fill", PaintBucket, t("editor.fill")],
+                ["erase", Eraser, t("editor.erase")],
               ] as const).map(([t, Icon, label]) => (
                 <button
                   key={t}
@@ -244,16 +246,16 @@ export default function EditorPage() {
             {/* Undo/Redo */}
             <div className="flex gap-2">
               <button onClick={undo} disabled={historyIdx < 0} className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-xs disabled:opacity-30">
-                <Undo2 className="h-3.5 w-3.5" /> Undo
+                <Undo2 className="h-3.5 w-3.5" /> {t("editor.undo")}
               </button>
               <button onClick={redo} disabled={historyIdx >= history.length - 1} className="flex-1 flex items-center justify-center gap-1 rounded-lg border border-[var(--border)] px-3 py-2 text-xs disabled:opacity-30">
-                <Redo2 className="h-3.5 w-3.5" /> Redo
+                <Redo2 className="h-3.5 w-3.5" /> {t("editor.redo")}
               </button>
             </div>
 
             {/* Color palette */}
             <div>
-              <p className="text-xs text-foreground/50 mb-2">Colors ({palette.colors.length})</p>
+              <p className="text-xs text-foreground/50 mb-2">{t("editor.colors")} ({palette.colors.length})</p>
               <div className="grid grid-cols-6 gap-1 max-h-64 overflow-y-auto pr-1">
                 {palette.colors.map(([code, name, r, g, b]) => (
                   <button
@@ -272,10 +274,10 @@ export default function EditorPage() {
             {/* Actions */}
             <div className="space-y-2">
               <button onClick={exportPNG} className="w-full flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold text-white" style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
-                <Download className="h-4 w-4" /> Export PNG
+                <Download className="h-4 w-4" /> {t("editor.export")}
               </button>
               <button onClick={clearAll} className="w-full rounded-full border border-[var(--border)] px-4 py-2 text-sm text-foreground/50 hover:text-foreground transition-colors">
-                Clear All
+                {t("editor.clear")}
               </button>
             </div>
 
@@ -283,7 +285,7 @@ export default function EditorPage() {
             {Object.keys(colorCounts).length > 0 && (
               <div className="rounded-xl border border-[var(--border)] p-3">
                 <p className="text-xs font-semibold mb-2" style={{ fontFamily: "var(--font-display)" }}>
-                  Bead Count ({Object.keys(colorCounts).length} colors)
+                  {t("editor.count")} ({Object.keys(colorCounts).length} {t("common.colors")})
                 </p>
                 <div className="space-y-1 max-h-48 overflow-y-auto">
                   {Object.entries(colorCounts).sort((a, b) => b[1] - a[1]).map(([code, count]) => {
