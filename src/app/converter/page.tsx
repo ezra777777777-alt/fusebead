@@ -1,19 +1,155 @@
+"use client";
+
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { ChevronLeft, Palette } from "lucide-react";
+import { ChevronLeft, ArrowRightLeft, Search } from "lucide-react";
+import { PALETTES, findClosestColor, BRAND_NAMES } from "@/lib/bead-colors";
 
 export default function ConverterPage() {
+  const [fromBrand, setFromBrand] = useState("perler");
+  const [toBrand, setToBrand] = useState("hama");
+  const [search, setSearch] = useState("");
+
+  const fromColors = PALETTES[fromBrand]?.colors || [];
+  const toColors = PALETTES[toBrand]?.colors || [];
+
+  // Build cross-reference map
+  const mapping = useMemo(() => {
+    return fromColors.map(from => {
+      const match = findClosestColor([from[2], from[3], from[4]], toColors);
+      const dist = Math.sqrt(
+        (from[2] - match[2]) ** 2 + (from[3] - match[3]) ** 2 + (from[4] - match[4]) ** 2
+      );
+      return { from, to: match, distance: Math.round(dist * 10) / 10 };
+    });
+  }, [fromBrand, toBrand, fromColors, toColors]);
+
+  const filtered = search
+    ? mapping.filter(m =>
+        m.from[1].toLowerCase().includes(search.toLowerCase()) ||
+        m.from[0].toLowerCase().includes(search.toLowerCase())
+      )
+    : mapping;
+
   return (
-    <div className="min-h-screen pt-16 flex items-center justify-center">
-      <div className="text-center px-4">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1 text-sm text-foreground/50 hover:text-foreground mb-6"
-        >
-          <ChevronLeft className="h-4 w-4" /> Back
-        </Link>
-        <Palette className="h-16 w-16 mx-auto text-foreground/20 mb-4" />
-        <h1 className="text-3xl font-bold mb-2">Color Converter</h1>
-        <p className="text-foreground/60">Coming soon. Convert color codes between Perler, Hama, Artkal, and MARD brands.</p>
+    <div className="min-h-screen pt-16 bg-[var(--background)]">
+      <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-8">
+          <Link href="/" className="inline-flex items-center gap-1 text-sm text-foreground/50 hover:text-foreground transition-colors mb-4">
+            <ChevronLeft className="h-4 w-4" /> Back
+          </Link>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2" style={{ fontFamily: "var(--font-display)" }}>
+            Color Converter
+          </h1>
+          <p className="text-sm text-foreground/50">
+            Cross-reference bead colors between Perler, Hama, and Artkal brands.
+          </p>
+        </div>
+
+        {/* Brand selectors */}
+        <div className="flex flex-col sm:flex-row items-center gap-3 mb-8">
+          {(["from", "to"] as const).map((dir) => (
+            <select
+              key={dir}
+              value={dir === "from" ? fromBrand : toBrand}
+              onChange={e => dir === "from" ? setFromBrand(e.target.value) : setToBrand(e.target.value)}
+              className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {Object.keys(PALETTES).map(k => (
+                <option key={k} value={k}>{PALETTES[k].name} ({PALETTES[k].colors.length} colors)</option>
+              ))}
+            </select>
+          ))}
+          <ArrowRightLeft className="h-5 w-5 text-foreground/30 shrink-0" />
+          <div className="relative flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30" />
+            <input
+              type="text"
+              placeholder="Search color name..."
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] pl-9 pr-3 py-2.5 text-sm"
+            />
+          </div>
+        </div>
+
+        {/* Legend */}
+        <div className="flex items-center gap-6 mb-4 text-xs text-foreground/40">
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-green-400" /> Good match
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-yellow-400" /> OK match
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-red-400" /> Poor match
+          </span>
+        </div>
+
+        {/* Mapping table */}
+        <div className="rounded-2xl border border-[var(--border)] overflow-hidden">
+          {/* Table header */}
+          <div className="grid grid-cols-[1fr_40px_1fr] bg-[var(--surface)] border-b border-[var(--border)] px-4 py-3 text-xs font-semibold text-foreground/40 uppercase tracking-wider" style={{ fontFamily: "var(--font-display)" }}>
+            <span>{BRAND_NAMES[fromBrand as keyof typeof BRAND_NAMES] || fromBrand}</span>
+            <span className="text-center">→</span>
+            <span>{BRAND_NAMES[toBrand as keyof typeof BRAND_NAMES] || toBrand}</span>
+          </div>
+
+          {/* Rows */}
+          <div className="max-h-[60vh] overflow-y-auto">
+            {filtered.map(({ from, to, distance }) => {
+              const matchQuality = distance < 30 ? "good" : distance < 70 ? "ok" : "poor";
+              const qualityColor = matchQuality === "good" ? "bg-green-400/20 text-green-600" : matchQuality === "ok" ? "bg-yellow-400/20 text-yellow-600" : "bg-red-400/20 text-red-600";
+              
+              return (
+                <div
+                  key={from[0]}
+                  className="grid grid-cols-[1fr_40px_1fr] border-b border-[var(--border)] last:border-0 px-4 py-2.5 items-center hover:bg-[var(--surface-hover)] transition-colors"
+                >
+                  {/* Source */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className="w-6 h-6 rounded-md shrink-0 border border-black/5"
+                      style={{ backgroundColor: `rgb(${from[2]},${from[3]},${from[4]})` }}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{from[1]}</p>
+                      <p className="text-xs text-foreground/30">{from[0]}</p>
+                    </div>
+                  </div>
+
+                  {/* Arrow + quality */}
+                  <div className="flex flex-col items-center gap-0.5">
+                    <span className="text-foreground/20 text-xs">→</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${qualityColor}`}>
+                      {distance}
+                    </span>
+                  </div>
+
+                  {/* Match */}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span
+                      className="w-6 h-6 rounded-md shrink-0 border border-black/5"
+                      style={{ backgroundColor: `rgb(${to[2]},${to[3]},${to[4]})` }}
+                    />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{to[1]}</p>
+                      <p className="text-xs text-foreground/30">{to[0]}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Summary */}
+        <div className="mt-4 text-center text-xs text-foreground/30">
+          Showing {filtered.length} of {mapping.length} color mappings. 
+          Colors matched using weighted RGB distance algorithm.
+        </div>
       </div>
     </div>
   );

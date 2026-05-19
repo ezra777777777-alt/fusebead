@@ -14,13 +14,14 @@ import {
   ChevronLeft,
   Loader2,
 } from "lucide-react";
-import { PERLER_COLORS } from "@/lib/bead-colors";
+import { PALETTES } from "@/lib/bead-colors";
 import { processImage, type ProcessedPattern } from "@/lib/image-processor";
 
 type Config = {
   gridSize: number;
   dithering: boolean;
   maxColors: number;
+  brand: string;
 };
 
 export default function GeneratorPage() {
@@ -33,6 +34,7 @@ export default function GeneratorPage() {
     gridSize: 50,
     dithering: true,
     maxColors: 0,
+    brand: "perler",
   });
   const [showSettings, setShowSettings] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -63,7 +65,8 @@ export default function GeneratorPage() {
     setError(null);
 
     try {
-      const colors = PERLER_COLORS as unknown as [string, string, number, number, number][];
+      const palette = PALETTES[config.brand] || PALETTES.perler;
+      const colors = palette.colors;
       const h = Math.round(config.gridSize * (image.height / image.width));
       const result = await processImage(
         image,
@@ -86,7 +89,8 @@ export default function GeneratorPage() {
     if (!pattern || !canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d")!;
-    const colors = PERLER_COLORS as unknown as [string, string, number, number, number][];
+    const palette = PALETTES[config.brand] || PALETTES.perler;
+    const colors = palette.colors;
     const pixelSize = 8;
 
     canvas.width = pattern.width * pixelSize;
@@ -223,6 +227,22 @@ export default function GeneratorPage() {
                 >
                   <div>
                     <label className="flex items-center gap-2 text-xs text-foreground/60 mb-1.5">
+                      <Palette className="h-3.5 w-3.5" />
+                      Brand
+                    </label>
+                    <select
+                      value={config.brand}
+                      onChange={(e) => setConfig({ ...config, brand: e.target.value })}
+                      className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm"
+                    >
+                      {Object.entries(PALETTES).map(([key, p]) => (
+                        <option key={key} value={key}>{p.name} ({p.colors.length} colors)</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="flex items-center gap-2 text-xs text-foreground/60 mb-1.5">
                       <Grid3X3 className="h-3.5 w-3.5" />
                       Grid Size: {config.gridSize}×{Math.round(config.gridSize * (image?.height || 1) / (image?.width || 1))}
                     </label>
@@ -339,7 +359,7 @@ export default function GeneratorPage() {
                   {Object.entries(pattern.colorCounts)
                     .sort((a, b) => b[1] - a[1])
                     .map(([code, count]) => {
-                      const c = (PERLER_COLORS as unknown as [string, string, number, number, number][]).find(
+                      const c = (PALETTES[config.brand] || PALETTES.perler).colors.find(
                         (c) => c[0] === code
                       );
                       if (!c) return null;
