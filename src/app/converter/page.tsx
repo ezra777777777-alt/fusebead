@@ -42,11 +42,9 @@ export default function ConverterPage() {
             <ChevronLeft className="h-4 w-4" /> Back
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2" style={{ fontFamily: "var(--font-display)" }}>
-            Color Converter
+            {t("conv.title")}
           </h1>
-          <p className="text-sm text-foreground/50">
-            Cross-reference bead colors between Perler, Hama, and Artkal brands.
-          </p>
+          <p className="text-sm text-foreground/50">{t("conv.sub")}</p>
         </div>
 
         {/* Brand selectors */}

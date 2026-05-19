@@ -1,6 +1,4 @@
-import { Hero } from "@/components/landing/hero";
-import { Features } from "@/components/landing/features";
-import { CTA } from "@/components/landing/cta";
+import { Hero, Features, CTA } from "@/components/landing/hero";
 
 export default function Home() {
   return (
