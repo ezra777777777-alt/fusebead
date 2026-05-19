@@ -228,7 +228,7 @@ export default function GeneratorPage() {
             {/* Settings */}
             <div className="rounded-2xl border border-[var(--border)] p-4 space-y-3">
               <button onClick={() => setShowSettings(!showSettings)} className="flex items-center justify-between w-full text-sm font-medium">
-                <span className="flex items-center gap-2"><Settings2 className="h-4 w-4" /> Settings</span>
+                <span className="flex items-center gap-2"><Settings2 className="h-4 w-4" /> {t("gen.settings")}</span>
                 <span className="text-foreground/40">{showSettings ? "▲" : "▼"}</span>
               </button>
               {showSettings && (
@@ -245,7 +245,7 @@ export default function GeneratorPage() {
                     <input type="range" min={20} max={150} value={config.gridSize} onChange={e => setConfig({ ...config, gridSize: Number(e.target.value) })} className="w-full accent-[var(--bead-coral)]" />
                   </div>
                   <div>
-                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Palette className="h-3.5 w-3.5" /> Max Colors: {config.maxColors > 0 ? config.maxColors : "All"}</label>
+                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Palette className="h-3.5 w-3.5" /> {t("gen.colors")}: {config.maxColors > 0 ? config.maxColors : t("gen.all")}</label>
                     <input type="range" min={0} max={30} step={2} value={config.maxColors} onChange={e => setConfig({ ...config, maxColors: Number(e.target.value) })} className="w-full accent-[var(--bead-coral)]" />
                   </div>
                   <label className="flex items-center justify-between text-sm"><span>Dithering</span>
@@ -257,7 +257,7 @@ export default function GeneratorPage() {
             {/* Image Adjustments */}
             <div className="rounded-2xl border border-[var(--border)] p-4 space-y-3">
               <button onClick={() => setShowAdjustments(!showAdjustments)} className="flex items-center justify-between w-full text-sm font-medium">
-                <span className="flex items-center gap-2"><Sun className="h-4 w-4" /> Image Adjustments</span>
+                <span className="flex items-center gap-2"><Sun className="h-4 w-4" /> {t("gen.adjustments")}</span>
                 <span className="text-foreground/40">{showAdjustments ? "▲" : "▼"}</span>
               </button>
               {showAdjustments && (
@@ -277,7 +277,7 @@ export default function GeneratorPage() {
                   <div>
                     <button onClick={() => setEyedropperActive(!eyedropperActive)}
                       className={`flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border transition-all ${eyedropperActive ? "border-[var(--bead-coral)] bg-[var(--bead-coral)]/10 text-[var(--bead-coral)]" : "border-[var(--border)] text-foreground/50"}`}>
-                      <Pipette className="h-3.5 w-3.5" /> {eyedropperActive ? "Click image to pick bg color" : "Remove Background"}
+                      <Pipette className="h-3.5 w-3.5" /> {eyedropperActive ? t("gen.pickBg") : t("gen.removeBg")}
                     </button>
                     {adjustments.removeBg && (
                       <div className="flex items-center gap-2 mt-2">
