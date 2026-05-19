@@ -43,7 +43,9 @@ export function Navbar() {
             </button>
             {user ? (
               <div className="flex items-center gap-2">
-                <span className="text-xs text-foreground/50 bg-[var(--surface-hover)] px-2 py-1 rounded-full">{user.name}</span>
+                <Link href="/dashboard" className="text-xs text-foreground/50 bg-[var(--surface-hover)] px-2 py-1 rounded-full hover:text-foreground transition-colors" style={{ fontFamily: "var(--font-display)" }}>
+                  {user.name}
+                </Link>
                 <button onClick={logout} className="text-xs text-foreground/40 hover:text-foreground">{lang === "zh" ? "退出" : "Logout"}</button>
               </div>
             ) : (

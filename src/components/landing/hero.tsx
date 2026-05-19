@@ -103,3 +103,33 @@ export function CTA() {
     </section>
   );
 }
+
+export function HowItWorks() {
+  const { t, lang } = useLang();
+  const steps = [
+    { n: "01", icon: "📤", en: "Upload any photo, drawing, or screenshot.", zh: "上传任意照片、手绘或截图。" },
+    { n: "02", icon: "🎨", en: "Our engine matches every pixel to real bead colors.", zh: "智能算法将每个像素匹配到真实拼豆颜色。" },
+    { n: "03", icon: "📦", en: "Download your pattern as PNG or PDF with materials list.", zh: "下载PNG或PDF，附带完整材料清单。" },
+  ];
+  return (
+    <section id="how-it-works" className="py-24 sm:py-32 bg-[var(--surface)] border-y border-[var(--border)]">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4" style={{ fontFamily: "var(--font-display)" }}>
+            {lang === "zh" ? "三步完成" : "Three steps."}<br />
+            <span className="text-foreground/30">{lang === "zh" ? "零学习成本。" : "Zero learning curve."}</span>
+          </h2>
+        </motion.div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+          {steps.map((step, i) => (
+            <motion.div key={step.n} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="text-center">
+              <div className="text-5xl sm:text-6xl font-bold opacity-[0.06] mb-4" style={{ fontFamily: "var(--font-display)", color: "var(--bead-coral)" }}>{step.n}</div>
+              <div className="text-3xl mb-3">{step.icon}</div>
+              <p className="text-sm text-foreground/50 leading-relaxed">{lang === "zh" ? step.zh : step.en}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
