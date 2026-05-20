@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ChevronLeft, Undo2, Redo2, PaintBucket, Eraser, Download, Share2, Pencil, Loader2, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
@@ -41,7 +41,7 @@ function downsampleGrid(grid: string[][], targetSize: number): string[][] {
   return result;
 }
 
-export default function EditorPage() {
+function EditorContent() {
   const { t, lang } = useLang();
   const { isPro, showPrompt, openPrompt, closePrompt } = usePro();
   const { user, openAuth } = useAuth();
@@ -618,5 +618,17 @@ export default function EditorPage() {
       />
     )}
     </RequireAuth>
+  );
+}
+
+export default function EditorPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen pt-16 flex items-center justify-center bg-[var(--background)]">
+        <div className="animate-pulse text-foreground/30 text-sm">Loading...</div>
+      </div>
+    }>
+      <EditorContent />
+    </Suspense>
   );
 }
