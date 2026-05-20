@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/lib/AuthContext";
 import { useLang } from "@/lib/LangContext";
@@ -8,29 +8,30 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   ArrowRight, Grid3X3, Palette, Download, Settings, LogOut, Crown,
-  Heart, Camera, X, Trash2,
+  Heart, Camera, X, Trash2, Receipt, Loader2,
 } from "lucide-react";
+import { api } from "@/lib/api";
+import { OrderHistory } from "@/components/dashboard/OrderHistory";
+import { Pagination } from "@/components/shared/Pagination";
 
-// Mock pattern data for user's own patterns
-const MOCK_MY_PATTERNS = [
-  { id: "a1", title: { en: "My Cat", zh: "我的小猫" }, likes: 12, downloads: 5, createdAt: "2026-05-19",
-    thumbnail: [["#FFD1DC","","#5D4E5D","#5D4E5D","","#FFD1DC"],["","#FFE082","#FFD1DC","#FFD1DC","#FFE082",""],["","#FFD1DC","#87CEEB","#87CEEB","#FFD1DC",""],["","","#FF9EB5","#FF9EB5","","",""]] },
-  { id: "a2", title: { en: "Rainbow Heart", zh: "彩虹心" }, likes: 8, downloads: 3, createdAt: "2026-05-18",
-    thumbnail: [["","#FF9EB5","","","","#FF9EB5",""],["#FF9EB5","#FFD1DC","#FFE082","#FFE082","#FFD1DC","#FF9EB5",""],["","#FFD1DC","#87CEEB","#87CEEB","#FFD1DC","",""],["","","#D4B8E0","#D4B8E0","","",""]] },
-  { id: "a3", title: { en: "Happy Star", zh: "开心星" }, likes: 15, downloads: 7, createdAt: "2026-05-17",
-    thumbnail: [["","","#FFE082","#FFE082","","",""],["","#FFE082","#FFE082","#FFE082","#FFE082","",""],["#FFE082","#FFE082","#FF9EB5","#FF9EB5","#FFE082","#FFE082",""],["","#FFE082","#FFE082","#FFE082","#FFE082","",""],["","","#FFE082","#FFE082","","",""]] },
-  { id: "a4", title: { en: "Blue Whale", zh: "蓝鲸" }, likes: 20, downloads: 11, createdAt: "2026-05-16",
-    thumbnail: [["","","#87CEEB","#87CEEB","","",""],["","#87CEEB","#B8E4F0","#B8E4F0","#87CEEB","",""],["#87CEEB","#B8E4F0","#87CEEB","#87CEEB","#B8E4F0","#87CEEB",""],["","#87CEEB","#B8E4F0","#B8E4F0","#87CEEB","",""],["","","#87CEEB","#87CEEB","","",""]] },
-];
-
-const MOCK_MY_FAVORITES = [
-  { id: "3", title: { en: "Sakura", zh: "樱花" }, author: "SakuraArt", likes: 89, downloads: 34,
-    thumbnail: [["","#FF9EB5","","","#FF9EB5",""],["#FF9EB5","#FFD1DC","#FF9EB5","#FF9EB5","#FFD1DC","#FF9EB5"],["","","#87CEEB","#87CEEB","",""],["","#B8E4F0","","#FF9EB5","","#B8E4F0",""]] },
-  { id: "2", title: { en: "Pikachu", zh: "皮卡丘" }, author: "PikaFan", likes: 456, downloads: 167,
-    thumbnail: [["","#FFE082","#FFE082","#FFE082","#FFE082",""],["#FFE082","#5D4E5D","#FFE082","#FFE082","#5D4E5D","#FFE082"],["#FFE082","#FFE082","#D4B8E0","#D4B8E0","#FFE082","#FFE082"],["","#FFE082","#FFE082","#FFE082","#FFE082",""]] },
-  { id: "6", title: { en: "Unicorn", zh: "独角兽" }, author: "MagicBead", likes: 523, downloads: 201,
-    thumbnail: [["","","#FFD1DC","#FFD1DC","",""],["","#FFD1DC","#FFD1DC","#FFD1DC","#FFD1DC",""],["#D4B8E0","#FFD1DC","#FFD1DC","#FFD1DC","#FFD1DC","#D4B8E0"],["","","#FF9EB5","#87CEEB","",""]] },
-];
+function thumbnailFromGrid(gridData: string, maxSize = 8): string[][] {
+  try {
+    const grid: string[][] = JSON.parse(gridData);
+    if (!grid.length) return [];
+    const step = Math.max(1, Math.floor(grid.length / maxSize));
+    const result: string[][] = [];
+    for (let y = 0; y < grid.length && result.length < maxSize; y += step) {
+      const row: string[] = [];
+      const rowLen = grid[y].length;
+      const colStep = Math.max(1, Math.floor(rowLen / maxSize));
+      for (let x = 0; x < rowLen && row.length < maxSize; x += colStep) {
+        row.push(grid[y][x] || "");
+      }
+      result.push(row);
+    }
+    return result;
+  } catch { return []; }
+}
 
 export default function DashboardPage() {
   const { user, logout } = useAuth();
@@ -38,7 +39,40 @@ export default function DashboardPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"patterns" | "favorites">("patterns");
+  const [activeTab, setActiveTab] = useState<"patterns" | "favorites" | "orders">("patterns");
+  const [patternPage, setPatternPage] = useState(1);
+  const [favoritePage, setFavoritePage] = useState(1);
+  const DASH_PAGE_SIZE = 9;
+
+  // Real data
+  const [myPatterns, setMyPatterns] = useState<any[]>([]);
+  const [myFavorites, setMyFavorites] = useState<any[]>([]);
+  const [stats, setStats] = useState({ patternCount: 0, favoriteCount: 0, totalDownloads: 0 });
+  const [dataLoading, setDataLoading] = useState(false);
+
+  const fetchData = useCallback(() => {
+    if (!user) return;
+    setDataLoading(true);
+    Promise.all([
+      api("/user/me/stats").catch(() => ({ patternCount: 0, favoriteCount: 0, totalDownloads: 0 })),
+      api("/user/me/patterns").catch(() => []),
+      api("/user/me/favorites").catch(() => []),
+    ]).then(([s, p, f]) => {
+      setStats(s);
+      setMyPatterns(p);
+      setMyFavorites(f);
+    }).finally(() => setDataLoading(false));
+  }, [user]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const handleDeletePattern = async (patternId: number) => {
+    try { await api(`/patterns/${patternId}`, { method: "DELETE" }); fetchData(); } catch { /* ignore */ }
+  };
+
+  const handlePublishDraft = async (patternId: number) => {
+    try { await api(`/patterns/${patternId}/publish`, { method: "PUT" }); fetchData(); } catch { /* ignore */ }
+  };
 
   if (!user) {
     return (
@@ -85,7 +119,7 @@ export default function DashboardPage() {
                 {avatar ? (
                   <img src={avatar} alt="avatar" className="w-full h-full object-cover" />
                 ) : (
-                  user.name.charAt(0).toUpperCase()
+                  user.username.charAt(0).toUpperCase()
                 )}
               </div>
               <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -105,7 +139,7 @@ export default function DashboardPage() {
             {/* User info */}
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-                {t("dashboard.title")}, {user.name}
+                {t("dashboard.title")}, {user.username}
               </h1>
               <div className="flex items-center gap-2 mt-1 flex-wrap">
                 <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
@@ -116,17 +150,20 @@ export default function DashboardPage() {
                   {planLabel}
                 </span>
                 <span className="text-xs text-foreground/30">·</span>
-                <span className="text-xs text-foreground/30">
-                  {user.provider === "phone" ? "📱" : user.provider === "wechat" ? "💬" : user.provider === "qq" ? "🐧" : "🔵"}
-                  {" "}{user.provider}
-                </span>
-                <span className="text-xs text-foreground/30">·</span>
-                <span className="text-xs text-foreground/30">{t("dashboard.memberSince")} 2026</span>
+                <span className="text-xs text-foreground/30">✉️ {user.email}</span>
+                {user.subscription_expires_at && user.subscription_status === "active" && (
+                  <>
+                    <span className="text-xs text-foreground/30">·</span>
+                    <span className="text-xs text-foreground/30">
+                      {t("payment.subscriptionExpires")}: {new Date(user.subscription_expires_at).toLocaleDateString()}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
 
             <button onClick={logout} className="ml-auto flex items-center gap-1.5 text-sm text-foreground/40 hover:text-foreground transition-colors">
-              <LogOut className="h-4 w-4" /> {lang === "zh" ? "退出" : "Logout"}
+              <LogOut className="h-4 w-4" /> {t("dashboard.logout")}
             </button>
           </div>
         </motion.div>
@@ -134,9 +171,9 @@ export default function DashboardPage() {
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
           {[
-            { icon: Grid3X3, value: String(MOCK_MY_PATTERNS.length), label: t("dashboard.stats.patterns") },
-            { icon: Heart, value: String(MOCK_MY_FAVORITES.length), label: t("dashboard.stats.favorites") },
-            { icon: Download, value: "26", label: t("dashboard.stats.downloads") },
+            { icon: Grid3X3, value: String(stats.patternCount), label: t("dashboard.stats.patterns") },
+            { icon: Heart, value: String(stats.favoriteCount), label: t("dashboard.stats.favorites") },
+            { icon: Download, value: String(stats.totalDownloads), label: t("dashboard.stats.downloads") },
             { icon: Settings, value: planLabel, label: t("dashboard.currentPlan") },
           ].map((s) => (
             <motion.div key={s.label}
@@ -177,7 +214,7 @@ export default function DashboardPage() {
 
         {/* Tabs */}
         <div className="flex gap-3 mb-6">
-          {(["patterns", "favorites"] as const).map((tab) => (
+          {(["patterns", "favorites", "orders"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -188,24 +225,46 @@ export default function DashboardPage() {
               }`}
               style={{ fontFamily: "var(--font-display)" }}
             >
-              {tab === "patterns" ? t("dashboard.myPatterns") : t("dashboard.myFavorites")}
+              {tab === "patterns" ? t("dashboard.myPatterns")
+                : tab === "favorites" ? t("dashboard.myFavorites")
+                : t("payment.orderHistory")}
             </button>
           ))}
         </div>
 
         {/* Tab content */}
-        {activeTab === "patterns" ? (
-          MOCK_MY_PATTERNS.length === 0 ? (
+        {dataLoading ? (
+          <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-foreground/20" /></div>
+        ) : activeTab === "patterns" ? (
+          myPatterns.length === 0 ? (
             <EmptyState icon={Grid3X3} message={t("dashboard.noPatterns")} action={t("dashboard.createFirst")} href="/generator" />
           ) : (
-            <PatternGrid patterns={MOCK_MY_PATTERNS} showAuthor={false} lang={lang} />
+            <>
+              <PatternGrid patterns={myPatterns.slice((patternPage - 1) * DASH_PAGE_SIZE, patternPage * DASH_PAGE_SIZE)} showAuthor={false} lang={lang} onDelete={handleDeletePattern} onPublish={handlePublishDraft} />
+              {myPatterns.length > DASH_PAGE_SIZE && (
+                <Pagination page={patternPage} totalPages={Math.ceil(myPatterns.length / DASH_PAGE_SIZE)} onChange={setPatternPage} />
+              )}
+            </>
           )
-        ) : (
-          MOCK_MY_FAVORITES.length === 0 ? (
+        ) : activeTab === "favorites" ? (
+          myFavorites.length === 0 ? (
             <EmptyState icon={Heart} message={t("dashboard.noFavorites")} action={t("dashboard.browseGallery")} href="/gallery" />
           ) : (
-            <PatternGrid patterns={MOCK_MY_FAVORITES} showAuthor lang={lang} onCardClick={(id) => router.push(`/gallery/${id}`)} />
+            <>
+              <PatternGrid patterns={myFavorites.slice((favoritePage - 1) * DASH_PAGE_SIZE, favoritePage * DASH_PAGE_SIZE)} showAuthor lang={lang} onCardClick={(id) => router.push(`/gallery/${id}`)} />
+              {myFavorites.length > DASH_PAGE_SIZE && (
+                <Pagination page={favoritePage} totalPages={Math.ceil(myFavorites.length / DASH_PAGE_SIZE)} onChange={setFavoritePage} />
+              )}
+            </>
           )
+        ) : (
+          <div className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-6">
+            <h3 className="font-semibold mb-4" style={{ fontFamily: "var(--font-display)" }}>
+              <Receipt className="h-4 w-4 inline mr-2" />
+              {t("payment.orderHistory")}
+            </h3>
+            <OrderHistory />
+          </div>
         )}
       </div>
     </div>
@@ -229,45 +288,70 @@ function EmptyState({ icon: Icon, message, action, href }: { icon: typeof Grid3X
   );
 }
 
-function PatternGrid({ patterns, showAuthor, lang, onCardClick }: {
-  patterns: { id: string; title: { en: string; zh: string }; author?: string; likes: number; downloads: number; thumbnail: string[][] }[];
+function PatternGrid({ patterns, showAuthor, lang, onCardClick, onDelete, onPublish }: {
+  patterns: any[];
   showAuthor: boolean;
   lang: string;
-  onCardClick?: (id: string) => void;
+  onCardClick?: (id: number) => void;
+  onDelete?: (id: number) => void;
+  onPublish?: (id: number) => void;
 }) {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-      {patterns.map((p) => (
-        <motion.div key={p.id}
-          whileHover={{ y: -4, boxShadow: "var(--card-shadow)" }}
-          onClick={() => onCardClick?.(p.id)}
-          className={`rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden transition-all ${onCardClick ? "cursor-pointer" : ""}`}>
-          {/* Thumbnail */}
-          <div className="aspect-video p-4 flex items-center justify-center bg-[var(--surface-hover)]">
-            <div className="grid gap-px" style={{ gridTemplateColumns: `repeat(${p.thumbnail[0].length}, 1fr)`, width: p.thumbnail[0].length * 8, height: p.thumbnail.length * 8 }}>
-              {p.thumbnail.flat().map((color, i) => (
-                <div key={i} className="rounded-sm" style={{ backgroundColor: color || "transparent" }} />
-              ))}
+      {patterns.map((p) => {
+        const thumb = thumbnailFromGrid(p.grid_data);
+        const isDraft = p.is_public === 0 || p.is_public === false;
+        return (
+          <motion.div key={p.id}
+            whileHover={{ y: -4, boxShadow: "var(--card-shadow)" }}
+            onClick={() => onCardClick?.(p.id)}
+            className={`rounded-2xl border overflow-hidden transition-all relative ${onCardClick ? "cursor-pointer" : ""} ${isDraft ? "border-dashed border-amber-300/60 bg-amber-50/[0.3]" : "border-[var(--border)] bg-[var(--surface)]"}`}>
+            {/* Draft badge */}
+            {isDraft && (
+              <span className="absolute top-2 left-2 text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium z-10">
+                {lang === "zh" ? "草稿" : "Draft"}
+              </span>
+            )}
+            {/* Thumbnail */}
+            <div className="aspect-video p-4 flex items-center justify-center bg-[var(--surface-hover)]">
+              {thumb.length > 0 ? (
+                <div className="grid gap-px" style={{ gridTemplateColumns: `repeat(${thumb[0].length}, 1fr)`, width: thumb[0].length * 8, height: thumb.length * 8 }}>
+                  {thumb.flat().map((color, i) => (
+                    <div key={i} className="rounded-sm" style={{ backgroundColor: color || "transparent" }} />
+                  ))}
+                </div>
+              ) : (
+                <Grid3X3 className="h-8 w-8 text-foreground/10" />
+              )}
             </div>
-          </div>
-          {/* Info */}
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-sm font-semibold truncate" style={{ fontFamily: "var(--font-display)" }}>
-                {lang === "zh" ? p.title.zh : p.title.en}
-              </h3>
-              <button className="p-1 rounded-lg hover:bg-red-50 transition-colors">
-                <Trash2 className="h-3.5 w-3.5 text-foreground/20 hover:text-red-400" />
-              </button>
+            {/* Info */}
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="text-sm font-semibold truncate" style={{ fontFamily: "var(--font-display)" }}>
+                  {p.title}
+                </h3>
+                <div className="flex items-center gap-1">
+                  {isDraft && onPublish && (
+                    <button onClick={(e) => { e.stopPropagation(); onPublish(p.id); }} className="px-2 py-0.5 rounded-lg text-[10px] font-medium text-[var(--primary)] hover:bg-[var(--primary)]/5 transition-colors">
+                      {lang === "zh" ? "发布" : "Publish"}
+                    </button>
+                  )}
+                  {onDelete && (
+                    <button onClick={(e) => { e.stopPropagation(); onDelete(p.id); }} className="p-1 rounded-lg hover:bg-red-50 transition-colors">
+                      <Trash2 className="h-3.5 w-3.5 text-foreground/20 hover:text-red-400" />
+                    </button>
+                  )}
+                </div>
+              </div>
+              {showAuthor && (p.author_name || p.username) && <p className="text-xs text-foreground/40 mb-2">👤 {p.author_name || p.username}</p>}
+              <div className="flex items-center gap-3 text-xs text-foreground/40">
+                <span className="flex items-center gap-1"><Heart className="h-3 w-3" style={{ color: "var(--bead-coral)" }} /> {p.likes_count}</span>
+                <span className="flex items-center gap-1"><Download className="h-3 w-3" /> {p.downloads_count}</span>
+              </div>
             </div>
-            {showAuthor && p.author && <p className="text-xs text-foreground/40 mb-2">👤 {p.author}</p>}
-            <div className="flex items-center gap-3 text-xs text-foreground/40">
-              <span className="flex items-center gap-1"><Heart className="h-3 w-3" style={{ color: "var(--bead-coral)" }} /> {p.likes}</span>
-              <span className="flex items-center gap-1"><Download className="h-3 w-3" /> {p.downloads}</span>
-            </div>
-          </div>
-        </motion.div>
-      ))}
+          </motion.div>
+        );
+      })}
     </div>
   );
 }

@@ -9,10 +9,10 @@ const LangContext = createContext<{
   lang: Lang;
   setLang: (l: Lang) => void;
   t: (key: string) => string;
-}>({ lang: "en", setLang: () => {}, t: (k) => k });
+}>({ lang: "zh", setLang: () => {}, t: (k) => k });
 
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLang] = useState<Lang>("en");
+  const [lang, setLang] = useState<Lang>("zh");
   const t = useCallback((key: string) => T[key]?.[lang] || key, [lang]);
   return <LangContext.Provider value={{ lang, setLang, t }}>{children}</LangContext.Provider>;
 }

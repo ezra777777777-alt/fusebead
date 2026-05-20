@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
-import { Search, Heart, Download, ChevronLeft, ChevronRight, Grid3X3 } from "lucide-react";
+import { Search, Heart, Download, Grid3X3 } from "lucide-react";
 import { useLang } from "@/lib/LangContext";
-import { useAuth } from "@/lib/AuthContext";
-import { RequireAuth } from "@/components/auth/RequireAuth";
-import { MOCK_GALLERY } from "@/lib/mock-data";
+import { api } from "@/lib/api";
+import { GalleryFAB } from "@/components/gallery/GalleryFAB";
+import { Pagination } from "@/components/shared/Pagination";
 
 const CATEGORIES = ["all", "hot", "new", "cute", "anime", "animals", "cartoon", "landscape", "characters", "holiday"] as const;
 
@@ -15,53 +15,70 @@ const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.05 } } };
 const fadeUp = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
 const PAGE_SIZE = 12;
 
+function thumbnailFromGrid(gridData: string, maxSize = 8): string[][] {
+  try {
+    const grid: string[][] = JSON.parse(gridData);
+    if (!grid.length) return [];
+    const step = Math.max(1, Math.floor(grid.length / maxSize));
+    const result: string[][] = [];
+    for (let y = 0; y < grid.length && result.length < maxSize; y += step) {
+      const row: string[] = [];
+      const rowLen = grid[y].length;
+      const colStep = Math.max(1, Math.floor(rowLen / maxSize));
+      for (let x = 0; x < rowLen && row.length < maxSize; x += colStep) {
+        row.push(grid[y][x] || "");
+      }
+      result.push(row);
+    }
+    return result;
+  } catch {
+    return [];
+  }
+}
+
 export default function GalleryPage() {
   const { t, lang } = useLang();
-  const { user } = useAuth();
   const router = useRouter();
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"newest" | "popular">("newest");
   const [page, setPage] = useState(1);
+  const [patterns, setPatterns] = useState<any[]>([]);
+  const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  // Filter & sort
-  const filtered = useMemo(() => {
-    let list = [...MOCK_GALLERY];
+  const fetchPatterns = useCallback(() => {
+    setLoading(true);
+    const params = new URLSearchParams();
+    if (category === "hot") params.set("sort", "popular");
+    else if (category === "new") params.set("sort", "newest");
+    else if (category !== "all") params.set("category", category);
+    else params.set("sort", sort);
+    if (search.trim()) params.set("search", search.trim());
+    params.set("page", String(page));
+    params.set("limit", String(PAGE_SIZE));
 
-    if (category !== "all") {
-      if (category === "hot") list = list.sort((a, b) => b.likes - a.likes);
-      else if (category === "new") list = list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      else list = list.filter((p) => p.category === category);
-    }
+    api(`/patterns?${params.toString()}`)
+      .then((d) => { setPatterns(d.patterns); setTotal(d.total); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [category, sort, page, search]);
 
-    if (search.trim()) {
-      const q = search.toLowerCase();
-      list = list.filter((p) => p.title.en.toLowerCase().includes(q) || p.title.zh.includes(q) || p.author.toLowerCase().includes(q));
-    }
+  useEffect(() => { fetchPatterns(); }, [fetchPatterns]);
 
-    if (sort === "newest") list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    else list.sort((a, b) => b.likes - a.likes);
-
-    return list;
-  }, [category, search, sort]);
-
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paged = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const catLabel = (c: string) => t(`gallery.categories.${c}`);
 
-  return (
-    <RequireAuth>
-      <div className="min-h-screen pt-16 bg-[var(--background)]">
-        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-          {/* Header */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+  return (<>
+    <div className="min-h-screen pt-16 bg-[var(--background)]">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Header */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2" style={{ fontFamily: "var(--font-display)" }}>
             📚 {t("gallery.title")}
           </h1>
-          <p className="text-sm text-foreground/50">
-            {lang === "zh" ? "探索社区创作的精美拼豆图案" : "Explore beautiful bead patterns from the community"}
-          </p>
+          <p className="text-sm text-foreground/50">{t("gallery.subtitle")}</p>
         </motion.div>
 
         {/* Category tabs */}
@@ -69,7 +86,7 @@ export default function GalleryPage() {
           {CATEGORIES.map((c) => (
             <button
               key={c}
-              onClick={() => { setCategory(c); setPage(1); }}
+              onClick={() => { setCategory(c); setPage(1); setSort("newest"); }}
               className={`shrink-0 rounded-full px-4 py-1.5 text-sm font-medium transition-all ${
                 category === c
                   ? "bg-[var(--primary)] text-white"
@@ -112,7 +129,25 @@ export default function GalleryPage() {
         </div>
 
         {/* Card grid */}
-        {paged.length === 0 ? (
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {Array.from({ length: PAGE_SIZE }).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+                <div className="aspect-square p-5 flex items-center justify-center bg-[var(--surface-hover)]">
+                  <div className="w-24 h-24 rounded-lg bg-foreground/5 animate-pulse" />
+                </div>
+                <div className="p-4 space-y-3">
+                  <div className="h-4 w-3/4 rounded bg-foreground/5 animate-pulse" />
+                  <div className="h-3 w-1/2 rounded bg-foreground/5 animate-pulse" />
+                  <div className="flex gap-3">
+                    <div className="h-3 w-12 rounded bg-foreground/5 animate-pulse" />
+                    <div className="h-3 w-12 rounded bg-foreground/5 animate-pulse" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : patterns.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-foreground/20">
             <Grid3X3 className="h-16 w-16 mb-4" />
             <p className="text-sm">{t("gallery.empty")}</p>
@@ -120,73 +155,57 @@ export default function GalleryPage() {
         ) : (
           <motion.div key={`${category}-${sort}-${page}`} variants={stagger} initial="hidden" animate="show"
             className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-            {paged.map((p) => (
-              <motion.div
-                key={p.id}
-                variants={fadeUp}
-                onClick={() => router.push(`/gallery/${p.id}`)}
-                className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden cursor-pointer hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300"
-                style={{ boxShadow: "var(--card-shadow)" }}
-              >
-                {/* Thumbnail */}
-                <div className="aspect-square p-5 flex items-center justify-center bg-[var(--surface-hover)]">
-                  <div className="grid gap-px pixel-render" style={{ gridTemplateColumns: `repeat(${p.thumbnail[0].length}, 1fr)`, width: 96, height: 96 }}>
-                    {p.thumbnail.flat().map((color, i) => (
-                      <div key={i} className="rounded-sm" style={{ backgroundColor: color || "transparent" }} />
-                    ))}
+            {patterns.map((p) => {
+              const thumb = thumbnailFromGrid(p.grid_data);
+              return (
+                <motion.div
+                  key={p.id}
+                  variants={fadeUp}
+                  onClick={() => router.push(`/gallery/${p.id}`)}
+                  className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden cursor-pointer hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300"
+                  style={{ boxShadow: "var(--card-shadow)" }}
+                >
+                  {/* Thumbnail */}
+                  <div className="aspect-square p-5 flex items-center justify-center bg-[var(--surface-hover)]">
+                    {thumb.length > 0 ? (
+                      <div className="grid gap-px pixel-render transition-all duration-300 group-hover:scale-125" style={{ gridTemplateColumns: `repeat(${thumb[0].length}, 1fr)`, width: 96, height: 96 }}>
+                        {thumb.flat().map((color, i) => (
+                          <div key={i} className="rounded-sm" style={{ backgroundColor: color || "transparent" }} />
+                        ))}
+                      </div>
+                    ) : (
+                      <Grid3X3 className="h-12 w-12 text-foreground/10" />
+                    )}
                   </div>
-                </div>
-                {/* Info */}
-                <div className="p-4">
-                  <h3 className="text-sm font-semibold mb-1 truncate" style={{ fontFamily: "var(--font-display)" }}>
-                    {lang === "zh" ? p.title.zh : p.title.en}
-                  </h3>
-                  <p className="text-xs text-foreground/40 mb-2">👤 {p.author}</p>
-                  <div className="flex items-center gap-3 text-xs text-foreground/40">
-                    <span className="flex items-center gap-1"><Heart className="h-3 w-3" style={{ color: "var(--bead-coral)" }} /> {p.likes}</span>
-                    <span className="flex items-center gap-1"><Download className="h-3 w-3" /> {p.downloads}</span>
+                  {/* Info */}
+                  <div className="p-4">
+                    <h3 className="text-sm font-semibold mb-1 truncate" style={{ fontFamily: "var(--font-display)" }}>
+                      {p.title}
+                    </h3>
+                    <p className="text-xs text-foreground/40 mb-2">
+                      👤 <button
+                        onClick={(e) => { e.stopPropagation(); router.push(`/user/${p.user_id}`); }}
+                        className="hover:text-[var(--primary)] hover:underline transition-colors"
+                      >{p.author_name || "Anonymous"}</button>
+                    </p>
+                    <div className="flex items-center gap-3 text-xs text-foreground/40">
+                      <span className="flex items-center gap-1"><Heart className="h-3 w-3" style={{ color: "var(--bead-coral)" }} /> {p.likes_count}</span>
+                      <span className="flex items-center gap-1"><Download className="h-3 w-3" /> {p.downloads_count}</span>
+                    </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </motion.div>
         )}
 
         {/* Pagination */}
         {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-3 mt-10">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page === 1}
-              className="rounded-full p-2 border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--surface-hover)] transition-colors"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
-              <button
-                key={n}
-                onClick={() => setPage(n)}
-                className={`w-9 h-9 rounded-full text-sm font-medium transition-all ${
-                  page === n
-                    ? "bg-[var(--primary)] text-white"
-                    : "text-foreground/50 hover:text-foreground hover:bg-[var(--surface-hover)]"
-                }`}
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                {n}
-              </button>
-            ))}
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page === totalPages}
-              className="rounded-full p-2 border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--surface-hover)] transition-colors"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          <Pagination page={page} totalPages={totalPages} onChange={setPage} />
         )}
-        </div>
       </div>
-    </RequireAuth>
-  );
+    </div>
+    <GalleryFAB />
+  </>);
 }
+

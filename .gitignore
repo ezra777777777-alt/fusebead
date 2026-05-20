@@ -4,5 +4,7 @@ out/
 .env
 .env.local
 .env*.local
+server/.env
+server/data/
 *.log
 .DS_Store

@@ -22,7 +22,7 @@ export const T: Record<string, Record<Lang, string>> = {
   "home.browseGallery": { en: "Browse Gallery", zh: "浏览图纸" },
   "home.stat1": { en: "Perler Colors", zh: "色号支持" },
   "home.stat2": { en: "Free Generations", zh: "免费生成" },
-  "home.stat3": { en: "Sign-up Required", zh: "无需注册" },
+  "home.stat3": { en: "Instant Generate", zh: "即时生成" },
   "home.feature_title": { en: "Features", zh: "产品特性" },
   "home.feature_sub": { en: "Everything you need to turn your favorite images into bead art.", zh: "把喜欢的照片变成拼豆艺术品的全套工具。" },
   "home.featureEntry1": { en: "Image to Pattern", zh: "图片转图纸" },
@@ -104,6 +104,7 @@ export const T: Record<string, Record<Lang, string>> = {
 
   // Gallery
   "gallery.title": { en: "Pattern Gallery", zh: "图纸库" },
+  "gallery.subtitle": { en: "Explore beautiful bead patterns from the community", zh: "探索社区创作的精美拼豆图案" },
   "gallery.search": { en: "Search patterns...", zh: "搜索图案..." },
   "gallery.sort.newest": { en: "Newest", zh: "最新" },
   "gallery.sort.popular": { en: "Most Popular", zh: "最受欢迎" },
@@ -119,8 +120,12 @@ export const T: Record<string, Record<Lang, string>> = {
   "gallery.categories.holiday": { en: "Holiday", zh: "节日" },
   "gallery.detail.materials": { en: "Materials List", zh: "材料清单" },
   "gallery.detail.download": { en: "Download PNG", zh: "下载PNG" },
-  "gallery.detail.like": { en: "Like", zh: "收藏" },
-  "gallery.detail.collect": { en: "Collect", zh: "收集" },
+  "gallery.detail.like": { en: "Like", zh: "点赞" },
+  "gallery.detail.comments": { en: "Comments", zh: "评论" },
+  "gallery.detail.commentPlaceholder": { en: "Write a comment...", zh: "写评论..." },
+  "gallery.detail.commentPost": { en: "Post", zh: "发布" },
+  "gallery.detail.noComments": { en: "No comments yet. Be the first!", zh: "暂无评论，来说两句吧！" },
+  "gallery.detail.delete": { en: "Delete", zh: "删除" },
   "gallery.detail.share": { en: "Share", zh: "分享" },
   "gallery.empty": { en: "No patterns found", zh: "未找到图案" },
 
@@ -145,6 +150,7 @@ export const T: Record<string, Record<Lang, string>> = {
   "dashboard.backHome": { en: "Back to home", zh: "返回首页" },
   "dashboard.upgradePro": { en: "Upgrade to Pro", zh: "升级Pro" },
   "dashboard.unlockAll": { en: "Unlock all features", zh: "解锁全部功能" },
+  "dashboard.logout": { en: "Logout", zh: "退出" },
 
   // Common
   "common.back": { en: "Back", zh: "返回" },
@@ -162,4 +168,81 @@ export const T: Record<string, Record<Lang, string>> = {
   "footer.aboutText": { en: "Built with love for the bead art community. Support for Perler, Hama, Artkal, and MARD color palettes.", zh: "为拼豆艺术社区打造。支持Perler、Hama、Artkal、MARD品牌色库。" },
   "footer.copyright": { en: "Free for everyone", zh: "所有人免费使用" },
   "footer.made": { en: "Made with", zh: "为手工社区用心打造" },
+  "footer.contact": { en: "Contact Us", zh: "联系我们" },
+
+  // Auth — CAPTCHA & email verification
+  "auth.captchaPlaceholder": { en: "Enter CAPTCHA code", zh: "输入验证码" },
+  "auth.captchaRefresh": { en: "Refresh", zh: "换一张" },
+  "auth.captchaError": { en: "Invalid or expired CAPTCHA", zh: "验证码错误或已过期" },
+  "auth.verifyTitle": { en: "Verify Your Email", zh: "验证邮箱" },
+  "auth.verifyDesc": { en: "A 6-digit code has been sent to", zh: "验证码已发送至" },
+  "auth.verifyCodePlaceholder": { en: "Enter 6-digit code", zh: "输入6位验证码" },
+  "auth.verifyBtn": { en: "Verify", zh: "验证" },
+  "auth.verifyResend": { en: "Resend Code", zh: "重新发送" },
+  "auth.verifyError": { en: "Invalid or expired verification code", zh: "验证码错误或已过期" },
+  "auth.emailNotVerified": { en: "Email not verified. Please check your inbox.", zh: "邮箱未验证，请查看收件箱" },
+  "auth.verifySent": { en: "Code sent!", zh: "已发送！" },
+  "auth.backToLogin": { en: "Back to sign in", zh: "返回登录" },
+  "auth.resendCooldown": { en: "Resend in {s}s", zh: "{s}秒后重发" },
+
+  // Pro gate
+  "pro.title": { en: "Pro Feature", zh: "专业版功能" },
+  "pro.desc": { en: "Upgrade to Pro to unlock 150×150 grid, multiple brands, PDF export, image adjustments, background removal, and more.", zh: "升级到专业版即可解锁 150×150 网格、多品牌色库、PDF 导出、图像调节、背景去除等高级功能。" },
+  "pro.upgrade": { en: "View Plans", zh: "查看方案" },
+  "pro.later": { en: "Maybe Later", zh: "以后再说" },
+
+  // Payment
+  "payment.selectMethod": { en: "Select Payment Method", zh: "选择支付方式" },
+  "payment.scanToPay": { en: "Scan to Pay", zh: "扫码支付" },
+  "payment.alipay": { en: "Alipay", zh: "支付宝" },
+  "payment.wechat": { en: "WeChat Pay", zh: "微信支付" },
+  "payment.waiting": { en: "Waiting for payment...", zh: "等待支付..." },
+  "payment.cancel": { en: "Cancel", zh: "取消支付" },
+  "payment.currentPlan": { en: "Current Plan", zh: "当前方案" },
+  "payment.upgrade": { en: "Subscribe", zh: "立即订阅" },
+  "payment.simulated": { en: "Simulated Mode", zh: "模拟模式" },
+  "payment.simulateBtn": { en: "Simulate Payment (Dev)", zh: "模拟支付（调试）" },
+  "payment.success.title": { en: "Payment Successful!", zh: "支付成功！" },
+  "payment.success.desc": { en: "Your plan has been upgraded. Enjoy all premium features.", zh: "你的套餐已升级，现在可以享受所有高级功能了。" },
+  "payment.success.goto": { en: "Go to Dashboard", zh: "前往控制台" },
+  "payment.cancel.title": { en: "Payment Incomplete", zh: "支付未完成" },
+  "payment.cancel.desc": { en: "Payment was cancelled or unsuccessful.", zh: "支付已取消或未成功，升级未生效。" },
+  "payment.cancel.retry": { en: "Try Again", zh: "重新选择套餐" },
+  "payment.orderHistory": { en: "Order History", zh: "订单记录" },
+  "payment.noOrders": { en: "No orders yet", zh: "暂无订单记录" },
+  "payment.orderAmount": { en: "Amount", zh: "金额" },
+  "payment.orderStatus": { en: "Status", zh: "状态" },
+  "payment.orderDate": { en: "Date", zh: "时间" },
+  "payment.subscriptionExpires": { en: "Expires", zh: "到期" },
+
+  // Publish to gallery
+  "gen.publish": { en: "Publish to Gallery", zh: "发布到图纸库" },
+  "gen.publishTitle": { en: "Pattern Title", zh: "图案标题" },
+  "gen.publishTitlePlaceholder": { en: "Give your pattern a name...", zh: "给图案起个名字..." },
+  "gen.publishCategory": { en: "Category", zh: "分类" },
+  "gen.publishDescription": { en: "Description (optional)", zh: "描述（选填）" },
+  "gen.publishing": { en: "Publishing...", zh: "发布中..." },
+  "gen.published": { en: "Published! View in Gallery", zh: "已发布！去图纸库查看" },
+  "gen.publishError": { en: "Failed to publish", zh: "发布失败" },
+
+  // Quick publish & Gallery FAB
+  "gallery.fab.quickPublish": { en: "Quick Publish", zh: "快速发布" },
+  "gallery.fab.goGenerator": { en: "Create from Image", zh: "图片生成" },
+  "gallery.fab.goEditor": { en: "Draw in Editor", zh: "像素绘制" },
+  "gallery.quick.upload": { en: "Upload an image to convert into a bead pattern", zh: "上传图片转化为拼豆图案" },
+  "gallery.quick.processing": { en: "Processing image...", zh: "处理图片中..." },
+  "gallery.quick.preview": { en: "Preview", zh: "预览" },
+  "gallery.quick.changeImage": { en: "Change image", zh: "换一张" },
+
+  // Editor publish
+  "editor.publish": { en: "Publish to Gallery", zh: "发布到图纸库" },
+
+  // Drafts
+  "draft.save": { en: "Save Draft", zh: "保存草稿" },
+  "draft.saved": { en: "Draft saved!", zh: "草稿已保存" },
+  "draft.saving": { en: "Saving...", zh: "保存中..." },
+  "draft.publish": { en: "Publish", zh: "发布" },
+  "draft.delete": { en: "Delete", zh: "删除" },
+  "draft.empty": { en: "No drafts", zh: "暂无草稿" },
+  "draft.tab": { en: "Drafts", zh: "草稿" },
 };

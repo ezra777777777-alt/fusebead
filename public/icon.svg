@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- Fuse bead: colored ring + dark center hole + highlight -->
+    <g id="bead-coral">
+      <circle r="18" fill="#ff6b6b"/>
+      <circle r="18" fill="none" stroke="#e55a5a" stroke-width="2"/>
+      <circle r="6" fill="#1e1e2e" opacity="0.6"/>
+      <ellipse cx="-4" cy="-5" rx="5" ry="3" fill="white" opacity="0.2"/>
+    </g>
+    <g id="bead-amber">
+      <circle r="18" fill="#ffa94d"/>
+      <circle r="18" fill="none" stroke="#e8953a" stroke-width="2"/>
+      <circle r="6" fill="#1e1e2e" opacity="0.6"/>
+      <ellipse cx="-4" cy="-5" rx="5" ry="3" fill="white" opacity="0.2"/>
+    </g>
+    <g id="bead-yellow">
+      <circle r="18" fill="#ffd43b"/>
+      <circle r="18" fill="none" stroke="#e5bf2a" stroke-width="2"/>
+      <circle r="6" fill="#1e1e2e" opacity="0.6"/>
+      <ellipse cx="-4" cy="-5" rx="5" ry="3" fill="white" opacity="0.2"/>
+    </g>
+    <g id="bead-mint">
+      <circle r="18" fill="#69db7c"/>
+      <circle r="18" fill="none" stroke="#52c765" stroke-width="2"/>
+      <circle r="6" fill="#1e1e2e" opacity="0.6"/>
+      <ellipse cx="-4" cy="-5" rx="5" ry="3" fill="white" opacity="0.2"/>
+    </g>
+    <g id="bead-blue">
+      <circle r="18" fill="#4dabf7"/>
+      <circle r="18" fill="none" stroke="#3a99e5" stroke-width="2"/>
+      <circle r="6" fill="#1e1e2e" opacity="0.6"/>
+      <ellipse cx="-4" cy="-5" rx="5" ry="3" fill="white" opacity="0.2"/>
+    </g>
+    <g id="bead-pink">
+      <circle r="18" fill="#f783ac"/>
+      <circle r="18" fill="none" stroke="#e56f99" stroke-width="2"/>
+      <circle r="6" fill="#1e1e2e" opacity="0.6"/>
+      <ellipse cx="-4" cy="-5" rx="5" ry="3" fill="white" opacity="0.2"/>
+    </g>
+    <g id="bead-lavender">
+      <circle r="18" fill="#b197fc"/>
+      <circle r="18" fill="none" stroke="#9d80f0" stroke-width="2"/>
+      <circle r="6" fill="#1e1e2e" opacity="0.6"/>
+      <ellipse cx="-4" cy="-5" rx="5" ry="3" fill="white" opacity="0.2"/>
+    </g>
+
+    <!-- Pegboard dot -->
+    <g id="peg">
+      <circle r="3" fill="#ffffff" opacity="0.06"/>
+    </g>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="96" fill="#1a1a2e"/>
+
+  <!-- Pegboard grid — subtle dots -->
+  <g>
+    <use href="#peg" x="32" y="32"/><use href="#peg" x="64" y="32"/><use href="#peg" x="96" y="32"/><use href="#peg" x="128" y="32"/><use href="#peg" x="160" y="32"/><use href="#peg" x="192" y="32"/><use href="#peg" x="224" y="32"/><use href="#peg" x="256" y="32"/><use href="#peg" x="288" y="32"/><use href="#peg" x="320" y="32"/><use href="#peg" x="352" y="32"/><use href="#peg" x="384" y="32"/><use href="#peg" x="416" y="32"/><use href="#peg" x="448" y="32"/><use href="#peg" x="480" y="32"/>
+    <use href="#peg" x="32" y="64"/><use href="#peg" x="64" y="64"/><use href="#peg" x="96" y="64"/><use href="#peg" x="128" y="64"/><use href="#peg" x="160" y="64"/><use href="#peg" x="192" y="64"/><use href="#peg" x="224" y="64"/><use href="#peg" x="256" y="64"/><use href="#peg" x="288" y="64"/><use href="#peg" x="320" y="64"/><use href="#peg" x="352" y="64"/><use href="#peg" x="384" y="64"/><use href="#peg" x="416" y="64"/><use href="#peg" x="448" y="64"/><use href="#peg" x="480" y="64"/>
+    <use href="#peg" x="32" y="96"/><use href="#peg" x="64" y="96"/><use href="#peg" x="96" y="96"/><use href="#peg" x="128" y="96"/><use href="#peg" x="160" y="96"/><use href="#peg" x="192" y="96"/><use href="#peg" x="224" y="96"/><use href="#peg" x="256" y="96"/><use href="#peg" x="288" y="96"/><use href="#peg" x="320" y="96"/><use href="#peg" x="352" y="96"/><use href="#peg" x="384" y="96"/><use href="#peg" x="416" y="96"/><use href="#peg" x="448" y="96"/><use href="#peg" x="480" y="96"/>
+    <use href="#peg" x="32" y="128"/><use href="#peg" x="64" y="128"/><use href="#peg" x="96" y="128"/><use href="#peg" x="128" y="128"/><use href="#peg" x="160" y="128"/><use href="#peg" x="192" y="128"/><use href="#peg" x="224" y="128"/><use href="#peg" x="256" y="128"/><use href="#peg" x="288" y="128"/><use href="#peg" x="320" y="128"/><use href="#peg" x="352" y="128"/><use href="#peg" x="384" y="128"/><use href="#peg" x="416" y="128"/><use href="#peg" x="448" y="128"/><use href="#peg" x="480" y="128"/>
+    <use href="#peg" x="32" y="160"/><use href="#peg" x="64" y="160"/><use href="#peg" x="96" y="160"/><use href="#peg" x="128" y="160"/><use href="#peg" x="160" y="160"/><use href="#peg" x="192" y="160"/><use href="#peg" x="224" y="160"/><use href="#peg" x="256" y="160"/><use href="#peg" x="288" y="160"/><use href="#peg" x="320" y="160"/><use href="#peg" x="352" y="160"/><use href="#peg" x="384" y="160"/><use href="#peg" x="416" y="160"/><use href="#peg" x="448" y="160"/><use href="#peg" x="480" y="160"/>
+    <use href="#peg" x="32" y="192"/><use href="#peg" x="64" y="192"/><use href="#peg" x="96" y="192"/><use href="#peg" x="128" y="192"/><use href="#peg" x="160" y="192"/><use href="#peg" x="192" y="192"/><use href="#peg" x="224" y="192"/><use href="#peg" x="256" y="192"/><use href="#peg" x="288" y="192"/><use href="#peg" x="320" y="192"/><use href="#peg" x="352" y="192"/><use href="#peg" x="384" y="192"/><use href="#peg" x="416" y="192"/><use href="#peg" x="448" y="192"/><use href="#peg" x="480" y="192"/>
+    <use href="#peg" x="32" y="224"/><use href="#peg" x="64" y="224"/><use href="#peg" x="96" y="224"/><use href="#peg" x="128" y="224"/><use href="#peg" x="160" y="224"/><use href="#peg" x="192" y="224"/><use href="#peg" x="224" y="224"/><use href="#peg" x="256" y="224"/><use href="#peg" x="288" y="224"/><use href="#peg" x="320" y="224"/><use href="#peg" x="352" y="224"/><use href="#peg" x="384" y="224"/><use href="#peg" x="416" y="224"/><use href="#peg" x="448" y="224"/><use href="#peg" x="480" y="224"/>
+    <use href="#peg" x="32" y="256"/><use href="#peg" x="64" y="256"/><use href="#peg" x="96" y="256"/><use href="#peg" x="128" y="256"/><use href="#peg" x="160" y="256"/><use href="#peg" x="192" y="256"/><use href="#peg" x="224" y="256"/><use href="#peg" x="256" y="256"/><use href="#peg" x="288" y="256"/><use href="#peg" x="320" y="256"/><use href="#peg" x="352" y="256"/><use href="#peg" x="384" y="256"/><use href="#peg" x="416" y="256"/><use href="#peg" x="448" y="256"/><use href="#peg" x="480" y="256"/>
+    <use href="#peg" x="32" y="288"/><use href="#peg" x="64" y="288"/><use href="#peg" x="96" y="288"/><use href="#peg" x="128" y="288"/><use href="#peg" x="160" y="288"/><use href="#peg" x="192" y="288"/><use href="#peg" x="224" y="288"/><use href="#peg" x="256" y="288"/><use href="#peg" x="288" y="288"/><use href="#peg" x="320" y="288"/><use href="#peg" x="352" y="288"/><use href="#peg" x="384" y="288"/><use href="#peg" x="416" y="288"/><use href="#peg" x="448" y="288"/><use href="#peg" x="480" y="288"/>
+    <use href="#peg" x="32" y="320"/><use href="#peg" x="64" y="320"/><use href="#peg" x="96" y="320"/><use href="#peg" x="128" y="320"/><use href="#peg" x="160" y="320"/><use href="#peg" x="192" y="320"/><use href="#peg" x="224" y="320"/><use href="#peg" x="256" y="320"/><use href="#peg" x="288" y="320"/><use href="#peg" x="320" y="320"/><use href="#peg" x="352" y="320"/><use href="#peg" x="384" y="320"/><use href="#peg" x="416" y="320"/><use href="#peg" x="448" y="320"/><use href="#peg" x="480" y="320"/>
+    <use href="#peg" x="32" y="352"/><use href="#peg" x="64" y="352"/><use href="#peg" x="96" y="352"/><use href="#peg" x="128" y="352"/><use href="#peg" x="160" y="352"/><use href="#peg" x="192" y="352"/><use href="#peg" x="224" y="352"/><use href="#peg" x="256" y="352"/><use href="#peg" x="288" y="352"/><use href="#peg" x="320" y="352"/><use href="#peg" x="352" y="352"/><use href="#peg" x="384" y="352"/><use href="#peg" x="416" y="352"/><use href="#peg" x="448" y="352"/><use href="#peg" x="480" y="352"/>
+    <use href="#peg" x="32" y="384"/><use href="#peg" x="64" y="384"/><use href="#peg" x="96" y="384"/><use href="#peg" x="128" y="384"/><use href="#peg" x="160" y="384"/><use href="#peg" x="192" y="384"/><use href="#peg" x="224" y="384"/><use href="#peg" x="256" y="384"/><use href="#peg" x="288" y="384"/><use href="#peg" x="320" y="384"/><use href="#peg" x="352" y="384"/><use href="#peg" x="384" y="384"/><use href="#peg" x="416" y="384"/><use href="#peg" x="448" y="384"/><use href="#peg" x="480" y="384"/>
+    <use href="#peg" x="32" y="416"/><use href="#peg" x="64" y="416"/><use href="#peg" x="96" y="416"/><use href="#peg" x="128" y="416"/><use href="#peg" x="160" y="416"/><use href="#peg" x="192" y="416"/><use href="#peg" x="224" y="416"/><use href="#peg" x="256" y="416"/><use href="#peg" x="288" y="416"/><use href="#peg" x="320" y="416"/><use href="#peg" x="352" y="416"/><use href="#peg" x="384" y="416"/><use href="#peg" x="416" y="416"/><use href="#peg" x="448" y="416"/><use href="#peg" x="480" y="416"/>
+    <use href="#peg" x="32" y="448"/><use href="#peg" x="64" y="448"/><use href="#peg" x="96" y="448"/><use href="#peg" x="128" y="448"/><use href="#peg" x="160" y="448"/><use href="#peg" x="192" y="448"/><use href="#peg" x="224" y="448"/><use href="#peg" x="256" y="448"/><use href="#peg" x="288" y="448"/><use href="#peg" x="320" y="448"/><use href="#peg" x="352" y="448"/><use href="#peg" x="384" y="448"/><use href="#peg" x="416" y="448"/><use href="#peg" x="448" y="448"/><use href="#peg" x="480" y="448"/>
+    <use href="#peg" x="32" y="480"/><use href="#peg" x="64" y="480"/><use href="#peg" x="96" y="480"/><use href="#peg" x="128" y="480"/><use href="#peg" x="160" y="480"/><use href="#peg" x="192" y="480"/><use href="#peg" x="224" y="480"/><use href="#peg" x="256" y="480"/><use href="#peg" x="288" y="480"/><use href="#peg" x="320" y="480"/><use href="#peg" x="352" y="480"/><use href="#peg" x="384" y="480"/><use href="#peg" x="416" y="480"/><use href="#peg" x="448" y="480"/><use href="#peg" x="480" y="480"/>
+  </g>
+
+  <!-- Bead pattern — symmetrical mandala (center 256,256) -->
+
+  <!-- Center bead -->
+  <use href="#bead-coral" x="256" y="256"/>
+
+  <!-- Inner ring (4 beads — diamond) -->
+  <use href="#bead-amber" x="256" y="208"/>
+  <use href="#bead-yellow" x="304" y="256"/>
+  <use href="#bead-mint" x="256" y="304"/>
+  <use href="#bead-blue" x="208" y="256"/>
+
+  <!-- Inner ring diagonals (4 beads) -->
+  <use href="#bead-pink" x="290" y="222"/>
+  <use href="#bead-lavender" x="290" y="290"/>
+  <use href="#bead-pink" x="222" y="290"/>
+  <use href="#bead-lavender" x="222" y="222"/>
+
+  <!-- Middle ring cardinals (8 beads — 2 per direction) -->
+  <use href="#bead-coral" x="256" y="160"/>
+  <use href="#bead-amber" x="256" y="176"/>
+
+  <use href="#bead-yellow" x="336" y="256"/>
+  <use href="#bead-mint"  x="352" y="256"/>
+
+  <use href="#bead-coral" x="256" y="336"/>
+  <use href="#bead-blue"  x="256" y="352"/>
+
+  <use href="#bead-mint"  x="160" y="256"/>
+  <use href="#bead-pink"  x="176" y="256"/>
+
+  <!-- Middle ring diagonals (4 beads) -->
+  <use href="#bead-amber" x="324" y="188"/>
+  <use href="#bead-yellow" x="324" y="324"/>
+  <use href="#bead-blue"   x="188" y="324"/>
+  <use href="#bead-pink"   x="188" y="188"/>
+
+  <!-- Outer ring cardinals (4 beads) -->
+  <use href="#bead-lavender" x="256" y="112"/>
+  <use href="#bead-coral"    x="400" y="256"/>
+  <use href="#bead-amber"    x="256" y="400"/>
+  <use href="#bead-mint"     x="112" y="256"/>
+
+  <!-- Outer ring diagonals (4 beads) -->
+  <use href="#bead-yellow" x="358" y="154"/>
+  <use href="#bead-blue"   x="358" y="358"/>
+  <use href="#bead-pink"   x="154" y="358"/>
+  <use href="#bead-lavender" x="154" y="154"/>
+
+  <!-- Subtle glow behind beads -->
+  <circle cx="256" cy="256" r="140" fill="none" stroke="#ff6b6b" stroke-width="1" opacity="0.08"/>
+  <circle cx="256" cy="256" r="100" fill="none" stroke="#ffa94d" stroke-width="1" opacity="0.08"/>
+  <circle cx="256" cy="256" r="60"  fill="none" stroke="#ffd43b" stroke-width="1" opacity="0.08"/>
+
+  <!-- Subtle outer border -->
+  <rect x="8" y="8" width="496" height="496" rx="88"
+    fill="none" stroke="#ff6b6b" stroke-width="2" opacity="0.12"/>
+</svg>

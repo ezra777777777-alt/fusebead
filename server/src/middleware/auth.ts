@@ -51,3 +51,7 @@ export function optionalAuth(req: Request, _res: Response, next: NextFunction): 
 export function signToken(payload: AuthPayload): string {
   return jwt.sign(payload, process.env.JWT_SECRET || "fallback-secret", { expiresIn: "7d" });
 }
+
+export function refreshToken(oldPayload: AuthPayload, newPlan: string): string {
+  return signToken({ userId: oldPayload.userId, plan: newPlan });
+}

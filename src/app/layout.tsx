@@ -5,6 +5,7 @@ import { AuthProvider } from "@/lib/AuthContext";
 import { Navbar } from "@/components/shared/navbar";
 import { Footer } from "@/components/shared/footer";
 import { AuthModal } from "@/components/auth/AuthModal";
+import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://fusebead.vercel.app"),
@@ -37,7 +38,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="zh" suppressHydrationWarning>
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
@@ -50,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <main className="flex-1">{children}</main>
             <Footer />
             <AuthModal />
+            <FeedbackButton />
           </LangProvider>
         </AuthProvider>
       </body>

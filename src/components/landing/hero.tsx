@@ -1,12 +1,13 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Sparkles, ImagePlus, LayoutGrid, FolderHeart, Heart, Download } from "lucide-react";
+import { ArrowRight, Sparkles, ImagePlus, LayoutGrid, FolderHeart, Heart, Download, Grid3X3 } from "lucide-react";
 import { useLang } from "@/lib/LangContext";
 import { useAuth } from "@/lib/AuthContext";
-import { MOCK_GALLERY } from "@/lib/mock-data";
+import { api } from "@/lib/api";
 
 // ── Cartoon illustrations ──
 
@@ -187,7 +188,7 @@ export function Hero() {
             <span>✨ {t("home.stat2")}</span><span className="hidden sm:inline">·</span>
             <span>🎨 60+ {t("home.stat1")}</span><span className="hidden sm:inline">·</span>
             <span>📦 PNG + PDF</span><span className="hidden sm:inline">·</span>
-            <span>🖥️ {t("home.stat3")}</span>
+            <span>⚡ {t("home.stat3")}</span>
           </motion.div>
         </div>
       </div>
@@ -239,13 +240,34 @@ export function FeatureEntryCards() {
 
 export function PatternRecommendations() {
   const { t, lang } = useLang();
-  const { user, openAuth } = useAuth();
   const router = useRouter();
+  const [patterns, setPatterns] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const goTo = (id: string) => {
-    if (!user) { openAuth(); return; }
-    router.push(`/gallery/${id}`);
-  };
+  useEffect(() => {
+    api("/patterns?sort=popular&limit=8")
+      .then((d) => setPatterns(d.patterns))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  function thumbFromGrid(gridData: string, maxSize = 8): string[][] {
+    try {
+      const grid: string[][] = JSON.parse(gridData);
+      if (!grid.length) return [];
+      const step = Math.max(1, Math.floor(grid.length / maxSize));
+      const result: string[][] = [];
+      for (let y = 0; y < grid.length && result.length < maxSize; y += step) {
+        const row: string[] = [];
+        const colStep = Math.max(1, Math.floor(grid[y].length / maxSize));
+        for (let x = 0; x < (grid[y]?.length || 0) && row.length < maxSize; x += colStep) {
+          row.push(grid[y][x] || "");
+        }
+        result.push(row);
+      }
+      return result;
+    } catch { return []; }
+  }
 
   return (
     <section className="py-16 sm:py-20 bg-[var(--surface-hover)]">
@@ -258,35 +280,54 @@ export function PatternRecommendations() {
           <p className="text-foreground/50">{lang === "zh" ? "发现社区中最受欢迎的拼豆图案" : "Discover the most popular patterns in the community"}</p>
         </motion.div>
 
-        <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
-          className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
-          {MOCK_GALLERY.slice(0, 8).map((p) => (
-            <motion.div key={p.id} variants={fadeUp}
-              onClick={() => goTo(p.id)}
-              className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden cursor-pointer hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300"
-              style={{ boxShadow: "var(--card-shadow)" }}>
-              {/* Pixel thumbnail */}
-              <div className="aspect-square p-4 flex items-center justify-center bg-[var(--surface-hover)]">
-                <div className="grid gap-px" style={{ gridTemplateColumns: `repeat(${p.thumbnail[0].length}, 1fr)`, width: 80, height: 80 }}>
-                  {p.thumbnail.flat().map((color, i) => (
-                    <div key={i} className="rounded-sm" style={{ backgroundColor: color || "transparent" }} />
-                  ))}
+        {loading ? (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden animate-pulse">
+                <div className="aspect-square bg-[var(--surface-hover)]" />
+                <div className="p-4 space-y-2">
+                  <div className="h-4 bg-[var(--surface-hover)] rounded w-3/4" />
+                  <div className="h-3 bg-[var(--surface-hover)] rounded w-1/2" />
                 </div>
               </div>
-              {/* Info */}
-              <div className="p-4">
-                <h3 className="text-sm font-semibold mb-1 truncate" style={{ fontFamily: "var(--font-display)" }}>
-                  {lang === "zh" ? p.title.zh : p.title.en}
-                </h3>
-                <p className="text-xs text-foreground/40 mb-2">👤 {p.author}</p>
-                <div className="flex items-center gap-3 text-xs text-foreground/40">
-                  <span className="flex items-center gap-1"><Heart className="h-3 w-3" style={{ color: "var(--bead-coral)" }} /> {p.likes}</span>
-                  <span className="flex items-center gap-1"><Download className="h-3 w-3" /> {p.downloads}</span>
-                </div>
-              </div>
-            </motion.div>
-          ))}
-        </motion.div>
+            ))}
+          </div>
+        ) : patterns.length === 0 ? null : (
+          <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
+            className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
+            {patterns.map((p) => {
+              const thumb = thumbFromGrid(p.grid_data);
+              return (
+                <motion.div key={p.id} variants={fadeUp}
+                  onClick={() => router.push(`/gallery/${p.id}`)}
+                  className="group rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden cursor-pointer hover:-translate-y-1.5 hover:shadow-xl transition-all duration-300"
+                  style={{ boxShadow: "var(--card-shadow)" }}>
+                  <div className="aspect-square p-4 flex items-center justify-center bg-[var(--surface-hover)]">
+                    {thumb.length > 0 ? (
+                      <div className="grid gap-px transition-transform duration-300 group-hover:scale-125" style={{ gridTemplateColumns: `repeat(${thumb[0].length}, 1fr)`, width: 80, height: 80 }}>
+                        {thumb.flat().map((color, i) => (
+                          <div key={i} className="rounded-sm" style={{ backgroundColor: color || "transparent" }} />
+                        ))}
+                      </div>
+                    ) : (
+                      <Grid3X3 className="h-10 w-10 text-foreground/10" />
+                    )}
+                  </div>
+                  <div className="p-4">
+                    <h3 className="text-sm font-semibold mb-1 truncate" style={{ fontFamily: "var(--font-display)" }}>
+                      {p.title}
+                    </h3>
+                    <p className="text-xs text-foreground/40 mb-2">👤 {p.author_name || "Anonymous"}</p>
+                    <div className="flex items-center gap-3 text-xs text-foreground/40">
+                      <span className="flex items-center gap-1"><Heart className="h-3 w-3" style={{ color: "var(--bead-coral)" }} /> {p.likes_count}</span>
+                      <span className="flex items-center gap-1"><Download className="h-3 w-3" /> {p.downloads_count}</span>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        )}
       </div>
     </section>
   );

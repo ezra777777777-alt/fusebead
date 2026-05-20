@@ -5,7 +5,7 @@ import { Heart } from "lucide-react";
 import { useLang } from "@/lib/LangContext";
 
 export function Footer() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   return (
     <footer className="border-t border-[var(--border)] bg-[var(--surface)]">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
@@ -24,6 +24,7 @@ export function Footer() {
               <Link href="/editor" className="block text-sm text-foreground/60 hover:text-foreground">{t("nav.editor")}</Link>
               <Link href="/converter" className="block text-sm text-foreground/60 hover:text-foreground">{t("nav.converter")}</Link>
               <Link href="/gallery" className="block text-sm text-foreground/60 hover:text-foreground">{t("nav.gallery")}</Link>
+              <Link href="/pricing" className="block text-sm text-foreground/60 hover:text-foreground">{lang === "zh" ? "定价" : "Pricing"}</Link>
             </div>
           </div>
           <div>
@@ -32,8 +33,13 @@ export function Footer() {
           </div>
         </div>
         <div className="mt-10 pt-6 border-t border-[var(--border)] flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-foreground/40">&copy; {new Date().getFullYear()} FuseBead.art — {t("footer.copyright")}</p>
           <p className="text-xs text-foreground/40 flex items-center gap-1">{t("footer.made")} <Heart className="h-3 w-3" style={{ color: "var(--bead-coral)" }} /></p>
+        </div>
+
+        <div className="mt-4 pt-4 border-t border-[var(--border)] text-center">
+          <p className="text-sm text-foreground/50">
+            {t("footer.contact")}：<a href="mailto:cx2548464278@163.com" className="text-[var(--primary)] hover:underline">cx2548464278@163.com</a>
+          </p>
         </div>
       </div>
     </footer>

@@ -79,3 +79,38 @@ CREATE INDEX idx_patterns_is_public ON patterns(is_public);
 CREATE INDEX idx_patterns_created_at ON patterns(created_at);
 CREATE INDEX idx_favorites_user_id ON favorites(user_id);
 CREATE INDEX idx_comments_pattern_id ON comments(pattern_id);
+
+-- ── Admin: user fields ──
+ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN is_banned BOOLEAN DEFAULT FALSE;
+
+-- ── Admin: pattern fields ──
+ALTER TABLE patterns ADD COLUMN is_approved BOOLEAN DEFAULT TRUE;
+ALTER TABLE patterns ADD COLUMN is_featured BOOLEAN DEFAULT FALSE;
+ALTER TABLE patterns ADD COLUMN is_deleted BOOLEAN DEFAULT FALSE;
+
+CREATE INDEX idx_patterns_is_approved ON patterns(is_approved);
+CREATE INDEX idx_patterns_is_featured ON patterns(is_featured);
+
+-- ── Admin: operation logs ──
+CREATE TABLE admin_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  admin_id INT NOT NULL,
+  action VARCHAR(100) NOT NULL,
+  target_type VARCHAR(50),
+  target_id INT,
+  detail TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (admin_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_admin_logs_admin_id ON admin_logs(admin_id);
+CREATE INDEX idx_admin_logs_created_at ON admin_logs(created_at);
+
+-- ── Admin: system settings ──
+CREATE TABLE system_settings (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  setting_key VARCHAR(100) NOT NULL UNIQUE,
+  setting_value TEXT,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;

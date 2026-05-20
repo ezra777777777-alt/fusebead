@@ -5,13 +5,19 @@ import { authRouter } from "./routes/auth";
 import { patternsRouter } from "./routes/patterns";
 import { toolRouter } from "./routes/tool";
 import { userRouter } from "./routes/user";
+import { adminRouter } from "./routes/admin";
+import { verificationRouter } from "./routes/verification";
+import { paymentsRouter } from "./routes/payments";
+import { cleanupExpired } from "./models/verificationCode";
+import { checkSubscriptionExpiry } from "./models/user";
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+const ALLOWED_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
+app.use(cors({ origin: ALLOWED_ORIGIN, credentials: true }));
 app.use(express.json({ limit: "10mb" }));
 
 // Health check
@@ -20,11 +26,26 @@ app.get("/api/health", (_req, res) => {
 });
 
 // Routes
+app.use("/api/auth", verificationRouter);
 app.use("/api/auth", authRouter);
 app.use("/api/patterns", patternsRouter);
 app.use("/api/tool", toolRouter);
 app.use("/api/user", userRouter);
+app.use("/api/admin", adminRouter);
+app.use("/api/payments", paymentsRouter);
 
 app.listen(PORT, () => {
   console.log(`[Server] Running on http://localhost:${PORT}`);
 });
+
+// Cleanup expired verification codes every 5 minutes
+setInterval(() => {
+  cleanupExpired().catch(() => {});
+}, 5 * 60 * 1000);
+
+// Check expired subscriptions every hour
+setInterval(() => {
+  checkSubscriptionExpiry().then((n) => {
+    if (n > 0) console.log(`[Server] Downgraded ${n} expired subscriptions`);
+  }).catch(() => {});
+}, 60 * 60 * 1000);

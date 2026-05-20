@@ -5,10 +5,14 @@ import Link from "next/link";
 import { ChevronLeft, ArrowRightLeft, Search } from "lucide-react";
 import { PALETTES, findClosestColor, BRAND_NAMES } from "@/lib/bead-colors";
 import { useLang } from "@/lib/LangContext";
+import { usePro } from "@/lib/usePro";
+import { ProBadge } from "@/components/shared/ProBadge";
+import { ProFeaturePrompt } from "@/components/shared/ProFeaturePrompt";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export default function ConverterPage() {
   const { t } = useLang();
+  const { isPro, showPrompt, openPrompt, closePrompt } = usePro();
   const [fromBrand, setFromBrand] = useState("perler");
   const [toBrand, setToBrand] = useState("hama");
   const [search, setSearch] = useState("");
@@ -41,7 +45,7 @@ export default function ConverterPage() {
         {/* Header */}
         <div className="mb-8">
           <Link href="/" className="inline-flex items-center gap-1 text-sm text-foreground/50 hover:text-foreground transition-colors mb-4">
-            <ChevronLeft className="h-4 w-4" /> Back
+            <ChevronLeft className="h-4 w-4" /> {t("common.back")}
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight mb-2" style={{ fontFamily: "var(--font-display)" }}>
             {t("conv.title")}
@@ -55,15 +59,19 @@ export default function ConverterPage() {
             <select
               key={dir}
               value={dir === "from" ? fromBrand : toBrand}
-              onChange={e => dir === "from" ? setFromBrand(e.target.value) : setToBrand(e.target.value)}
+              onChange={e => {
+                if (!isPro && e.target.value !== "perler") { openPrompt(); return; }
+                dir === "from" ? setFromBrand(e.target.value) : setToBrand(e.target.value);
+              }}
               className="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 text-sm font-medium"
               style={{ fontFamily: "var(--font-display)" }}
             >
               {Object.keys(PALETTES).map(k => (
-                <option key={k} value={k}>{PALETTES[k].name} ({PALETTES[k].colors.length} colors)</option>
+                <option key={k} value={k}>{PALETTES[k].name} ({PALETTES[k].colors.length} colors){!isPro && k !== "perler" ? " 🔒" : ""}</option>
               ))}
             </select>
           ))}
+          {!isPro && <ProBadge />}
           <ArrowRightLeft className="h-5 w-5 text-foreground/30 shrink-0" />
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30" />
@@ -154,6 +162,7 @@ export default function ConverterPage() {
         </div>
       </div>
     </div>
+    <ProFeaturePrompt open={showPrompt} onClose={closePrompt} />
     </RequireAuth>
   );
 }
