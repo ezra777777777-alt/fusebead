@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { v4 as uuidv4 } from "uuid";
+import crypto from "crypto";
 import { authMiddleware } from "../middleware/auth";
 import * as Order from "../models/order";
 import * as User from "../models/user";
@@ -19,7 +19,7 @@ const PLAN_DURATION_DAYS = 30;
 function generateOrderNo(): string {
   const d = new Date();
   const date = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-  return `FB-${date}-${uuidv4().slice(0, 8).toUpperCase()}`;
+  return `FB-${date}-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 
 // Create payment order
