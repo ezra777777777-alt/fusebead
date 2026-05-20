@@ -194,7 +194,7 @@ npm install
 npm run dev               # nodemon + ts-node，监听 :3001
 ```
 
-本地开发**不设置 `DATABASE_URL`** 时，自动使用 SQLite（文件在 `server/data/fusebeed.db`）。
+本地开发**不设置 `DATABASE_URL`** 时，自动使用 SQLite（文件在 `server/data/fusebead.db`）。
 
 ### 前端启动
 

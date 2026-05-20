@@ -32,10 +32,13 @@ var __importStar = (this && this.__importStar) || (function () {
         return result;
     };
 })();
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.paymentsRouter = void 0;
 const express_1 = require("express");
-const uuid_1 = require("uuid");
+const crypto_1 = __importDefault(require("crypto"));
 const auth_1 = require("../middleware/auth");
 const Order = __importStar(require("../models/order"));
 const User = __importStar(require("../models/user"));
@@ -51,7 +54,7 @@ const PLAN_DURATION_DAYS = 30;
 function generateOrderNo() {
     const d = new Date();
     const date = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
-    return `FB-${date}-${(0, uuid_1.v4)().slice(0, 8).toUpperCase()}`;
+    return `FB-${date}-${crypto_1.default.randomUUID().slice(0, 8).toUpperCase()}`;
 }
 // Create payment order
 exports.paymentsRouter.post("/create", auth_1.authMiddleware, async (req, res) => {

@@ -18,8 +18,21 @@ const user_2 = require("./models/user");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const PORT = process.env.PORT || 3001;
-const ALLOWED_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
-app.use((0, cors_1.default)({ origin: ALLOWED_ORIGIN, credentials: true }));
+const HOST = process.env.HOST || "0.0.0.0";
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+app.use((0, cors_1.default)({
+    origin: (origin, callback) => {
+        if (!origin)
+            return callback(null, true);
+        if (allowedOrigins.includes(origin))
+            return callback(null, true);
+        callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+}));
 app.use(express_1.default.json({ limit: "10mb" }));
 // Health check
 app.get("/api/health", (_req, res) => {
@@ -33,8 +46,8 @@ app.use("/api/tool", tool_1.toolRouter);
 app.use("/api/user", user_1.userRouter);
 app.use("/api/admin", admin_1.adminRouter);
 app.use("/api/payments", payments_1.paymentsRouter);
-app.listen(PORT, () => {
-    console.log(`[Server] Running on http://localhost:${PORT}`);
+app.listen(Number(PORT), HOST, () => {
+    console.log(`[Server] Running on http://${HOST}:${PORT}`);
 });
 // Cleanup expired verification codes every 5 minutes
 setInterval(() => {
