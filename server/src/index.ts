@@ -15,9 +15,21 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+const HOST = process.env.HOST || "0.0.0.0";
 
-const ALLOWED_ORIGIN = process.env.CORS_ORIGIN || "http://localhost:3000";
-app.use(cors({ origin: ALLOWED_ORIGIN, credentials: true }));
+const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:3000")
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error("Not allowed by CORS"));
+  },
+  credentials: true,
+}));
 app.use(express.json({ limit: "10mb" }));
 
 // Health check
@@ -34,8 +46,8 @@ app.use("/api/user", userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/payments", paymentsRouter);
 
-app.listen(PORT, () => {
-  console.log(`[Server] Running on http://localhost:${PORT}`);
+app.listen(Number(PORT), HOST, () => {
+  console.log(`[Server] Running on http://${HOST}:${PORT}`);
 });
 
 // Cleanup expired verification codes every 5 minutes
