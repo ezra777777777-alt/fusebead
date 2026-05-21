@@ -235,7 +235,7 @@ patterns (1) ──< comments (N)    pattern 被评论
 
 ## 本地 SQLite 数据库
 
-- 文件位置: `server/data/fusebeed.db`
+- 文件位置: `server/data/fusebead.db`
 - 读写通过 sql.js WASM（纯 JavaScript SQLite 实现）
 - 每次写操作后自动 `fs.writeFileSync` 保存
 - 约束：
