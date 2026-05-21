@@ -453,3 +453,36 @@ psql "postgresql://fusebead:密码@127.0.0.1:5432/fusebead" < backup.sql
 | certbot 失败 | 确认 DNS 已生效（`dig api.fusebead.cn +short`），确认 80 端口可从公网访问 |
 | 备案被驳回 | 通常是因为网站名称/内容描述不匹配，按短信提示修改后重新提交 |
 | PM2 开机不自启 | `pm2 startup` 只是输出命令，需要复制它输出的 sudo 命令手动执行一次 |
+
+---
+
+## 部署记录
+
+### 2026-05-21：第一阶段部署（ECS 后端 + DB + Processor）
+
+**服务器:** 阿里云轻量应用服务器  
+**公网 IP:** 8.137.212.1  
+**系统:** Ubuntu 22.04 LTS (2C2G / 40GB)  
+**域名:** fusebead.cn（备案中）
+
+**部署组件：**
+
+| 组件 | 版本 | 绑定地址 | 进程管理 | 开机自启 |
+|------|------|---------|---------|---------|
+| Node.js | 20 LTS | - | - | - |
+| Express | dist/index.js | 127.0.0.1:3001 | PM2 (fusebead) | ✓ |
+| Flask Processor | main.py | 127.0.0.1:5000 | systemd (fusebead-processor) | ✓ |
+| Nginx | 1.x | :80 → :3001 | systemd | ✓ |
+| PostgreSQL | 16 | 127.0.0.1:5432 | systemd | ✓ |
+
+**验证结果：**
+- `curl http://127.0.0.1:3001/api/health` → `{"status":"ok"}`
+- `curl http://127.0.0.1:5000/health` → `{"status":"ok"}`
+- `curl http://127.0.0.1/api/health` → `{"status":"ok"}`
+- `curl http://8.137.212.1/api/health` → `{"status":"ok"}`
+- POST /api/tool/convert Express → Processor 图片转换链路 ✓
+- 数据库 `SELECT 1` ✓
+
+**参考:** 完整部署步骤见 [server/RUNBOOK.md](../server/RUNBOOK.md)
+
+**下一步:** 备案通过 → 绑定 api.fusebead.cn → certbot HTTPS → Vercel 切换 API URL
