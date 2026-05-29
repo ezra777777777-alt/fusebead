@@ -8,9 +8,10 @@ import {
   X, ChevronLeft, Loader2, Sun, Contrast, Droplet, Pipette, FileText,
   Share2, CheckCircle2,
 } from "lucide-react";
-import { PALETTES } from "@/lib/bead-colors";
+import { PALETTES, getColorName } from "@/lib/bead-colors";
 import { processImage, samplePixel, DEFAULT_ADJUSTMENTS, type ProcessedPattern, type ImageAdjustments } from "@/lib/image-processor";
 import { useLang } from "@/lib/LangContext";
+import type { Lang } from "@/lib/i18n";
 import { usePro } from "@/lib/usePro";
 import { useAuth } from "@/lib/AuthContext";
 import { api } from "@/lib/api";
@@ -21,14 +22,14 @@ import { RequireAuth } from "@/components/auth/RequireAuth";
 type Config = { gridSize: number; dithering: boolean; maxColors: number; brand: string; };
 
 const TEMPLATES = [
-  { name: "Heart", emoji: "❤️", gridSize: 29, maxColors: 8, dithering: false },
-  { name: "Cat Face", emoji: "🐱", gridSize: 29, maxColors: 12, dithering: true },
-  { name: "Star", emoji: "⭐", gridSize: 29, maxColors: 5, dithering: false },
-  { name: "Flower", emoji: "🌸", gridSize: 29, maxColors: 10, dithering: true },
+  { name: "Heart", labelKey: "gen.heart", emoji: "❤️", gridSize: 29, maxColors: 8, dithering: false },
+  { name: "Cat Face", labelKey: "gen.cat", emoji: "🐱", gridSize: 29, maxColors: 12, dithering: true },
+  { name: "Star", labelKey: "gen.star", emoji: "⭐", gridSize: 29, maxColors: 5, dithering: false },
+  { name: "Flower", labelKey: "gen.flower", emoji: "🌸", gridSize: 29, maxColors: 10, dithering: true },
 ];
 
 // Simple PDF generation (grid + color list)
-function generatePDF(pattern: ProcessedPattern, brand: string) {
+function generatePDF(pattern: ProcessedPattern, brand: string, lang: Lang) {
   const brandName = PALETTES[brand]?.name || brand;
   const { grid, width, height, colorCounts } = pattern;
   const palette = PALETTES[brand]?.colors || [];
@@ -95,7 +96,8 @@ function generatePDF(pattern: ProcessedPattern, brand: string) {
     ctx.fillRect(10, fy - 8, 10, 10);
     ctx.fillStyle = "#333";
     ctx.font = "11px sans-serif";
-    ctx.fillText(`${bead[1]} (${code}) — ${count} beads`, 24, fy);
+    const beadCountLabel = lang === "zh" ? "颗" : "beads";
+    ctx.fillText(`${getColorName(bead[1], lang)} (${code}) — ${count} ${beadCountLabel}`, 24, fy);
     fy += 16;
     if (fy > canvasH - 20) break;
   }
@@ -339,7 +341,7 @@ export default function GeneratorPage() {
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         <div className="mb-6">
           <Link href="/" className="inline-flex items-center gap-1 text-sm text-foreground/50 hover:text-foreground mb-3">
-            <ChevronLeft className="h-4 w-4" /> Back
+            <ChevronLeft className="h-4 w-4" /> {t("common.back")}
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight" style={{ fontFamily: "var(--font-display)" }}>
             {t("gen.title")}
@@ -353,7 +355,7 @@ export default function GeneratorPage() {
           {TEMPLATES.map(tmpl => (
             <button key={tmpl.name} onClick={() => setConfig(c => ({ ...c, gridSize: tmpl.gridSize, maxColors: tmpl.maxColors, dithering: tmpl.dithering }))}
               className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-xs hover:bg-[var(--surface-hover)] transition-colors"
-            >{tmpl.emoji} {t(tmpl.name)}</button>
+            >{tmpl.emoji} {t(tmpl.labelKey)}</button>
           ))}
         </div>
 
@@ -376,7 +378,7 @@ export default function GeneratorPage() {
                 </div>
               ) : (
                 <><ImagePlus className="mx-auto h-10 w-10 text-foreground/30 mb-3" />
-                  <p className="text-sm font-medium">Drop image or click</p>
+                  <p className="text-sm font-medium">{t("gen.upload")}</p>
                   <p className="text-xs text-foreground/40 mt-1">JPG, PNG, WebP</p></>
               )}
               <input id="file-input" type="file" accept="image/*" className="hidden"
@@ -392,21 +394,21 @@ export default function GeneratorPage() {
               {showSettings && (
                 <div className="space-y-3">
                   <div>
-                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Palette className="h-3.5 w-3.5" /> Brand {!isPro && <ProBadge />}</label>
+                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Palette className="h-3.5 w-3.5" /> {t("gen.brand")} {!isPro && <ProBadge />}</label>
                     <select value={config.brand} onChange={e => { if (!isPro && e.target.value !== "perler") { openPrompt(); setConfig(c => ({ ...c, brand: "perler" })); } else { setConfig({ ...config, brand: e.target.value }); } }}
                       className="w-full rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2 text-sm">
                       {Object.entries(PALETTES).map(([k, p]) => <option key={k} value={k}>{p.name} ({p.colors.length}){!isPro && k !== "perler" ? " 🔒" : ""}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Grid3X3 className="h-3.5 w-3.5" /> Grid: {config.gridSize}×{Math.round(config.gridSize * (image?.height || 1) / (image?.width || 1))} {!isPro && <ProBadge />}</label>
+                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Grid3X3 className="h-3.5 w-3.5" /> {t("gen.grid")}: {config.gridSize}×{Math.round(config.gridSize * (image?.height || 1) / (image?.width || 1))} {!isPro && <ProBadge />}</label>
                     <input type="range" min={20} max={isPro ? 150 : 29} value={Math.min(config.gridSize, isPro ? 150 : 29)} onChange={e => { const v = Number(e.target.value); if (!isPro && v >= 29) { setConfig({ ...config, gridSize: 29 }); openPrompt(); } else { setConfig({ ...config, gridSize: v }); } }} className="w-full accent-[var(--bead-coral)]" />
                   </div>
                   <div>
                     <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Palette className="h-3.5 w-3.5" /> {t("gen.colors")}: {config.maxColors > 0 ? config.maxColors : t("gen.all")}</label>
                     <input type="range" min={0} max={30} step={2} value={config.maxColors} onChange={e => setConfig({ ...config, maxColors: Number(e.target.value) })} className="w-full accent-[var(--bead-coral)]" />
                   </div>
-                  <label className="flex items-center justify-between text-sm"><span>Dithering</span>
+                  <label className="flex items-center justify-between text-sm"><span>{t("gen.dithering")}</span>
                     <input type="checkbox" checked={config.dithering} onChange={e => setConfig({ ...config, dithering: e.target.checked })} className="accent-[var(--bead-coral)]" /></label>
                 </div>
               )}
@@ -421,15 +423,15 @@ export default function GeneratorPage() {
               {showAdjustments && (
                 <div className="space-y-3">
                   <div>
-                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Sun className="h-3.5 w-3.5" /> Brightness: {adjustments.brightness}</label>
+                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Sun className="h-3.5 w-3.5" /> {t("gen.brightness")}: {adjustments.brightness}</label>
                     <input type="range" min={0} max={200} value={adjustments.brightness} onChange={e => setAdjustments({ ...adjustments, brightness: Number(e.target.value) })} className="w-full accent-[var(--bead-coral)]" />
                   </div>
                   <div>
-                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Contrast className="h-3.5 w-3.5" /> Contrast: {adjustments.contrast}</label>
+                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Contrast className="h-3.5 w-3.5" /> {t("gen.contrast")}: {adjustments.contrast}</label>
                     <input type="range" min={0} max={200} value={adjustments.contrast} onChange={e => setAdjustments({ ...adjustments, contrast: Number(e.target.value) })} className="w-full accent-[var(--bead-coral)]" />
                   </div>
                   <div>
-                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Droplet className="h-3.5 w-3.5" /> Saturation: {adjustments.saturation}</label>
+                    <label className="flex items-center gap-2 text-xs text-foreground/50 mb-1"><Droplet className="h-3.5 w-3.5" /> {t("gen.saturation")}: {adjustments.saturation}</label>
                     <input type="range" min={0} max={200} value={adjustments.saturation} onChange={e => setAdjustments({ ...adjustments, saturation: Number(e.target.value) })} className="w-full accent-[var(--bead-coral)]" />
                   </div>
                   <div>
@@ -454,7 +456,7 @@ export default function GeneratorPage() {
             <button onClick={generatePattern} disabled={!image || processing}
               className="w-full flex items-center justify-center gap-2 rounded-full px-6 py-3 text-sm font-semibold text-white transition-all disabled:opacity-30"
               style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
-              {processing ? <><Loader2 className="h-4 w-4 animate-spin" /> Processing...</> : <><Upload className="h-4 w-4" /> Generate Pattern</>}
+              {processing ? <><Loader2 className="h-4 w-4 animate-spin" /> {t("gen.processing")}</> : <><Upload className="h-4 w-4" /> {t("gen.generate")}</>}
             </button>
             {error && <p className="text-sm text-red-500 text-center">{error}</p>}
           </div>
@@ -469,7 +471,7 @@ export default function GeneratorPage() {
               ) : (
                 <div className="flex flex-col items-center justify-center py-20 text-foreground/20">
                   <Grid3X3 className="h-16 w-16 mb-4" />
-                  <p className="text-sm">Upload an image and click Generate</p>
+                  <p className="text-sm">{t("gen.empty")}</p>
                 </div>
               )}
             </div>
@@ -481,7 +483,7 @@ export default function GeneratorPage() {
                     {t("gen.materials")} ({Object.keys(pattern.colorCounts).length} {t("common.colors")})
                   </h3>
                   <div className="flex gap-2">
-                    <button onClick={() => { if (!isPro) { openPrompt(); return; } generatePDF(pattern, config.brand); }}
+                    <button onClick={() => { if (!isPro) { openPrompt(); return; } generatePDF(pattern, config.brand, lang); }}
                       className="inline-flex items-center gap-1.5 rounded-full border border-[var(--border)] px-4 py-1.5 text-xs font-medium hover:bg-[var(--surface-hover)]">
                       <FileText className="h-3.5 w-3.5" /> PDF {!isPro && <ProBadge />}
                     </button>
@@ -508,7 +510,7 @@ export default function GeneratorPage() {
                     return (
                       <div key={code} className="flex items-center gap-2 rounded-lg border border-[var(--border)] px-2.5 py-1.5 text-xs">
                         <span className="h-4 w-4 rounded-sm shrink-0" style={{ backgroundColor: `rgb(${bead[2]},${bead[3]},${bead[4]})` }} />
-                        <span className="truncate">{bead[1]}</span>
+                        <span className="truncate">{getColorName(bead[1], lang)}</span>
                         <span className="text-foreground/40 ml-auto">{count}</span>
                       </div>
                     );
