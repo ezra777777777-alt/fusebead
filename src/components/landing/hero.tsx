@@ -292,7 +292,33 @@ export function PatternRecommendations() {
               </div>
             ))}
           </div>
-        ) : patterns.length === 0 ? null : (
+        ) : patterns.length === 0 ? (
+          <div className="mx-auto max-w-xl rounded-2xl border border-[var(--border)] bg-white px-6 py-10 text-center shadow-sm">
+            <Grid3X3 className="mx-auto mb-4 h-10 w-10 text-foreground/20" />
+            <h3 className="mb-2 text-lg font-bold" style={{ fontFamily: "var(--font-display)" }}>
+              {lang === "zh" ? "还没有热门图案" : "No popular patterns yet"}
+            </h3>
+            <p className="mb-6 text-sm text-foreground/50">
+              {lang === "zh" ? "社区图案发布后会自动出现在这里。" : "Community patterns will appear here after they are published."}
+            </p>
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+              <Link
+                href="/generator"
+                className="inline-flex items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-all hover:scale-[1.02]"
+                style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}
+              >
+                {lang === "zh" ? "生成第一个作品" : "Create the first pattern"}
+              </Link>
+              <Link
+                href="/gallery"
+                className="inline-flex items-center justify-center rounded-full border border-[var(--border)] px-5 py-2.5 text-sm font-semibold text-foreground/60 transition-colors hover:bg-[var(--surface-hover)]"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                {lang === "zh" ? "浏览图纸库" : "Browse gallery"}
+              </Link>
+            </div>
+          </div>
+        ) : (
           <motion.div variants={stagger} initial="hidden" whileInView="show" viewport={{ once: true }}
             className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-5">
             {patterns.map((p) => {
@@ -354,7 +380,12 @@ export function HowItWorks() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
           {steps.map((step, i) => (
             <motion.div key={step.n} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="text-center">
-              <div className="text-5xl sm:text-6xl font-bold opacity-[0.06] mb-4" style={{ fontFamily: "var(--font-display)", color: "var(--bead-coral)" }}>{step.n}</div>
+              <div
+                className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--bead-coral)]/10 text-2xl font-bold shadow-sm"
+                style={{ fontFamily: "var(--font-display)", color: "var(--bead-coral)" }}
+              >
+                {step.n}
+              </div>
               <div className="text-3xl mb-3">{step.icon}</div>
               <p className="text-sm text-foreground/50 leading-relaxed">{lang === "zh" ? step.zh : step.en}</p>
             </motion.div>
