@@ -5,26 +5,68 @@ import { useLang } from "@/lib/LangContext";
 import { api } from "@/lib/api";
 import { Search, ChevronLeft, ChevronRight, Trash2 } from "lucide-react";
 
+type AdminUser = {
+  id: number;
+  username: string;
+  email: string;
+  plan: "free" | "pro" | "team";
+  is_admin: boolean;
+  is_banned: boolean;
+  subscription_expires_at: string | null;
+  subscription_status: string;
+  created_at: string;
+};
+
 export default function AdminUsersPage() {
   const { lang } = useLang();
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [daysInputs, setDaysInputs] = useState<Record<number, string>>({});
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const PAGE_SIZE = 20;
 
+  const remainingDaysValue = (user: AdminUser): string => {
+    if (user.plan === "free" || !user.subscription_expires_at) return "";
+    const expires = new Date(user.subscription_expires_at).getTime();
+    if (!Number.isFinite(expires)) return "";
+    return String(Math.max(0, Math.ceil((expires - Date.now()) / 86400000)));
+  };
+
+  const remainingDaysLabel = (user: AdminUser): string => {
+    if (user.plan === "free") return "-";
+    if (!user.subscription_expires_at) return lang === "zh" ? "未设置" : "Not set";
+    const days = Number(remainingDaysValue(user));
+    if (days <= 0) return lang === "zh" ? "已过期" : "Expired";
+    return lang === "zh" ? `${days} 天` : `${days}d left`;
+  };
+
   const fetchUsers = () => {
-    api(`/admin/users?page=${page}&limit=${PAGE_SIZE}&search=${encodeURIComponent(search)}`)
-      .then((d) => { setUsers(d.users); setTotal(d.total); })
+    api<{ users: AdminUser[]; total: number }>(`/admin/users?page=${page}&limit=${PAGE_SIZE}&search=${encodeURIComponent(search)}`)
+      .then((d) => {
+        setUsers(d.users);
+        setTotal(d.total);
+        setDaysInputs(Object.fromEntries(d.users.map((u) => [u.id, remainingDaysValue(u)])));
+      })
       .catch(() => {});
   };
 
   useEffect(() => { fetchUsers(); }, [page]);
   useEffect(() => { setPage(1); fetchUsers(); }, [search]);
 
-  const handleUpdate = async (id: number, data: any) => {
+  const handleUpdate = async (id: number, data: Record<string, unknown>) => {
     await api(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(data) });
     fetchUsers();
+  };
+
+  const handleSetSubscriptionDays = async (user: AdminUser) => {
+    const raw = daysInputs[user.id];
+    const days = Number(raw);
+    if (!Number.isInteger(days) || days < 1 || days > 3650) {
+      window.alert(lang === "zh" ? "请输入 1-3650 的整数天数" : "Enter a whole number from 1 to 3650");
+      return;
+    }
+    await handleUpdate(user.id, { plan: user.plan === "free" ? "pro" : user.plan, subscription_days: days });
   };
 
   const handleDelete = async (id: number, username: string) => {
@@ -64,6 +106,7 @@ export default function AdminUsersPage() {
                 <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "用户名" : "Username"}</th>
                 <th className="px-4 py-3 font-medium text-foreground/40">Email</th>
                 <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "套餐" : "Plan"}</th>
+                <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "剩余天数" : "Days Left"}</th>
                 <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "状态" : "Status"}</th>
                 <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "管理员" : "Admin"}</th>
                 <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "操作" : "Actions"}</th>
@@ -85,6 +128,28 @@ export default function AdminUsersPage() {
                       <option value="pro">Pro</option>
                       <option value="team">Team</option>
                     </select>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex min-w-[184px] items-center gap-2">
+                      <span className={`min-w-14 text-xs ${u.plan !== "free" && !u.subscription_expires_at ? "text-amber-600" : "text-foreground/50"}`}>
+                        {remainingDaysLabel(u)}
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        max={3650}
+                        value={daysInputs[u.id] ?? ""}
+                        onChange={(e) => setDaysInputs((prev) => ({ ...prev, [u.id]: e.target.value }))}
+                        placeholder={lang === "zh" ? "天数" : "Days"}
+                        className="w-16 rounded-lg border border-[var(--border)] bg-white px-2 py-1 text-xs"
+                      />
+                      <button
+                        onClick={() => handleSetSubscriptionDays(u)}
+                        className="rounded-lg bg-[var(--primary)] px-2.5 py-1 text-xs font-medium text-white hover:opacity-90"
+                      >
+                        {lang === "zh" ? "设置" : "Set"}
+                      </button>
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <button

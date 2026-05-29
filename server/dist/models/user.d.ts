@@ -31,7 +31,7 @@ export declare function findAll(opts?: {
     users: UserRow[];
     total: number;
 }>;
-export declare function updateAdmin(id: number, data: Partial<Pick<UserRow, "plan" | "is_banned" | "is_admin">>): Promise<boolean>;
+export declare function updateAdmin(id: number, data: Partial<Pick<UserRow, "plan" | "is_banned" | "is_admin" | "subscription_expires_at" | "subscription_status">>): Promise<boolean>;
 export declare function getStats(): Promise<{
     totalUsers: number;
     todayUsers: number;

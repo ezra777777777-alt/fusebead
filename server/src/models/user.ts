@@ -73,12 +73,17 @@ export async function findAll(opts: { page?: number; limit?: number; search?: st
   return { users, total };
 }
 
-export async function updateAdmin(id: number, data: Partial<Pick<UserRow, "plan" | "is_banned" | "is_admin">>): Promise<boolean> {
+export async function updateAdmin(
+  id: number,
+  data: Partial<Pick<UserRow, "plan" | "is_banned" | "is_admin" | "subscription_expires_at" | "subscription_status">>,
+): Promise<boolean> {
   const fields: string[] = [];
   const values: any[] = [];
   if (data.plan !== undefined) { fields.push("plan = ?"); values.push(data.plan); }
   if (data.is_banned !== undefined) { fields.push("is_banned = ?"); values.push(data.is_banned); }
   if (data.is_admin !== undefined) { fields.push("is_admin = ?"); values.push(data.is_admin); }
+  if (data.subscription_expires_at !== undefined) { fields.push("subscription_expires_at = ?"); values.push(data.subscription_expires_at); }
+  if (data.subscription_status !== undefined) { fields.push("subscription_status = ?"); values.push(data.subscription_status); }
   if (fields.length === 0) return false;
   values.push(id);
   const result = await query<any>(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, values);

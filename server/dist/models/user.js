@@ -74,6 +74,14 @@ async function updateAdmin(id, data) {
         fields.push("is_admin = ?");
         values.push(data.is_admin);
     }
+    if (data.subscription_expires_at !== undefined) {
+        fields.push("subscription_expires_at = ?");
+        values.push(data.subscription_expires_at);
+    }
+    if (data.subscription_status !== undefined) {
+        fields.push("subscription_status = ?");
+        values.push(data.subscription_status);
+    }
     if (fields.length === 0)
         return false;
     values.push(id);

@@ -78,6 +78,8 @@ exports.adminRouter.get("/users", async (req, res) => {
             id: u.id, username: u.username, email: u.email,
             avatar_url: u.avatar_url, plan: u.plan,
             is_admin: u.is_admin, is_banned: u.is_banned,
+            subscription_expires_at: u.subscription_expires_at,
+            subscription_status: u.subscription_status,
             created_at: u.created_at, updated_at: u.updated_at,
         }));
         res.json({ users, total: result.total });
@@ -105,13 +107,31 @@ exports.adminRouter.get("/users/:id", async (req, res) => {
 exports.adminRouter.put("/users/:id", async (req, res) => {
     try {
         const id = Number(req.params.id);
-        const { plan, is_banned, is_admin } = req.body;
-        const updated = await User.updateAdmin(id, { plan, is_banned, is_admin });
+        const { plan, is_banned, is_admin, subscription_days } = req.body;
+        const updates = {
+            plan,
+            is_banned,
+            is_admin,
+        };
+        if (plan === "free") {
+            updates.subscription_expires_at = null;
+            updates.subscription_status = "none";
+        }
+        else if ((plan === "pro" || plan === "team") && subscription_days !== undefined) {
+            const days = Number(subscription_days);
+            if (!Number.isFinite(days) || days < 1 || days > 3650) {
+                res.status(400).json({ error: "Invalid subscription days" });
+                return;
+            }
+            updates.subscription_expires_at = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+            updates.subscription_status = "active";
+        }
+        const updated = await User.updateAdmin(id, updates);
         if (!updated) {
             res.status(400).json({ error: "No valid fields to update" });
             return;
         }
-        await AdminLog.create(req.user.userId, "update_user", "user", id, JSON.stringify({ plan, is_banned, is_admin }));
+        await AdminLog.create(req.user.userId, "update_user", "user", id, JSON.stringify({ plan, is_banned, is_admin, subscription_days }));
         res.json({ success: true });
     }
     catch (err) {
