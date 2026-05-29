@@ -37,9 +37,17 @@ export function Footer() {
         </div>
 
         <div className="mt-4 pt-4 border-t border-[var(--border)] text-center">
-          <p className="text-sm text-foreground/50">
+          <p className="text-sm text-foreground/50 mb-2">
             {t("footer.contact")}：<a href="mailto:cx2548464278@163.com" className="text-[var(--primary)] hover:underline">cx2548464278@163.com</a>
           </p>
+          <a
+            href="https://beian.miit.gov.cn/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-foreground/40 hover:text-foreground/60"
+          >
+            粤ICP备2026067307号-1
+          </a>
         </div>
       </div>
     </footer>
