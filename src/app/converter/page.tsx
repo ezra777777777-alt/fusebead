@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, ArrowRightLeft, Search } from "lucide-react";
-import { PALETTES, findClosestColor, BRAND_NAMES } from "@/lib/bead-colors";
+import { PALETTES, findClosestColor, BRAND_NAMES, getColorName } from "@/lib/bead-colors";
 import { useLang } from "@/lib/LangContext";
 import { usePro } from "@/lib/usePro";
 import { ProBadge } from "@/components/shared/ProBadge";
@@ -11,7 +11,7 @@ import { ProFeaturePrompt } from "@/components/shared/ProFeaturePrompt";
 import { RequireAuth } from "@/components/auth/RequireAuth";
 
 export default function ConverterPage() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { isPro, showPrompt, openPrompt, closePrompt } = usePro();
   const [fromBrand, setFromBrand] = useState("perler");
   const [toBrand, setToBrand] = useState("hama");
@@ -34,6 +34,7 @@ export default function ConverterPage() {
   const filtered = search
     ? mapping.filter(m =>
         m.from[1].toLowerCase().includes(search.toLowerCase()) ||
+        getColorName(m.from[1], lang).toLowerCase().includes(search.toLowerCase()) ||
         m.from[0].toLowerCase().includes(search.toLowerCase())
       )
     : mapping;
@@ -67,7 +68,7 @@ export default function ConverterPage() {
               style={{ fontFamily: "var(--font-display)" }}
             >
               {Object.keys(PALETTES).map(k => (
-                <option key={k} value={k}>{PALETTES[k].name} ({PALETTES[k].colors.length} colors){!isPro && k !== "perler" ? " 🔒" : ""}</option>
+                <option key={k} value={k}>{PALETTES[k].name} ({PALETTES[k].colors.length} {t("common.colors")}){!isPro && k !== "perler" ? " 🔒" : ""}</option>
               ))}
             </select>
           ))}
@@ -125,7 +126,7 @@ export default function ConverterPage() {
                       style={{ backgroundColor: `rgb(${from[2]},${from[3]},${from[4]})` }}
                     />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{from[1]}</p>
+                      <p className="text-sm font-medium truncate">{getColorName(from[1], lang)}</p>
                       <p className="text-xs text-foreground/30">{from[0]}</p>
                     </div>
                   </div>
@@ -145,7 +146,7 @@ export default function ConverterPage() {
                       style={{ backgroundColor: `rgb(${to[2]},${to[3]},${to[4]})` }}
                     />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{to[1]}</p>
+                      <p className="text-sm font-medium truncate">{getColorName(to[1], lang)}</p>
                       <p className="text-xs text-foreground/30">{to[0]}</p>
                     </div>
                   </div>
@@ -157,7 +158,9 @@ export default function ConverterPage() {
 
         {/* Summary */}
         <div className="mt-4 text-center text-xs text-foreground/30">
-          Showing {filtered.length} of {mapping.length} color mappings. 
+          {lang === "zh"
+            ? `显示 ${filtered.length} / ${mapping.length} 条颜色映射。`
+            : `Showing ${filtered.length} of ${mapping.length} color mappings.`}{" "}
           {t("conv.summary")}
         </div>
       </div>
