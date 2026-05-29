@@ -234,6 +234,7 @@ export const COLOR_NAME_ZH: Record<string, string> = {
   "Cobalt Blue": "钴蓝色",
   Tan: "棕褐色",
   "Light Brown": "浅棕色",
+  "Light Pink": "浅粉色",
   Brown: "棕色",
   "Dark Brown": "深棕色",
   Grey: "灰色",
@@ -289,6 +290,11 @@ export const COLOR_NAME_ZH: Record<string, string> = {
 
 export function getColorName(name: string, lang: "en" | "zh" = "en"): string {
   return lang === "zh" ? COLOR_NAME_ZH[name] || name : name;
+}
+
+export function getBilingualColorName(name: string): string {
+  const zhName = COLOR_NAME_ZH[name];
+  return zhName && zhName !== name ? `${zhName} / ${name}` : name;
 }
 
 export function colorDistance(rgb1: [number, number, number], rgb2: [number, number, number]): number {

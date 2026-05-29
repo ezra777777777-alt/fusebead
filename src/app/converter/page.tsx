@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, ArrowRightLeft, Search } from "lucide-react";
-import { PALETTES, findClosestColor, BRAND_NAMES, getColorName } from "@/lib/bead-colors";
+import { PALETTES, findClosestColor, BRAND_NAMES, getBilingualColorName, getColorName } from "@/lib/bead-colors";
 import { useLang } from "@/lib/LangContext";
 import { usePro } from "@/lib/usePro";
 import { ProBadge } from "@/components/shared/ProBadge";
@@ -34,7 +34,7 @@ export default function ConverterPage() {
   const filtered = search
     ? mapping.filter(m =>
         m.from[1].toLowerCase().includes(search.toLowerCase()) ||
-        getColorName(m.from[1], lang).toLowerCase().includes(search.toLowerCase()) ||
+        getColorName(m.from[1], "zh").toLowerCase().includes(search.toLowerCase()) ||
         m.from[0].toLowerCase().includes(search.toLowerCase())
       )
     : mapping;
@@ -126,7 +126,7 @@ export default function ConverterPage() {
                       style={{ backgroundColor: `rgb(${from[2]},${from[3]},${from[4]})` }}
                     />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{getColorName(from[1], lang)}</p>
+                      <p className="text-sm font-medium truncate">{getBilingualColorName(from[1])}</p>
                       <p className="text-xs text-foreground/30">{from[0]}</p>
                     </div>
                   </div>
@@ -146,7 +146,7 @@ export default function ConverterPage() {
                       style={{ backgroundColor: `rgb(${to[2]},${to[3]},${to[4]})` }}
                     />
                     <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{getColorName(to[1], lang)}</p>
+                      <p className="text-sm font-medium truncate">{getBilingualColorName(to[1])}</p>
                       <p className="text-xs text-foreground/30">{to[0]}</p>
                     </div>
                   </div>
