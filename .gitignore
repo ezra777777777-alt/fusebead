@@ -1,10 +1,34 @@
+# Dependencies
 node_modules/
+server/node_modules/
+
+# Build output
 .next/
 out/
+
+# Environment files
 .env
 .env.local
 .env*.local
 server/.env
+
+# Local runtime data
 server/data/
+
+# Python caches
+__pycache__/
+processor/__pycache__/
+*.py[cod]
+.venv/
+processor/.venv/
+processor/.venv-local/
+
+# Local launcher state and logs
+.local/
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Logs and system files
 *.log
 .DS_Store
