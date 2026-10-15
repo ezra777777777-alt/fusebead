@@ -11,6 +11,7 @@ out/
 .env.local
 .env*.local
 server/.env
+server/.env.save
 
 # Local runtime data
 server/data/
@@ -22,6 +23,7 @@ processor/__pycache__/
 .venv/
 processor/.venv/
 processor/.venv-local/
+processor/venv/
 
 # Local launcher state and logs
 .local/

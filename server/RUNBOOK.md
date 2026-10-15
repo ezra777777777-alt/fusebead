@@ -261,7 +261,7 @@ dig api.fusebead.cn +short    # 应返回 8.137.212.1
 sudo certbot --nginx -d api.fusebead.cn
 
 # 4. 更新 Express .env
-# CORS_ORIGIN=https://fusebead.cn,https://www.fusebead.cn,https://fusebead.vercel.app,http://localhost:3000
+# CORS_ORIGIN=https://fusebead.cn,http://localhost:3000
 # 重新构建并重启
 cd /home/admin/fusebead/server
 npm run build && pm2 restart fusebead

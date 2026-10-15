@@ -36,22 +36,6 @@ export default function AdminFeedbackPage() {
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const formatBeijingTime = (value: string) => {
-    const normalized = /[zZ]|[+-]\d{2}:?\d{2}$/.test(value)
-      ? value
-      : value.replace(" ", "T") + "Z";
-    return new Intl.DateTimeFormat("zh-CN", {
-      timeZone: "Asia/Shanghai",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    }).format(new Date(normalized));
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -102,7 +86,7 @@ export default function AdminFeedbackPage() {
                     </h3>
                   </div>
                   <p className="text-xs text-foreground/40 mt-1 ml-6">
-                    {f.username} ({f.email}) — {formatBeijingTime(f.created_at)}
+                    {f.username} ({f.email}) — {new Date(f.created_at).toLocaleString()}
                   </p>
                 </div>
                 {!f.is_read && (
@@ -127,7 +111,7 @@ export default function AdminFeedbackPage() {
             <ChevronLeft className="h-4 w-4" />
           </button>
           <span className="text-sm text-foreground/40">{page} / {totalPages}</span>
-          <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+          <button onClick={() => setPage((p) => Math.min(totalPages, p - 1))} disabled={page === totalPages}
             className="p-2 rounded-lg border border-[var(--border)] disabled:opacity-30">
             <ChevronRight className="h-4 w-4" />
           </button>

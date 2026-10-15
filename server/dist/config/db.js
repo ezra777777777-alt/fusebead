@@ -41,8 +41,6 @@ function toPgSql(sql) {
         .replace(/datetime\('now'\)/gi, "NOW()")
         // DATE('now') → CURRENT_DATE
         .replace(/DATE\('now'\)/gi, "CURRENT_DATE")
-        // Time columns are stored as TEXT for SQLite compatibility; cast before PG time comparisons.
-        .replace(/\b(created_at|updated_at|expires_at|subscription_expires_at)\s*(<=|>=|<|>)\s*(NOW\(\)(?:\s*\+\s*\([^)]*\)::INTERVAL)?)/gi, "$1::timestamptz $2 $3")
         // Boolean literals — PG doesn't allow TRUE/FALSE on INTEGER columns
         .replace(/=\s*TRUE\b/gi, "= 1")
         .replace(/=\s*FALSE\b/gi, "= 0");
@@ -70,8 +68,6 @@ async function initPgSchema() {
         updated_at TEXT DEFAULT (NOW() AT TIME ZONE 'UTC')::text
       )
     `);
-        await client.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_expires_at TEXT");
-        await client.query("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'none'");
         await client.query(`
       CREATE TABLE IF NOT EXISTS patterns (
         id SERIAL PRIMARY KEY,

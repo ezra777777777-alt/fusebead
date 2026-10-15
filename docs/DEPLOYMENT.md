@@ -217,7 +217,7 @@ npm run dev                         # Next.js dev server，监听 :3000
 ### CORS 报错 "No 'Access-Control-Allow-Origin' header"
 
 1. 确认 `CORS_ORIGIN` 包含前端域名（精确匹配，含 `https://`）
-2. 支持多个域名：逗号分隔，如 `CORS_ORIGIN=https://fusebead.cn,https://www.fusebead.cn,https://xxx.vercel.app,http://localhost:3000`
+2. 支持多个域名：逗号分隔，如 `CORS_ORIGIN=https://fusebead.cn,https://xxx.vercel.app,http://localhost:3000`
 3. 修改环境变量后需要**重新部署**才能生效
 4. 如果 Nginx 反代了后端，确认 `proxy_set_header Host` 已设置
 
@@ -337,7 +337,7 @@ cat > .env << 'EOF'
 PORT=3001
 HOST=127.0.0.1
 JWT_SECRET=<强随机字符串>
-CORS_ORIGIN=https://fusebead.cn,https://www.fusebead.cn,https://xxx.vercel.app,http://localhost:3000
+CORS_ORIGIN=https://fusebead.cn,https://xxx.vercel.app,http://localhost:3000
 DATABASE_URL=postgresql://fusebead:密码@127.0.0.1:5432/fusebead
 SMTP_HOST=smtp.163.com
 SMTP_PORT=465
@@ -463,8 +463,7 @@ psql "postgresql://fusebead:密码@127.0.0.1:5432/fusebead" < backup.sql
 **服务器:** 阿里云轻量应用服务器  
 **公网 IP:** 8.137.212.1  
 **系统:** Ubuntu 22.04 LTS (2C2G / 40GB)  
-**域名:** fusebead.cn（已备案）
-**备案号:** 粤ICP备2026067307号-1
+**域名:** fusebead.cn（备案中）
 
 **部署组件：**
 
@@ -486,4 +485,4 @@ psql "postgresql://fusebead:密码@127.0.0.1:5432/fusebead" < backup.sql
 
 **参考:** 完整部署步骤见 [server/RUNBOOK.md](../server/RUNBOOK.md)
 
-**当前状态:** 已完成备案、`api.fusebead.cn` HTTPS、Vercel 自定义域名绑定。若验证码或接口失败，优先检查 `CORS_ORIGIN` 是否包含 `https://www.fusebead.cn`。
+**下一步:** 备案通过 → 绑定 api.fusebead.cn → certbot HTTPS → Vercel 切换 API URL
