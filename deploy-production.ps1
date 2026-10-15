@@ -59,7 +59,7 @@ echo "Server revision: $(git -c safe.directory="$repo" rev-parse --short HEAD)"
 echo "Express: $(curl -fsS http://127.0.0.1:3001/api/health)"
 echo "Processor: $(curl -fsS http://127.0.0.1:5000/health)"
 echo "Services: $(systemctl is-active fusebead-processor nginx postgresql | paste -sd, -)"
-'$
+'@
 
 $encoded = [Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($remoteScript))
 & ssh -o BatchMode=yes $SshHost "echo '$encoded' | base64 -d | bash"
