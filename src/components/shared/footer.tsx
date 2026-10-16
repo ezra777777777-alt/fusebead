@@ -32,7 +32,6 @@ export function Footer() {
       <div className="border-t border-white/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs font-bold text-white/30 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <span>© 2026 赛博搬屎 · 自己拉的，自己端。</span>
-          <a href="https://beian.miit.gov.cn/" target="_blank" rel="noopener noreferrer" className="hover:text-white">粤ICP备2026067307号-1</a>
         </div>
       </div>
     </footer>

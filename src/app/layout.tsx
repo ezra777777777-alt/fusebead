@@ -8,7 +8,7 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://fusebead.cn"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://vibeshitting.cn"),
   title: {
     default: "赛博搬屎 — Vibe Coding 电子垃圾联合投喂平台",
     template: "%s | 赛博搬屎",
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     locale: "zh_CN",
-    url: "https://fusebead.cn",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://vibeshitting.cn",
     siteName: "赛博搬屎",
     title: "赛博搬屎 — Vibe Coding 电子垃圾联合投喂平台",
     description: "你负责现拉，我们负责端给网友。",

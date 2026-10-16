@@ -1,6 +1,6 @@
 import Link from "next/link";
 export default function PrivacyPage() {
-  return <article className="mx-auto max-w-3xl px-5 pb-16 pt-28 text-black"><p className="text-xs font-black tracking-widest text-[var(--orange)]">PRIVACY · 社区公测</p><h1 className="mt-3 text-4xl font-black">你的资料，怎样使用。</h1><p className="mt-5 leading-8">本页说明 www.fusebead.cn 公测版本的数据使用方式。隐私相关请求可通过站内反馈或 <a href="mailto:cx2548464278@163.com" className="underline">cx2548464278@163.com</a> 联系本站运营者。</p>
+  return <article className="mx-auto max-w-3xl px-5 pb-16 pt-28 text-black"><p className="text-xs font-black tracking-widest text-[var(--orange)]">PRIVACY · 社区公测</p><h1 className="mt-3 text-4xl font-black">你的资料，怎样使用。</h1><p className="mt-5 leading-8">本页说明本站公测版本的数据使用方式。隐私相关请求可通过站内反馈或 <a href="mailto:cx2548464278@163.com" className="underline">cx2548464278@163.com</a> 联系本站运营者。</p>
     <div className="mt-8 space-y-7 border-2 border-black bg-white p-6 shadow-[6px_6px_0_#000]">
       <section><h2 className="text-xl font-black">账号资料</h2><p className="mt-3 leading-8">注册使用邮箱、昵称和密码。邮箱用于验证、登录和找回密码，不在公开主页展示。数据库保存密码的哈希值。昵称、头像、公开作品、评论和清运值会向访客展示。</p></section>
       <section><h2 className="text-xl font-black">投稿、审核与反馈</h2><p className="mt-3 leading-8">我们保存投稿内容、上传截图及图片链接、审核状态、审核说明、投票、评论、签到和举报记录，用于提供社区功能和处理争议。待审核、退回或撤回的作品正文只对作者及管理员提供访问。举报详情由管理员处理，处理结论对举报人展示。反馈内容与管理员回复仅供对应账号及管理员查看；未登录申诉填写的邮箱尚需人工核实。上传的截图即使尚未通过投稿审核，持有图片链接的人也可以直接访问；外部图片网址也可能被其他访问者或图片服务提供方直接访问，请勿上传私人或敏感截图。</p></section>
