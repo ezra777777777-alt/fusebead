@@ -13,7 +13,7 @@ exports.updatePassword = updatePassword;
 exports.checkSubscriptionExpiry = checkSubscriptionExpiry;
 const db_1 = require("../config/db");
 async function findByEmail(email) {
-    const rows = await (0, db_1.query)("SELECT * FROM users WHERE email = ?", [email]);
+    const rows = await (0, db_1.query)("SELECT * FROM users WHERE LOWER(email) = ?", [email.trim().toLowerCase()]);
     return rows[0] || null;
 }
 async function findById(id) {
@@ -22,7 +22,7 @@ async function findById(id) {
 }
 async function create(data) {
     const result = await (0, db_1.query)("INSERT INTO users (username, email, password_hash, email_verified) VALUES (?, ?, ?, ?)", [data.username, data.email, data.password_hash, data.email_verified ?? 0]);
-    return { id: result.insertId, ...data, avatar_url: null, plan: "free", email_verified: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    return { id: result.insertId, ...data, avatar_url: null, plan: "free", email_verified: 0, contribution_points: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() };
 }
 async function verifyEmail(email) {
     const result = await (0, db_1.query)("UPDATE users SET email_verified = 1, updated_at = datetime('now') WHERE email = ?", [email]);
@@ -68,11 +68,11 @@ async function updateAdmin(id, data) {
     }
     if (data.is_banned !== undefined) {
         fields.push("is_banned = ?");
-        values.push(data.is_banned);
+        values.push(data.is_banned ? 1 : 0);
     }
     if (data.is_admin !== undefined) {
         fields.push("is_admin = ?");
-        values.push(data.is_admin);
+        values.push(data.is_admin ? 1 : 0);
     }
     if (data.subscription_expires_at !== undefined) {
         fields.push("subscription_expires_at = ?");
@@ -97,7 +97,7 @@ async function upgradePlan(id, plan, expiresAt) {
     await (0, db_1.query)("UPDATE users SET plan = ?, subscription_expires_at = ?, subscription_status = 'active', updated_at = datetime('now') WHERE id = ?", [plan, expiresAt, id]);
 }
 async function updatePassword(id, password_hash) {
-    await (0, db_1.query)("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?", [password_hash, id]);
+    await (0, db_1.query)("UPDATE users SET password_hash = ?, token_version = token_version + 1, updated_at = datetime('now') WHERE id = ?", [password_hash, id]);
 }
 async function checkSubscriptionExpiry() {
     const result = await (0, db_1.query)(`UPDATE users SET plan = 'free', subscription_status = 'expired', subscription_expires_at = NULL, updated_at = datetime('now')

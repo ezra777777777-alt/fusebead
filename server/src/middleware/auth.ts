@@ -1,9 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
+import * as User from "../models/user";
 
 export interface AuthPayload {
   userId: number;
   plan: string;
+  isAdmin?: boolean;
+  tokenVersion?: number;
 }
 
 declare global {
@@ -26,38 +29,45 @@ function getJwtSecret(): string {
   return secret;
 }
 
-export function authMiddleware(req: Request, res: Response, next: NextFunction): void {
-  const header = req.headers.authorization;
-
-  if (!header || !header.startsWith("Bearer ")) {
-    res.status(401).json({ error: "Missing or invalid token" });
+export async function authMiddleware(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
+  let decoded: AuthPayload;
+  try {
+    decoded = jwt.verify(token || "", getJwtSecret()) as AuthPayload;
+    if (!Number.isInteger(decoded.userId)) throw new Error("Invalid token");
+  } catch {
+    res.status(401).json({ error: "登录已失效，请重新登录", code: "AUTH_REQUIRED" });
     return;
   }
-
-  const token = header.slice(7);
-
   try {
-    const decoded = jwt.verify(token, getJwtSecret()) as AuthPayload;
-    req.user = decoded;
+    const user = await User.findById(decoded.userId);
+    if (user && (decoded.tokenVersion ?? 0) !== user.token_version) {
+      res.status(401).json({ error: "密码已更新，请重新登录", code: "AUTH_REQUIRED" });
+      return;
+    }
+    if (!user || user.is_banned || !user.email_verified) {
+      res.status(user ? 403 : 401).json({
+        error: user?.is_banned ? "账号已被封禁，如有异议请通过社区反馈申诉" : "请先完成邮箱验证",
+        code: user?.is_banned ? "ACCOUNT_BANNED" : "AUTH_REQUIRED",
+      });
+      return;
+    }
+    req.user = { userId: user.id, plan: user.plan, isAdmin: !!user.is_admin, tokenVersion: user.token_version };
     next();
-  } catch {
-    res.status(401).json({ error: "Invalid or expired token" });
-  }
+  } catch (error) { next(error); }
 }
 
-export function optionalAuth(req: Request, _res: Response, next: NextFunction): void {
-  const header = req.headers.authorization;
-
-  if (header && header.startsWith("Bearer ")) {
-    try {
-      const decoded = jwt.verify(header.slice(7), getJwtSecret()) as AuthPayload;
-      req.user = decoded;
-    } catch {
-      // Ignore invalid tokens for optional auth
+export async function optionalAuth(req: Request, _res: Response, next: NextFunction): Promise<void> {
+  const token = req.headers.authorization?.match(/^Bearer (.+)$/)?.[1];
+  let decoded: AuthPayload | null = null;
+  try { if (token) decoded = jwt.verify(token, getJwtSecret()) as AuthPayload; } catch { /* visitor */ }
+  try {
+    if (decoded && Number.isInteger(decoded.userId)) {
+      const user = await User.findById(decoded.userId);
+      if (user && !user.is_banned && user.email_verified && (decoded.tokenVersion ?? 0) === user.token_version) req.user = { userId: user.id, plan: user.plan, isAdmin: !!user.is_admin, tokenVersion: user.token_version };
     }
-  }
-
-  next();
+    next();
+  } catch (error) { next(error); }
 }
 
 export function signToken(payload: AuthPayload): string {
@@ -65,5 +75,5 @@ export function signToken(payload: AuthPayload): string {
 }
 
 export function refreshToken(oldPayload: AuthPayload, newPlan: string): string {
-  return signToken({ userId: oldPayload.userId, plan: newPlan });
+  return signToken({ userId: oldPayload.userId, plan: newPlan, tokenVersion: oldPayload.tokenVersion });
 }

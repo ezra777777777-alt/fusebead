@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Mail, Lock, User, Loader2, RefreshCw, Shield } from "lucide-react";
+import Link from "next/link";
 import { useAuth } from "@/lib/AuthContext";
 import { useLang } from "@/lib/LangContext";
 import { api, ApiError } from "@/lib/api";
@@ -10,7 +11,7 @@ import { api, ApiError } from "@/lib/api";
 type Mode = "form" | "verify" | "forgot" | "reset";
 
 export function AuthModal() {
-  const { isOpen, closeAuth, pendingEmail, login, register, verifyEmail, sendCode, clearPendingEmail } = useAuth();
+  const { isOpen, closeAuth, pendingEmail, verificationMessage, login, register, verifyEmail, sendCode, clearPendingEmail } = useAuth();
   const { lang } = useLang();
 
   // Mode
@@ -21,6 +22,7 @@ export function AuthModal() {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [confirm, setConfirm] = useState("");
 
   // CAPTCHA state (form)
@@ -49,7 +51,7 @@ export function AuthModal() {
       setCaptchaSvg(data.svgBase64);
       setCaptchaText("");
     } catch {
-      // silent
+      setError("验证码加载失败，请点击刷新重试");
     }
   }, []);
 
@@ -61,7 +63,7 @@ export function AuthModal() {
       setResendCaptchaSvg(data.svgBase64);
       setResendCaptchaText("");
     } catch {
-      // silent
+      setError("验证码加载失败，请点击刷新重试");
     }
   }, []);
 
@@ -106,6 +108,7 @@ export function AuthModal() {
     setEmail("");
     setPassword("");
     setConfirm("");
+    setAcceptedTerms(false);
     setCaptchaText("");
     setError("");
   };
@@ -135,14 +138,16 @@ export function AuthModal() {
     if (!email.includes("@") || !email.includes(".")) {
       return lang === "zh" ? "请输入有效的邮箱地址" : "Please enter a valid email";
     }
-    if (password.length < 6) {
-      return lang === "zh" ? "密码至少6位" : "Password must be at least 6 characters";
+    if (tab === "register" && (password.length < 8 || new TextEncoder().encode(password).length > 72)) {
+      return lang === "zh" ? "密码至少 8 位，最多 72 字节（中文占多个字节）" : "Use at least 8 characters and at most 72 bytes";
     }
+    if (tab === "login" && !password) return lang === "zh" ? "请输入密码" : "Enter your password";
     if (tab === "register" && password !== confirm) {
       return lang === "zh" ? "两次密码不一致" : "Passwords do not match";
     }
-    if (tab === "register" && !username.trim()) {
-      return lang === "zh" ? "请输入用户名" : "Please enter a username";
+    if (tab === "register" && !acceptedTerms) return "请阅读并同意用户协议和隐私政策";
+    if (tab === "register" && (username.trim().length < 2 || username.length > 40)) {
+      return lang === "zh" ? "昵称需 2–40 字" : "Please enter a username";
     }
     if (!captchaText.trim()) {
       return lang === "zh" ? "请输入验证码" : "Please enter the CAPTCHA code";
@@ -166,6 +171,7 @@ export function AuthModal() {
         await register(username.trim(), email, password, captchaId, captchaText);
         // pendingEmail is now set → useEffect switches to verify mode
       }
+      resetForm();
     } catch (err: any) {
       const msg = err instanceof ApiError
         ? err.message
@@ -190,7 +196,7 @@ export function AuthModal() {
 
     try {
       await verifyEmail(pendingEmail!, code);
-      // verifyEmail calls setAuth which closes modal
+      setMode("form"); setTab("login"); setCode(""); resetForm();
     } catch (err: any) {
       setError(err instanceof ApiError ? err.message : (lang === "zh" ? "验证码错误或已过期" : "Invalid or expired verification code"));
     } finally {
@@ -231,7 +237,10 @@ export function AuthModal() {
 
   const handleBackToLogin = () => {
     clearPendingEmail();
+    setTab("login");
     setMode("form");
+    resetForm();
+    setForgotSent(false); setResetPassword(""); setResetConfirm(""); setResetDone(false);
     setCode("");
     setResendCooldown(0);
     setShowResendCaptcha(false);
@@ -269,8 +278,8 @@ export function AuthModal() {
       setError(lang === "zh" ? "请输入6位验证码" : "Please enter the 6-digit code");
       return;
     }
-    if (resetPassword.length < 6) {
-      setError(lang === "zh" ? "密码至少6位" : "Password must be at least 6 characters");
+    if (resetPassword.length < 8 || new TextEncoder().encode(resetPassword).length > 72) {
+      setError(lang === "zh" ? "密码至少 8 位，最多 72 字节（中文占多个字节）" : "Use at least 8 characters and at most 72 bytes");
       return;
     }
     if (resetPassword !== resetConfirm) {
@@ -285,6 +294,7 @@ export function AuthModal() {
         body: JSON.stringify({ email: forgotEmail, code, password: resetPassword }),
       });
       setResetDone(true);
+      setResetPassword(""); setResetConfirm(""); setCode("");
     } catch (err: any) {
       setError(err instanceof ApiError ? err.message : (lang === "zh" ? "重置失败" : "Reset failed"));
     } finally {
@@ -309,12 +319,12 @@ export function AuthModal() {
       "auth.captchaPlaceholder": { en: "Enter CAPTCHA code", zh: "输入验证码" },
       "auth.captchaRefresh": { en: "Refresh", zh: "换一张" },
       "auth.verifyTitle": { en: "Verify Your Email", zh: "验证邮箱" },
-      "auth.verifyDesc": { en: "A 6-digit code has been sent to", zh: "验证码已发送至" },
+      "auth.verifyDesc": { en: "Verify the email address", zh: "待验证邮箱：" },
       "auth.verifyCodePlaceholder": { en: "Enter 6-digit code", zh: "输入6位验证码" },
       "auth.verifyBtn": { en: "Verify", zh: "验证" },
       "auth.verifyResend": { en: "Resend Code", zh: "重新发送" },
       "auth.backToLogin": { en: "Back to sign in", zh: "返回登录" },
-      "auth.verifySent": { en: "Code sent!", zh: "已发送！" },
+      "auth.verifySent": { en: "Send code", zh: "发送验证码" },
       "auth.resendCooldown": { en: "Resend in {s}s", zh: "{s}秒后重发" },
     };
     const entry = dict[key];
@@ -342,17 +352,17 @@ export function AuthModal() {
             exit={{ scale: 0.95, opacity: 0, y: 20 }}
             className="relative bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-6 sm:p-8 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto"
           >
-            <button onClick={handleClose} className="absolute top-4 right-4 p-1 rounded-lg hover:bg-[var(--surface-hover)]">
+            <button aria-label="关闭登录窗口" onClick={handleClose} className="absolute top-4 right-4 p-1 rounded-lg hover:bg-[var(--surface-hover)]">
               <X className="h-5 w-5 text-foreground/40" />
             </button>
 
             {mode === "form" && (
               <>
                 <h2 className="text-xl font-bold mb-1" style={{ fontFamily: "var(--font-display)" }}>
-                  {lang === "zh" ? "欢迎来到 FuseBead" : "Welcome to FuseBead"}
+                  {lang === "zh" ? "欢迎来到赛博搬屎" : "Welcome to Cyber Haul"}
                 </h2>
                 <p className="text-sm text-foreground/50 mb-5">
-                  {lang === "zh" ? "登录以保存和同步你的创作" : "Sign in to save and sync your creations"}
+                  {lang === "zh" ? "登录后投稿、查看审核进度" : "Sign in to save and sync your creations"}
                 </p>
 
                 {/* Tabs */}
@@ -465,6 +475,7 @@ export function AuthModal() {
                     </div>
                   </div>
 
+                  {tab === "register" && <label className="flex items-start gap-2 text-xs leading-6"><input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)} className="mt-1.5" /><span>我已阅读并同意 <Link href="/terms" target="_blank" className="underline">用户协议</Link> 和 <Link href="/privacy" target="_blank" className="underline">隐私政策</Link></span></label>}
                   {error && (
                     <p className="text-xs text-red-400 text-center">{error}</p>
                   )}
@@ -504,6 +515,7 @@ export function AuthModal() {
                     {l("auth.verifyDesc")}{" "}
                     <span className="font-medium text-foreground">{pendingEmail}</span>
                   </p>
+                  <p role="status" className="mt-2 text-sm text-foreground/70">{verificationMessage}</p>
                 </div>
 
                 <form onSubmit={handleVerify} className="space-y-4">
@@ -653,7 +665,7 @@ export function AuthModal() {
                 ) : (
                   <div className="text-center space-y-4">
                     <p className="text-sm text-green-500">
-                      {lang === "zh" ? "验证码已发送！" : "Code sent!"}
+                      {lang === "zh" ? "如果该邮箱已注册且可正常收信，将收到重置验证码。请同时检查垃圾邮件。" : "If the account exists and email can be delivered, a reset code will arrive. Check your spam folder too."}
                     </p>
                     <button
                       onClick={() => { setMode("reset"); setCode(""); setResetPassword(""); setResetConfirm(""); setResetDone(false); setError(""); }}
@@ -684,7 +696,7 @@ export function AuthModal() {
                     {lang === "zh" ? "重置密码" : "Reset Password"}
                   </h2>
                   <p className="text-sm text-foreground/50">
-                    {lang === "zh" ? `验证码已发送至 ${forgotEmail}` : `Code sent to ${forgotEmail}`}
+                    {lang === "zh" ? `请输入 ${forgotEmail} 收到的验证码` : `Enter the code received at ${forgotEmail}`}
                   </p>
                 </div>
 
@@ -748,7 +760,7 @@ export function AuthModal() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => { setMode("forgot"); setError(""); }}
+                      onClick={() => { setMode("forgot"); setForgotSent(false); setError(""); setCode(""); setResetPassword(""); setResetConfirm(""); }}
                       className="w-full text-xs text-foreground/40 hover:text-[var(--primary)] transition-colors"
                     >
                       {lang === "zh" ? "重新发送验证码" : "Resend code"}

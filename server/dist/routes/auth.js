@@ -41,167 +41,100 @@ const express_1 = require("express");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const User = __importStar(require("../models/user"));
 const VerificationCode = __importStar(require("../models/verificationCode"));
-const mailer_1 = require("../utils/mailer");
 const auth_1 = require("../middleware/auth");
+const db_1 = require("../config/db");
+const http_1 = require("../utils/http");
+const authValidation_1 = require("../utils/authValidation");
+const verificationEmail_1 = require("../utils/verificationEmail");
 exports.authRouter = (0, express_1.Router)();
-exports.authRouter.post("/register", async (req, res) => {
-    try {
-        const { username, email, password, captchaId, captchaText } = req.body;
-        if (!username || !email || !password) {
-            res.status(400).json({ error: "Missing required fields" });
-            return;
-        }
-        // Validate CAPTCHA
-        if (!captchaId || !captchaText) {
-            res.status(400).json({ error: "CAPTCHA required" });
-            return;
-        }
-        const captchaValid = await VerificationCode.verify({
-            email: captchaId,
-            code: String(captchaText).toUpperCase(),
-            type: "captcha",
-        });
-        if (!captchaValid) {
-            res.status(400).json({ error: "Invalid or expired CAPTCHA" });
-            return;
-        }
-        const existing = await User.findByEmail(email);
-        if (existing) {
-            res.status(409).json({ error: "Email already registered" });
-            return;
-        }
-        const password_hash = await bcryptjs_1.default.hash(password, 10);
-        const user = await User.create({ username, email, password_hash, email_verified: 0 });
-        // Send verification email
-        const code = String(Math.floor(100000 + Math.random() * 900000));
-        await VerificationCode.create({ email, code, type: "email_verify", ttlMinutes: 10 });
+exports.authRouter.post("/register", (0, http_1.asyncRoute)(async (req, res) => {
+    const { username, password, captchaId, captchaText } = req.body;
+    const email = (0, authValidation_1.emailAddress)(req.body.email);
+    (0, authValidation_1.validateNewPassword)(password);
+    if (typeof username !== "string" || username.trim().length < 2 || username.length > 40)
+        throw new http_1.HttpError(400, "昵称需 2–40 字");
+    if (req.body.acceptedTerms !== true)
+        throw new http_1.HttpError(400, "请先阅读并同意用户协议和隐私政策");
+    if (typeof captchaId !== "string" || typeof captchaText !== "string" || !await VerificationCode.verify({ email: captchaId, code: captchaText.toUpperCase(), type: "captcha" }))
+        throw new http_1.HttpError(400, "图形验证码错误或已过期，请刷新后重试");
+    const password_hash = await bcryptjs_1.default.hash(password, 10);
+    const user = await (0, db_1.transaction)(async () => {
+        if (await User.findByEmail(email))
+            throw new http_1.HttpError(409, "邮箱已注册，请登录或找回密码");
         try {
-            await (0, mailer_1.sendVerificationCode)(email, code);
+            return await User.create({ username: username.trim(), email, password_hash, email_verified: 0 });
         }
-        catch (mailErr) {
-            console.error("[auth] send email error:", mailErr);
-            // Don't fail — user is created, they can resend verification later
+        catch (e) {
+            if (e.code === "23505" || String(e.message).includes("UNIQUE constraint"))
+                throw new http_1.HttpError(409, "邮箱已注册，请登录或找回密码");
+            throw e;
         }
-        res.status(201).json({ success: true, email: user.email });
-    }
-    catch (err) {
-        console.error("[auth] register error:", err);
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
-exports.authRouter.post("/login", async (req, res) => {
+    });
+    let emailSent = true;
     try {
-        const { email, password, captchaId, captchaText } = req.body;
-        if (!email || !password) {
-            res.status(400).json({ error: "Missing email or password" });
-            return;
-        }
-        // Validate CAPTCHA
-        if (!captchaId || !captchaText) {
-            res.status(400).json({ error: "CAPTCHA required" });
-            return;
-        }
-        const captchaValid = await VerificationCode.verify({
-            email: captchaId,
-            code: String(captchaText).toUpperCase(),
-            type: "captcha",
-        });
-        if (!captchaValid) {
-            res.status(400).json({ error: "Invalid or expired CAPTCHA" });
-            return;
-        }
-        const user = await User.findByEmail(email);
-        if (!user) {
-            res.status(401).json({ error: "Invalid credentials" });
-            return;
-        }
-        const valid = await bcryptjs_1.default.compare(password, user.password_hash);
-        if (!valid) {
-            res.status(401).json({ error: "Invalid credentials" });
-            return;
-        }
-        // Check email verified
-        if (!user.email_verified) {
-            res.status(403).json({ error: "Email not verified", email: user.email, needVerify: true });
-            return;
-        }
-        const token = (0, auth_1.signToken)({ userId: user.id, plan: user.plan });
-        res.json({
-            token,
-            user: {
-                id: user.id, username: user.username, email: user.email,
-                plan: user.plan, avatar_url: user.avatar_url, is_admin: !!user.is_admin,
-            },
-        });
+        await (0, verificationEmail_1.sendEmailCode)(user.email, "email_verify");
     }
-    catch (err) {
-        console.error("[auth] login error:", err);
-        res.status(500).json({ error: "Internal server error" });
+    catch {
+        emailSent = false;
     }
-});
-// Forgot password — send reset code
-exports.authRouter.post("/forgot-password", async (req, res) => {
-    try {
-        const { email } = req.body;
-        if (!email) {
-            res.status(400).json({ error: "Email required" });
-            return;
-        }
-        const user = await User.findByEmail(email);
-        // Don't reveal whether user exists — always return success
-        if (!user) {
-            res.json({ success: true });
-            return;
-        }
-        // Rate limit: max 1 reset request per 60s
-        const recent = await VerificationCode.hasRecentCode(email, "password_reset", 60);
-        if (recent) {
-            res.json({ success: true });
-            return;
-        }
-        const code = String(Math.floor(100000 + Math.random() * 900000));
-        await VerificationCode.create({ email, code, type: "password_reset", ttlMinutes: 10 });
+    res.status(201).json({ success: true, email: user.email, emailSent });
+}));
+exports.authRouter.post("/login", (0, http_1.asyncRoute)(async (req, res) => {
+    const email = (0, authValidation_1.emailAddress)(req.body.email);
+    const { password, captchaId, captchaText } = req.body;
+    if (typeof password !== "string" || !password || password.length > 128)
+        throw new http_1.HttpError(400, "请填写邮箱和密码");
+    if (typeof captchaId !== "string" || typeof captchaText !== "string" || !await VerificationCode.verify({ email: captchaId, code: captchaText.toUpperCase(), type: "captcha" }))
+        throw new http_1.HttpError(400, "图形验证码错误或已过期，请刷新后重试");
+    const user = await User.findByEmail(email);
+    if (!user || !await bcryptjs_1.default.compare(password, user.password_hash))
+        throw new http_1.HttpError(401, "邮箱或密码错误");
+    if (user.is_banned) {
+        res.status(403).json({ error: "账号已被封禁", code: "ACCOUNT_BANNED" });
+        return;
+    }
+    if (!user.email_verified) {
+        res.status(403).json({ error: "请先验证邮箱", code: "EMAIL_UNVERIFIED", email: user.email, needVerify: true });
+        return;
+    }
+    const token = (0, auth_1.signToken)({ userId: user.id, plan: user.plan, tokenVersion: user.token_version });
+    res.json({ token, user: {
+            id: user.id, username: user.username, email: user.email,
+            plan: user.plan, avatar_url: user.avatar_url, is_admin: !!user.is_admin,
+            contribution_points: Number(user.contribution_points || 0),
+            subscription_expires_at: user.subscription_expires_at, subscription_status: user.subscription_status,
+        } });
+}));
+exports.authRouter.post("/forgot-password", (0, http_1.asyncRoute)(async (req, res) => {
+    const user = await User.findByEmail((0, authValidation_1.emailAddress)(req.body.email));
+    if (user) {
+        // Keep the same response for unknown accounts, cooldowns and delivery failures.
         try {
-            await (0, mailer_1.sendVerificationCode)(email, code, "password_reset");
+            await (0, verificationEmail_1.sendEmailCode)(user.email, "password_reset");
         }
-        catch (mailErr) {
-            console.error("[auth] send reset email error:", mailErr);
+        catch (e) {
+            if (!(e instanceof http_1.HttpError))
+                throw e;
         }
-        res.json({ success: true });
     }
-    catch (err) {
-        console.error("[auth] forgot-password error:", err);
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
-// Reset password using code
-exports.authRouter.post("/reset-password", async (req, res) => {
-    try {
-        const { email, code, password } = req.body;
-        if (!email || !code || !password) {
-            res.status(400).json({ error: "Missing required fields" });
-            return;
-        }
-        if (password.length < 6) {
-            res.status(400).json({ error: "Password must be at least 6 characters" });
-            return;
-        }
-        const valid = await VerificationCode.verify({ email, code, type: "password_reset" });
-        if (!valid) {
-            res.status(400).json({ error: "Invalid or expired code" });
-            return;
-        }
-        const user = await User.findByEmail(email);
-        if (!user) {
-            res.status(404).json({ error: "User not found" });
-            return;
-        }
-        const password_hash = await bcryptjs_1.default.hash(password, 10);
+    res.json({ success: true });
+}));
+exports.authRouter.post("/reset-password", (0, http_1.asyncRoute)(async (req, res) => {
+    const email = (0, authValidation_1.emailAddress)(req.body.email);
+    const { code, password } = req.body;
+    if (typeof code !== "string" || !/^\d{6}$/.test(code))
+        throw new http_1.HttpError(400, "请输入 6 位数字验证码");
+    (0, authValidation_1.validateNewPassword)(password);
+    const password_hash = await bcryptjs_1.default.hash(password, 10);
+    const changed = await (0, db_1.transaction)(async () => {
+        const [user] = await (0, db_1.query)("SELECT * FROM users WHERE LOWER(email) = ? FOR UPDATE", [email]);
+        if (!user || !await VerificationCode.verify({ email: user.email, code, type: "password_reset" }))
+            return false;
         await User.updatePassword(user.id, password_hash);
-        res.json({ success: true });
-    }
-    catch (err) {
-        console.error("[auth] reset-password error:", err);
-        res.status(500).json({ error: "Internal server error" });
-    }
-});
+        await (0, db_1.query)("DELETE FROM verification_codes WHERE email = ?", [user.email]);
+        return true;
+    });
+    if (!changed)
+        throw new http_1.HttpError(400, "验证码错误、已过期或尝试次数过多，请重新发送");
+    res.json({ success: true });
+}));

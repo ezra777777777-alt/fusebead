@@ -8,32 +8,29 @@ import { AuthModal } from "@/components/auth/AuthModal";
 import { FeedbackButton } from "@/components/feedback/FeedbackButton";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://fusebead.vercel.app"),
+  metadataBase: new URL("https://fusebead.cn"),
   title: {
-    default: "FuseBead.art — Free Perler Bead Pattern Maker | 免费拼豆图案生成器",
-    template: "%s | FuseBead.art",
+    default: "赛博搬屎 — Vibe Coding 电子垃圾联合投喂平台",
+    template: "%s | 赛博搬屎",
   },
-  description: "Turn any image into a printable Perler / Artkal / Hama bead pattern. Free online tool with pixel editor, color matching, and PDF export. 上传图片即可生成拼豆图案。",
-  keywords: ["perler beads", "fuse beads", "拼豆", "hama beads", "artkal", "bead pattern maker", "pixel art converter", "bead generator", "pattern maker", "free bead tool"],
-  authors: [{ name: "FuseBead" }],
-  creator: "FuseBead.art",
+  description: "全国 Vibe Coding 屎山统一收容点。分享奇葩软件、网页小玩具和 AI 套壳项目，让网友在线试用、锐评和贡献审核。",
+  keywords: ["vibe coding", "独立开发", "奇葩软件", "软件社区", "AI 编程", "网页工具"],
+  authors: [{ name: "赛博搬屎" }],
+  creator: "赛博搬屎",
   openGraph: {
     type: "website",
-    locale: "en_US",
-    url: "https://fusebead.vercel.app",
-    siteName: "FuseBead.art",
-    title: "FuseBead.art — Free Online Bead Pattern Maker",
-    description: "Upload any image and convert it to a bead pattern in seconds. Supports Perler, Hama, Artkal, and MARD color palettes.",
+    locale: "zh_CN",
+    url: "https://fusebead.cn",
+    siteName: "赛博搬屎",
+    title: "赛博搬屎 — Vibe Coding 电子垃圾联合投喂平台",
+    description: "你负责现拉，我们负责端给网友。",
   },
   twitter: {
     card: "summary_large_image",
-    title: "FuseBead.art — Free Bead Pattern Maker",
-    description: "Turn any photo into a bead pattern instantly. Free, no sign-up.",
+    title: "赛博搬屎",
+    description: "你负责现拉，我们负责端给网友。",
   },
   robots: { index: true, follow: true },
-  alternates: {
-    languages: { "en": "https://fusebead.vercel.app", "zh": "https://fusebead.vercel.app" },
-  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -42,7 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet" />
+        <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Noto+Sans+SC:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
       </head>
       <body className="antialiased min-h-screen flex flex-col bg-[var(--background)] text-[var(--foreground)]">
         <AuthProvider>

@@ -4,6 +4,8 @@ export interface FeedbackRow {
     subject: string;
     message: string;
     is_read: number;
+    reply: string;
+    replied_at: string | null;
     created_at: string;
 }
 export declare function create(data: {
@@ -19,5 +21,11 @@ export declare function findAll(page?: number, limit?: number): Promise<{
     total: number;
 }>;
 export declare function markRead(id: number): Promise<void>;
+export declare function findByUser(userId: number, page: number, limit: number): Promise<{
+    feedbacks: FeedbackRow[];
+    total: number;
+    page: number;
+    limit: number;
+}>;
 export declare function markAllRead(): Promise<void>;
 export declare function getUnreadCount(): Promise<number>;

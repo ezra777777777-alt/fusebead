@@ -3,6 +3,7 @@ export interface UserRow {
     username: string;
     email: string;
     password_hash: string;
+    token_version: number;
     avatar_url: string | null;
     plan: "free" | "pro" | "team";
     is_admin: boolean;
@@ -10,6 +11,7 @@ export interface UserRow {
     email_verified: number;
     subscription_expires_at: string | null;
     subscription_status: string;
+    contribution_points: number;
     created_at: string;
     updated_at: string;
 }

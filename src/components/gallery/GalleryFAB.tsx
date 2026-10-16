@@ -119,7 +119,7 @@ export function GalleryFAB() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[120] bg-black/30"
+            className="fixed inset-0 z-[80] bg-black/30"
             onClick={() => setMenuOpen(false)}
           />
         )}
@@ -132,7 +132,7 @@ export function GalleryFAB() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-24 right-6 z-[125] flex flex-col gap-2"
+            className="fixed bottom-52 md:bottom-40 right-6 z-[90] max-h-[calc(100dvh-16rem)] overflow-y-auto flex flex-col gap-2"
           >
             {[
               { id: "quick", icon: Upload, label: t("gallery.fab.quickPublish"), desc: lang === "zh" ? "上传图片直接发布" : "Upload image & publish" },
@@ -162,8 +162,10 @@ export function GalleryFAB() {
 
       {/* FAB button */}
       <button
+        aria-label="图纸发布菜单"
+        aria-expanded={menuOpen}
         onClick={() => setMenuOpen(!menuOpen)}
-        className="fixed bottom-20 right-6 z-[130] w-14 h-14 rounded-2xl shadow-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+        className="fixed bottom-36 md:bottom-20 right-6 z-[90] w-14 h-14 rounded-2xl shadow-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95"
         style={{
           background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))",
           transform: menuOpen ? "rotate(45deg)" : "rotate(0deg)",

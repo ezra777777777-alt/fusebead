@@ -1,13 +1,5 @@
-import { Hero, FeatureEntryCards, PatternRecommendations, HowItWorks, CTASimplified } from "@/components/landing/hero";
+import { CyberHome } from "@/components/landing/cyber-home";
 
 export default function Home() {
-  return (
-    <>
-      <Hero />
-      <FeatureEntryCards />
-      <PatternRecommendations />
-      <HowItWorks />
-      <CTASimplified />
-    </>
-  );
+  return <CyberHome />;
 }

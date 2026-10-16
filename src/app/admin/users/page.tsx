@@ -24,6 +24,7 @@ export default function AdminUsersPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [error, setError] = useState("");
   const PAGE_SIZE = 20;
 
   const remainingDaysValue = (user: AdminUser): string => {
@@ -48,15 +49,18 @@ export default function AdminUsersPage() {
         setTotal(d.total);
         setDaysInputs(Object.fromEntries(d.users.map((u) => [u.id, remainingDaysValue(u)])));
       })
-      .catch(() => {});
+      .catch((e) => setError(e instanceof Error ? e.message : "用户列表加载失败，请重试"));
   };
 
   useEffect(() => { fetchUsers(); }, [page]);
   useEffect(() => { setPage(1); fetchUsers(); }, [search]);
 
   const handleUpdate = async (id: number, data: Record<string, unknown>) => {
-    await api(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(data) });
-    fetchUsers();
+    setError("");
+    try {
+      await api(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(data) });
+      fetchUsers();
+    } catch (e) { setError(e instanceof Error ? e.message : "账号状态修改失败，请重试"); }
   };
 
   const handleSetSubscriptionDays = async (user: AdminUser) => {
@@ -85,6 +89,7 @@ export default function AdminUsersPage() {
       <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
         {lang === "zh" ? "用户管理" : "User Management"}
       </h1>
+      {error && <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-700">{error}</p>}
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/30" />

@@ -5,6 +5,7 @@ export interface UserRow {
   username: string;
   email: string;
   password_hash: string;
+  token_version: number;
   avatar_url: string | null;
   plan: "free" | "pro" | "team";
   is_admin: boolean;
@@ -12,12 +13,13 @@ export interface UserRow {
   email_verified: number;
   subscription_expires_at: string | null;
   subscription_status: string;
+  contribution_points: number;
   created_at: string;
   updated_at: string;
 }
 
 export async function findByEmail(email: string): Promise<UserRow | null> {
-  const rows = await query<UserRow[]>("SELECT * FROM users WHERE email = ?", [email]);
+  const rows = await query<UserRow[]>("SELECT * FROM users WHERE LOWER(email) = ?", [email.trim().toLowerCase()]);
   return rows[0] || null;
 }
 
@@ -31,7 +33,7 @@ export async function create(data: { username: string; email: string; password_h
     "INSERT INTO users (username, email, password_hash, email_verified) VALUES (?, ?, ?, ?)",
     [data.username, data.email, data.password_hash, data.email_verified ?? 0]
   );
-  return { id: result.insertId, ...data, avatar_url: null, plan: "free", email_verified: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as UserRow;
+  return { id: result.insertId, ...data, avatar_url: null, plan: "free", email_verified: 0, contribution_points: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString() } as UserRow;
 }
 
 export async function verifyEmail(email: string): Promise<boolean> {
@@ -80,8 +82,8 @@ export async function updateAdmin(
   const fields: string[] = [];
   const values: any[] = [];
   if (data.plan !== undefined) { fields.push("plan = ?"); values.push(data.plan); }
-  if (data.is_banned !== undefined) { fields.push("is_banned = ?"); values.push(data.is_banned); }
-  if (data.is_admin !== undefined) { fields.push("is_admin = ?"); values.push(data.is_admin); }
+  if (data.is_banned !== undefined) { fields.push("is_banned = ?"); values.push(data.is_banned ? 1 : 0); }
+  if (data.is_admin !== undefined) { fields.push("is_admin = ?"); values.push(data.is_admin ? 1 : 0); }
   if (data.subscription_expires_at !== undefined) { fields.push("subscription_expires_at = ?"); values.push(data.subscription_expires_at); }
   if (data.subscription_status !== undefined) { fields.push("subscription_status = ?"); values.push(data.subscription_status); }
   if (fields.length === 0) return false;
@@ -104,7 +106,7 @@ export async function upgradePlan(id: number, plan: "pro" | "team", expiresAt: s
 }
 
 export async function updatePassword(id: number, password_hash: string): Promise<void> {
-  await query("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?", [password_hash, id]);
+  await query("UPDATE users SET password_hash = ?, token_version = token_version + 1, updated_at = datetime('now') WHERE id = ?", [password_hash, id]);
 }
 
 export async function checkSubscriptionExpiry(): Promise<number> {

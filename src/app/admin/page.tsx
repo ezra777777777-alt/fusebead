@@ -20,9 +20,9 @@ export default function AdminDashboard() {
 
   const statCards = [
     { icon: Users, label: lang === "zh" ? "总用户" : "Total Users", value: stats?.totalUsers ?? "-", color: "var(--bead-coral)" },
-    { icon: Grid3X3, label: lang === "zh" ? "总图案" : "Total Patterns", value: stats?.totalPatterns ?? "-", color: "var(--blue-primary)" },
-    { icon: Clock, label: lang === "zh" ? "今日生成" : "Today", value: stats?.todayGenerations ?? "-", color: "var(--bead-amber)" },
-    { icon: AlertTriangle, label: lang === "zh" ? "待审核" : "Pending", value: stats?.pendingPatterns ?? "-", color: "#D4B8E0" },
+    { icon: Grid3X3, label: lang === "zh" ? "社区作品" : "Total Patterns", value: stats?.totalProjects ?? "-", color: "var(--blue-primary)" },
+    { icon: Clock, label: lang === "zh" ? "待处理举报" : "Today", value: stats?.openReports ?? "-", color: "var(--bead-amber)" },
+    { icon: AlertTriangle, label: lang === "zh" ? "待审核" : "Pending", value: stats?.pendingProjects ?? "-", color: "#D4B8E0" },
   ];
 
   return (

@@ -23,6 +23,7 @@ processor/__pycache__/
 .venv/
 processor/.venv/
 processor/.venv-local/
+processor/.venv-mac/
 processor/venv/
 
 # Local launcher state and logs

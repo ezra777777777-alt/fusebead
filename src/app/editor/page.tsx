@@ -185,7 +185,7 @@ function EditorContent() {
     pushHistory(newGrid, selectedColor);
   }, [grid, selectedColor, pushHistory, GRID]);
 
-  const handleCanvasClick = useCallback((e: React.MouseEvent) => {
+  const handleCanvasClick = useCallback((e: { clientX: number; clientY: number }) => {
     const rect = canvasRef.current!.getBoundingClientRect();
     const scaleX = (GRID * CELL) / rect.width;
     const scaleY = (GRID * CELL) / rect.height;
@@ -531,11 +531,11 @@ function EditorContent() {
           </div>
 
           {/* Canvas */}
-          <div className="lg:col-span-3 flex flex-col items-center">
+          <div className="min-w-0 lg:col-span-3 flex flex-col items-center">
             <div
               ref={containerRef}
               className="rounded-2xl border border-[var(--border)] bg-white shadow-sm overflow-hidden select-none"
-              style={{ width: displaySize, height: displaySize }}
+              style={{ width: displaySize, maxWidth: "100%", aspectRatio: "1" }}
               onWheel={handleWheel}
               onMouseDown={handlePanStart}
               onMouseMove={handlePanMove}
@@ -547,8 +547,8 @@ function EditorContent() {
                 style={{
                   transform: `scale(${zoom}) translate(${panOffset.x / zoom}px, ${panOffset.y / zoom}px)`,
                   transformOrigin: "0 0",
-                  width: GRID * CELL,
-                  height: GRID * CELL,
+                  width: "100%",
+                  height: "100%",
                 }}
               >
                 <canvas
@@ -557,10 +557,12 @@ function EditorContent() {
                   onMouseMove={handleMouseMove}
                   onMouseUp={() => setIsDrawing(false)}
                   onMouseLeave={() => setIsDrawing(false)}
-                  onTouchStart={(e) => { setIsDrawing(true); }}
+                  onTouchStart={(e) => { e.preventDefault(); setIsDrawing(true); handleCanvasClick(e.touches[0]); }}
                   onTouchMove={handleTouchMove}
                   onTouchEnd={() => setIsDrawing(false)}
-                  className="cursor-crosshair pixel-render touch-none"
+                  onTouchCancel={() => setIsDrawing(false)}
+                  aria-label="拼豆画布"
+                  className="block h-full w-full cursor-crosshair pixel-render touch-none"
                 />
               </div>
             </div>

@@ -10,20 +10,26 @@ export default function AdminCommentsPage() {
   const { lang } = useLang();
   const [comments, setComments] = useState<any[]>([]);
   const [total, setTotal] = useState(0);
+  const [kind, setKind] = useState("project-comments");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const [page, setPage] = useState(1);
   const PAGE_SIZE = 20;
 
   const fetchComments = () => {
-    api(`/admin/comments?page=${page}&limit=${PAGE_SIZE}`)
+    api(`/admin/${kind}?page=${page}&limit=${PAGE_SIZE}`)
       .then((d) => { setComments(d.comments); setTotal(d.total); })
-      .catch(() => {});
+      .catch(e => setError(e.message || "加载失败"));
   };
 
-  useEffect(() => { fetchComments(); }, [page]);
+  useEffect(() => { fetchComments(); }, [page, kind]);
 
   const handleDelete = async (id: number) => {
-    await api(`/admin/comments/${id}`, { method: "DELETE" });
-    fetchComments();
+    if (busy || !window.confirm("确认删除这条评论？")) return;
+    setBusy(true); setError("");
+    try { await api(`/admin/${kind}/${id}`, { method: "DELETE" }); fetchComments(); }
+    catch (e) { setError(e instanceof Error ? e.message : "删除失败"); }
+    finally { setBusy(false); }
   };
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -34,6 +40,8 @@ export default function AdminCommentsPage() {
         {lang === "zh" ? "评论管理" : "Comment Management"}
       </h1>
 
+      <div className="flex gap-2">{[["project-comments","社区评论"],["comments","拼豆评论"]].map(([key,label]) => <button key={key} onClick={() => { setKind(key); setPage(1); }} className={`border-2 border-black px-4 py-2 font-bold ${kind === key ? "bg-[var(--acid)]" : "bg-white"}`}>{label}</button>)}</div>
+      {error && <p role="alert" className="text-red-600">{error}</p>}
       {comments.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-foreground/20">
           <MessageSquare className="h-16 w-16 mb-4" />
@@ -47,7 +55,7 @@ export default function AdminCommentsPage() {
                 <tr>
                   <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "内容" : "Content"}</th>
                   <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "评论者" : "Author"}</th>
-                  <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "所属图案" : "Pattern"}</th>
+                  <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "所属作品" : "Pattern"}</th>
                   <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "时间" : "Date"}</th>
                   <th className="px-4 py-3 font-medium text-foreground/40">{lang === "zh" ? "操作" : "Actions"}</th>
                 </tr>
@@ -55,17 +63,17 @@ export default function AdminCommentsPage() {
               <tbody className="divide-y divide-[var(--border)]">
                 {comments.map((c) => (
                   <tr key={c.id} className="hover:bg-[var(--surface-hover)]/50">
-                    <td className="px-4 py-3 max-w-xs truncate">{c.content}</td>
+                    <td className="min-w-48 max-w-xs whitespace-pre-wrap [overflow-wrap:anywhere] px-4 py-3">{c.content}</td>
                     <td className="px-4 py-3 text-foreground/50">{c.author_name}</td>
                     <td className="px-4 py-3">
-                      <Link href={`/gallery/${c.pattern_id}`} target="_blank"
+                      <Link href={kind === "project-comments" ? `/projects/${c.project_id}` : `/gallery/${c.pattern_id}`} target="_blank"
                         className="text-[var(--primary)] hover:underline flex items-center gap-1 text-xs">
-                        {c.pattern_title} <ExternalLink className="h-3 w-3" />
+                        {c.project_title || c.pattern_title} <ExternalLink className="h-3 w-3" />
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-foreground/30 text-xs">{new Date(c.created_at).toLocaleString()}</td>
                     <td className="px-4 py-3">
-                      <button onClick={() => handleDelete(c.id)}
+                      <button aria-label="删除评论" disabled={busy} onClick={() => handleDelete(c.id)}
                         className="p-1.5 rounded-lg hover:bg-red-50 text-foreground/30 hover:text-red-500 transition-colors">
                         <Trash2 className="h-4 w-4" />
                       </button>

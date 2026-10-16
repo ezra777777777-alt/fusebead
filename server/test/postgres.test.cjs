@@ -1,0 +1,75 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const { randomUUID } = require('node:crypto');
+
+test('PostgreSQL release rehearsal: migration, auth, moderation and concurrent points', { skip: !process.env.PG_TEST_DATABASE_URL }, async t => {
+  const url = new URL(process.env.PG_TEST_DATABASE_URL);
+  assert.match(url.pathname, /^\/fusebead_releasecheck_[a-z0-9_]+$/, 'Use a disposable restored database, never production');
+  process.env.DATABASE_URL = url.toString();
+  process.env.JWT_SECRET = 'isolated-postgres-release-test';
+  const { query } = require('../dist/config/db');
+  const codes = require('../dist/models/verificationCode');
+  const messages = [];
+  require('../dist/utils/mailer').sendVerificationCode = async (email, code, type) => messages.push({ email, code, type });
+  const express = require('express');
+  const app = express();
+  app.use(express.json());
+  app.use('/auth', require('../dist/routes/verification').verificationRouter, require('../dist/routes/auth').authRouter);
+  app.use('/user', require('../dist/routes/user').userRouter);
+  app.use('/projects', require('../dist/routes/projects').projectsRouter);
+  app.use('/admin', require('../dist/routes/admin').adminRouter);
+  app.use((error, _req, res, _next) => res.status(error.status || 500).json({ error: error.message }));
+  const server = await new Promise(resolve => { const running = app.listen(0, '127.0.0.1', () => resolve(running)); });
+  t.after(() => new Promise(resolve => server.close(resolve)));
+  const base = `http://127.0.0.1:${server.address().port}`;
+  async function api(route, body, expected = 200, token, method = 'POST') {
+    const response = await fetch(base + route, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body === undefined ? undefined : JSON.stringify(body) });
+    const data = await response.json();
+    assert.equal(response.status, expected, `${route}: ${JSON.stringify(data)}`);
+    return data;
+  }
+  const email = `pg-${randomUUID()}@test.invalid`;
+  const password = 'Isolated-Pg-Initial-2026';
+  const nextPassword = 'Isolated-Pg-Changed-2026';
+  async function captcha() {
+    const captchaId = randomUUID();
+    await codes.create({ email: captchaId, code: 'TEST', type: 'captcha' });
+    return { captchaId, captchaText: 'TEST' };
+  }
+  const latest = type => messages.filter(m => m.type === type).at(-1).code;
+  const login = (pass = password, expected = 200) => captcha().then(cap => api('/auth/login', { email, password: pass, ...cap }, expected));
+  const registration = await api('/auth/register', { username: 'PG 发布验收', email, password, acceptedTerms: true, ...await captcha() }, 201);
+  assert.equal(registration.emailSent, true);
+  await login(password, 403);
+  await api('/auth/send-code', { email, ...await captcha() }, 429);
+  const code = latest('email_verify');
+  const author = await api('/auth/verify-code', { email, code });
+  await api('/auth/verify-code', { email, code }, 400);
+  assert.equal((await login()).user.id, author.user.id);
+  const checkins = await Promise.all(Array.from({ length: 8 }, () => api('/user/me/check-in', {}, 200, author.token)));
+  assert.equal(checkins.filter(r => r.awarded).length, 1);
+  const adminEmail = `admin-${randomUUID()}@test.invalid`;
+  const adminId = (await query("INSERT INTO users (username,email,password_hash,is_admin,email_verified) VALUES ('PG 测试审核员',?,'unused',1,1)", [adminEmail])).insertId;
+  const adminToken = require('../dist/middleware/auth').signToken({ userId: adminId, plan: 'free' });
+  const draft = { title: `PG 测试 ${randomUUID()}`, summary: '独立副本测试', category: '网页小玩具', demoUrl: 'https://example.com/', acceptedRules: true };
+  const project = await api('/projects', draft, 201, author.token);
+  await api(`/projects/${project.id}`, undefined, 404, undefined, 'GET');
+  await api(`/admin/projects/${project.id}`, { action: 'reject', note: '补充说明', revision: 1 }, 200, adminToken, 'PUT');
+  const rejected = await api(`/projects/${project.id}`, undefined, 200, author.token, 'GET');
+  await api(`/projects/${project.id}`, { ...draft, summary: '已补充说明', revision: rejected.revision }, 200, author.token, 'PUT');
+  const pending = await api(`/projects/${project.id}`, undefined, 200, author.token, 'GET');
+  await api(`/admin/projects/${project.id}`, { action: 'approve', revision: pending.revision }, 200, adminToken, 'PUT');
+  assert.equal((await api(`/projects/${project.id}`, undefined, 200, undefined, 'GET')).status, 'approved');
+  assert.equal((await api('/user/me', undefined, 200, author.token, 'GET')).contribution_points, 15);
+  await api('/auth/forgot-password', { email });
+  const resetCode = latest('password_reset');
+  const attempts = await Promise.all([1, 2].map(() => fetch(base + '/auth/reset-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code: resetCode, password: nextPassword }) })));
+  assert.deepEqual(attempts.map(r => r.status).sort(), [200, 400]);
+  await login(password, 401);
+  const updated = await login(nextPassword);
+  await api('/user/me', undefined, 401, author.token, 'GET');
+  assert.equal((await api('/user/me', undefined, 200, updated.token, 'GET')).id, author.user.id);
+  await codes.create({ email, code: '123456', type: 'email_verify', ttlMinutes: -1 });
+  assert.equal(await codes.verify({ email, code: '123456', type: 'email_verify' }), false);
+  await codes.cleanupExpired();
+});

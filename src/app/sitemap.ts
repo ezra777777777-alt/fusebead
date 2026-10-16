@@ -7,6 +7,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${baseUrl}/generator`, lastModified: new Date(), changeFrequency: "weekly", priority: 0.9 },
     { url: `${baseUrl}/editor`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
     { url: `${baseUrl}/converter`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.7 },
+    { url: `${baseUrl}/beads`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.8 },
+    ...["help", "rules", "privacy", "terms"].map(path => ({ url: `${baseUrl}/${path}`, lastModified: new Date() })),
     { url: `${baseUrl}/pricing`, lastModified: new Date(), changeFrequency: "monthly", priority: 0.6 },
   ];
 }

@@ -13,6 +13,7 @@ CREATE TABLE users (
   username VARCHAR(50) NOT NULL,
   email VARCHAR(255) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
+  token_version INT NOT NULL DEFAULT 0,
   avatar_url VARCHAR(500) DEFAULT NULL,
   plan ENUM('free', 'pro', 'team') DEFAULT 'free',
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -83,6 +84,7 @@ CREATE INDEX idx_comments_pattern_id ON comments(pattern_id);
 -- ── Admin: user fields ──
 ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;
 ALTER TABLE users ADD COLUMN is_banned BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN contribution_points INT DEFAULT 0;
 
 -- ── Admin: pattern fields ──
 ALTER TABLE patterns ADD COLUMN is_approved BOOLEAN DEFAULT TRUE;
@@ -106,6 +108,96 @@ CREATE TABLE admin_logs (
 
 CREATE INDEX idx_admin_logs_admin_id ON admin_logs(admin_id);
 CREATE INDEX idx_admin_logs_created_at ON admin_logs(created_at);
+
+-- ── Cyber community projects ──
+CREATE TABLE projects (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  title VARCHAR(100) NOT NULL,
+  summary VARCHAR(300) NOT NULL,
+  category VARCHAR(40) NOT NULL,
+  demo_url VARCHAR(1000) NOT NULL,
+  repo_url VARCHAR(1000),
+  tech_stack VARCHAR(200),
+  confession TEXT,
+  cover_url VARCHAR(1000),
+  status ENUM('pending', 'approved', 'rejected', 'withdrawn') DEFAULT 'pending',
+  moderation_note TEXT,
+  revision INT DEFAULT 1,
+  is_featured BOOLEAN DEFAULT FALSE,
+  is_deleted BOOLEAN DEFAULT FALSE,
+  votes_count INT DEFAULT 0,
+  comments_count INT DEFAULT 0,
+  views_count INT DEFAULT 0,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE project_votes (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  user_id INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_project_vote (project_id, user_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE project_comments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  user_id INT NOT NULL,
+  content TEXT NOT NULL,
+  is_deleted BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE project_reports (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  user_id INT NOT NULL,
+  reason VARCHAR(80) NOT NULL,
+  detail TEXT,
+  status ENUM('open', 'resolved') DEFAULT 'open',
+  resolution_note TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE TABLE user_checkins (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  checkin_date DATE NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_daily_checkin (user_id, checkin_date)
+) ENGINE=InnoDB;
+
+CREATE TABLE contribution_events (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  event_key VARCHAR(200) NOT NULL,
+  points INT NOT NULL,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  UNIQUE KEY unique_contribution_event (user_id, event_key)
+) ENGINE=InnoDB;
+
+-- ── User feedback and admin replies ──
+CREATE TABLE feedbacks (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  subject VARCHAR(200) NOT NULL,
+  message TEXT NOT NULL,
+  is_read BOOLEAN DEFAULT FALSE,
+  reply TEXT,
+  replied_at TIMESTAMP NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
 
 -- ── Admin: system settings ──
 CREATE TABLE system_settings (

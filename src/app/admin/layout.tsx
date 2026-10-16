@@ -7,13 +7,15 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/lib/AuthContext";
 import { useLang } from "@/lib/LangContext";
 import {
-  LayoutDashboard, Users, Grid3X3, MessageSquare, Star, Settings, FileText, Mail,
+  LayoutDashboard, Users, Grid3X3, MessageSquare, Star, Settings, FileText, Mail, Bug, Flag,
   ArrowLeft, Menu, X, Loader2,
 } from "lucide-react";
 
 const sidebarLinks = [
   { href: "/admin", icon: LayoutDashboard, en: "Dashboard", zh: "仪表盘" },
   { href: "/admin/users", icon: Users, en: "Users", zh: "用户管理" },
+  { href: "/admin/projects", icon: Bug, en: "Projects", zh: "污染物质检" },
+  { href: "/admin/reports", icon: Flag, en: "Reports", zh: "环卫举报" },
   { href: "/admin/patterns", icon: Grid3X3, en: "Patterns", zh: "图案审核" },
   { href: "/admin/comments", icon: MessageSquare, en: "Comments", zh: "评论管理" },
   { href: "/admin/featured", icon: Star, en: "Featured", zh: "首页推荐" },
@@ -55,14 +57,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen bg-[var(--background)] pt-16">
       {/* Mobile overlay */}
       {sidebarOpen && (
-        <div className="fixed inset-0 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
+        <div className="fixed inset-x-0 bottom-0 top-16 z-40 bg-black/40 lg:hidden" onClick={() => setSidebarOpen(false)} />
       )}
 
       {/* Sidebar */}
-      <aside className={`fixed top-0 left-0 z-50 h-full w-60 bg-white border-r border-[var(--border)] transform transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
+      <aside className={`fixed top-16 bottom-0 left-0 z-40 w-60 overflow-y-auto bg-white border-r border-[var(--border)] transform transition-transform duration-200 lg:translate-x-0 ${sidebarOpen ? "translate-x-0" : "-translate-x-full"}`}>
         <div className="flex items-center justify-between h-16 px-5 border-b border-[var(--border)]">
           <Link href="/admin" className="flex items-center gap-2" onClick={() => setSidebarOpen(false)}>
             <span className="text-lg">🧩</span>
@@ -70,7 +72,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               {lang === "zh" ? "管理后台" : "Admin Panel"}
             </span>
           </Link>
-          <button onClick={() => setSidebarOpen(false)} className="lg:hidden p-1 rounded hover:bg-[var(--surface-hover)]">
+          <button aria-label="关闭后台菜单" onClick={() => setSidebarOpen(false)} className="lg:hidden p-1 rounded hover:bg-[var(--surface-hover)]">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -108,8 +110,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main content */}
       <div className="lg:pl-60">
         {/* Top bar */}
-        <header className="sticky top-0 z-30 h-16 border-b border-[var(--border)] bg-white/80 backdrop-blur-lg flex items-center justify-between px-5">
-          <button onClick={() => setSidebarOpen(true)} className="lg:hidden p-1.5 rounded-lg hover:bg-[var(--surface-hover)]">
+        <header className="sticky top-16 z-30 h-16 border-b border-[var(--border)] bg-white/80 backdrop-blur-lg flex items-center justify-between px-5">
+          <button aria-label="打开后台菜单" onClick={() => setSidebarOpen(true)} className="lg:hidden p-1.5 rounded-lg hover:bg-[var(--surface-hover)]">
             <Menu className="h-5 w-5" />
           </button>
           <span className="text-sm text-foreground/40 lg:hidden" style={{ fontFamily: "var(--font-display)" }}>

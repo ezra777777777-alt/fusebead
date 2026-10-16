@@ -21,6 +21,7 @@ export function Pagination({ page, totalPages, onChange }: {
   return (
     <div className="flex items-center justify-center gap-1.5 mt-10 flex-wrap">
       <button
+        aria-label="上一页"
         onClick={() => onChange(Math.max(1, page - 1))}
         disabled={page === 1}
         className="rounded-full p-2 border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--surface-hover)] transition-colors"
@@ -46,6 +47,7 @@ export function Pagination({ page, totalPages, onChange }: {
         )
       )}
       <button
+        aria-label="下一页"
         onClick={() => onChange(Math.min(totalPages, page + 1))}
         disabled={page === totalPages}
         className="rounded-full p-2 border border-[var(--border)] disabled:opacity-30 hover:bg-[var(--surface-hover)] transition-colors"

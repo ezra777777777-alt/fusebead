@@ -3,12 +3,37 @@ from flask_cors import CORS
 import base64
 import os
 from io import BytesIO
-from PIL import Image
+from PIL import Image, ImageOps, UnidentifiedImageError
 from colors import PERLER_COLORS, find_closest_color
 from dither import floyd_steinberg_dither, simple_quantize
 
 app = Flask(__name__)
 CORS(app)
+app.config["MAX_CONTENT_LENGTH"] = 10 * 1024 * 1024
+
+
+@app.route("/prepare-cover", methods=["POST"])
+def prepare_cover():
+    try:
+        payload = request.get_json(silent=True)
+        source = payload.get("image") if isinstance(payload, dict) else None
+        if not isinstance(source, str) or len(source) > 2_800_000:
+            raise ValueError("invalid image")
+        raw = base64.b64decode(source.split(",", 1)[-1], validate=True)
+        if len(raw) > 2 * 1024 * 1024:
+            raise ValueError("image too large")
+        with Image.open(BytesIO(raw)) as original:
+            if original.format not in {"PNG", "JPEG", "WEBP"} or original.width * original.height > 12_000_000 or getattr(original, "n_frames", 1) != 1:
+                raise ValueError("unsupported image")
+            rgba = ImageOps.exif_transpose(original).convert("RGBA")
+            rgba.thumbnail((1600, 1600))
+            image = Image.new("RGB", rgba.size, "white")
+            image.paste(rgba, mask=rgba.getchannel("A"))
+            output = BytesIO()
+            image.save(output, format="JPEG", quality=85)
+        return jsonify({"image": base64.b64encode(output.getvalue()).decode("ascii")})
+    except (ValueError, TypeError, OSError, UnidentifiedImageError, Image.DecompressionBombError):
+        return jsonify({"error": "Invalid image"}), 400
 
 
 @app.route("/health", methods=["GET"])

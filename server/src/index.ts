@@ -1,4 +1,6 @@
 import express from "express";
+import { rateLimit } from "./middleware/rateLimit";
+import { HttpError } from "./utils/http";
 import cors from "cors";
 import dotenv from "dotenv";
 import { authRouter } from "./routes/auth";
@@ -8,12 +10,15 @@ import { userRouter } from "./routes/user";
 import { adminRouter } from "./routes/admin";
 import { verificationRouter } from "./routes/verification";
 import { paymentsRouter } from "./routes/payments";
+import { projectsRouter } from "./routes/projects";
 import { cleanupExpired } from "./models/verificationCode";
 import { checkSubscriptionExpiry } from "./models/user";
 
 dotenv.config();
 
 const app = express();
+// Nginx connects over loopback; keep anonymous rate limits separate for each visitor.
+app.set("trust proxy", "loopback");
 const PORT = process.env.PORT || 3001;
 const HOST = process.env.HOST || "0.0.0.0";
 
@@ -38,13 +43,19 @@ app.get("/api/health", (_req, res) => {
 });
 
 // Routes
-app.use("/api/auth", verificationRouter);
-app.use("/api/auth", authRouter);
+app.use("/api/auth", rateLimit(40), verificationRouter, authRouter);
 app.use("/api/patterns", patternsRouter);
 app.use("/api/tool", toolRouter);
 app.use("/api/user", userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/payments", paymentsRouter);
+app.use("/api/projects", projectsRouter);
+
+app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = error instanceof HttpError ? error.status : 500;
+  if (status === 500) console.error("[server]", error.message);
+  res.status(status).json({ error: status === 500 ? "服务暂时不可用，请稍后重试" : error.message });
+});
 
 app.listen(Number(PORT), HOST, () => {
   console.log(`[Server] Running on http://${HOST}:${PORT}`);

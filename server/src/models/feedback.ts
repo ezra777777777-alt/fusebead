@@ -6,6 +6,8 @@ export interface FeedbackRow {
   subject: string;
   message: string;
   is_read: number;
+  reply: string;
+  replied_at: string | null;
   created_at: string;
 }
 
@@ -24,6 +26,8 @@ export async function create(data: {
     subject: data.subject,
     message: data.message,
     is_read: 0,
+    reply: "",
+    replied_at: null,
     created_at: new Date().toISOString(),
   };
 }
@@ -48,6 +52,12 @@ export async function findAll(page = 1, limit = 20): Promise<{
 
 export async function markRead(id: number): Promise<void> {
   await query("UPDATE feedbacks SET is_read = 1 WHERE id = ?", [id]);
+}
+
+export async function findByUser(userId: number, page: number, limit: number) {
+  const [count] = await query<any[]>("SELECT COUNT(*) AS total FROM feedbacks WHERE user_id = ?", [userId]);
+  const feedbacks = await query<FeedbackRow[]>("SELECT id, subject, message, is_read, reply, replied_at, created_at FROM feedbacks WHERE user_id = ? ORDER BY id DESC LIMIT ? OFFSET ?", [userId, limit, (page - 1) * limit]);
+  return { feedbacks, total: Number(count.total), page, limit };
 }
 
 export async function markAllRead(): Promise<void> {

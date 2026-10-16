@@ -2,118 +2,68 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Menu, X, Globe, LogIn } from "lucide-react";
-import { useLang } from "@/lib/LangContext";
+import { LogIn, Menu, Search, Upload, X } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export function Navbar() {
-  const { lang, setLang, t } = useLang();
   const { user, isAdmin, openAuth, logout } = useAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const navLinks = [
-    { href: "/generator", label: t("nav.generator"), authRequired: true },
-    { href: "/editor", label: t("nav.editor"), authRequired: true },
-    { href: "/converter", label: t("nav.converter"), authRequired: true },
-    { href: "/gallery", label: t("nav.gallery"), authRequired: false },
+  const links = [
+    { href: "/?sort=latest#feed", label: "最新作品" },
+    { href: "/#community-boards", label: "软件分区" },
+    { href: "/?category=教程与求助#feed", label: "教程求助" },
+    { href: "/?sort=popular#feed", label: "污染热榜" },
   ];
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 border-b border-[var(--primary)]/20 bg-white/80 backdrop-blur-lg">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="text-xl">🧩</span>
-            <span className="text-lg font-bold tracking-tight" style={{ fontFamily: "var(--font-display)", color: "var(--primary)" }}>
-              FuseBead<span className="text-foreground">.art</span>
-            </span>
+    <header className="fixed inset-x-0 top-0 z-50 h-16 border-b-2 border-black bg-[#111] text-white">
+      <nav className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <Link href="/" className="group flex shrink-0 items-center gap-2 whitespace-nowrap">
+          <span className="flex h-9 w-9 -rotate-3 items-center justify-center border-2 border-white bg-[var(--orange)] text-lg font-black text-white transition-transform group-hover:rotate-3">搬</span>
+          <span className="text-lg font-black tracking-[-0.04em]">赛博搬屎</span>
+          <span className="hidden border border-white/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--acid)] sm:inline">BETA</span>
+        </Link>
+
+        <div className="hidden items-center gap-4 whitespace-nowrap xl:flex">
+          {links.map((link) => (
+            <Link
+              key={link.label}
+              href={link.href}
+              className="text-sm font-bold text-white/65 hover:text-[var(--acid)]"
+            >
+              {link.label}
+            </Link>
+          ))}
+          {isAdmin && <Link href="/admin" className="text-sm font-black text-[var(--acid)]">环卫后台</Link>}
+          <Link href="/#feed" className="p-1.5 text-white/45 hover:text-white" aria-label="搜索作品"><Search className="h-4 w-4" /></Link>
+          {user ? (
+            <div className="flex items-center gap-2 text-xs font-bold">
+              <Link href="/dashboard" className="max-w-36 truncate border border-white/25 px-2 py-1.5 text-white/75 hover:border-[var(--acid)] hover:text-[var(--acid)]">{user.username}</Link>
+              <button onClick={logout} className="text-white/40 hover:text-white">退出</button>
+            </div>
+          ) : (
+            <button onClick={openAuth} className="flex items-center gap-1.5 text-sm font-bold text-white/70 hover:text-white"><LogIn className="h-4 w-4" />登录</button>
+          )}
+          <Link href="/submit" className="flex items-center gap-1.5 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black text-black shadow-[3px_3px_0_#fff] transition-transform hover:-translate-y-0.5">
+            <Upload className="h-4 w-4" /> 上交本坨
           </Link>
-
-          <div className="hidden md:flex items-center gap-5">
-            {navLinks.map((link) => (
-              (user || !link.authRequired) ? (
-                <Link key={link.href} href={link.href}
-                  className="text-sm font-medium text-foreground/60 hover:text-[var(--primary)] transition-colors"
-                  style={{ fontFamily: "var(--font-display)" }}>{link.label}</Link>
-              ) : (
-                <button key={link.href} onClick={openAuth}
-                  className="text-sm font-medium text-foreground/60 hover:text-[var(--primary)] transition-colors"
-                  style={{ fontFamily: "var(--font-display)" }}>{link.label}</button>
-              )
-            ))}
-            <Link href="/pricing" className="text-sm font-medium text-foreground/40 hover:text-foreground transition-colors" style={{ fontFamily: "var(--font-display)" }}>
-              {lang === "zh" ? "定价" : "Pricing"}
-            </Link>
-            {isAdmin && (
-              <Link href="/admin" className="text-sm font-medium text-[var(--primary)] hover:text-[var(--bead-coral)] transition-colors" style={{ fontFamily: "var(--font-display)" }}>
-                {lang === "zh" ? "管理" : "Admin"}
-              </Link>
-            )}
-            <button onClick={() => setLang(lang === "en" ? "zh" : "en")}
-              className="flex items-center gap-1 text-xs text-foreground/40 hover:text-foreground transition-colors px-2 py-1 rounded-lg border border-[var(--border)]">
-              <Globe className="h-3.5 w-3.5" /> {lang === "en" ? "中文" : "EN"}
-            </button>
-            {user ? (
-              <div className="flex items-center gap-2">
-                <Link href="/dashboard" className="text-xs text-foreground/50 bg-[var(--surface-hover)] px-2 py-1 rounded-full hover:text-foreground transition-colors" style={{ fontFamily: "var(--font-display)" }}>
-                  {user.username}
-                </Link>
-                <button onClick={logout} className="text-xs text-foreground/40 hover:text-foreground">{lang === "zh" ? "退出" : "Logout"}</button>
-              </div>
-            ) : (
-              <button onClick={openAuth} className="flex items-center gap-1.5 text-sm font-medium text-foreground/60 hover:text-foreground transition-colors" style={{ fontFamily: "var(--font-display)" }}>
-                <LogIn className="h-4 w-4" /> {lang === "zh" ? "登录" : "Sign In"}
-              </button>
-            )}
-            <Link href="/generator"
-              className="inline-flex items-center gap-1.5 rounded-full px-5 py-2 text-sm font-semibold text-white transition-all hover:opacity-90 hover:shadow-lg hover:shadow-[var(--bead-coral)]/20"
-              style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
-              {t("nav.start")}
-            </Link>
-          </div>
-
-          <button onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 rounded-lg hover:bg-[var(--surface-hover)]">
-            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
         </div>
 
+        <button onClick={() => setMobileOpen((value) => !value)} className="border border-white/20 p-2 xl:hidden" aria-label="菜单" aria-expanded={mobileOpen} aria-controls="mobile-navigation">
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
         {mobileOpen && (
-          <div className="md:hidden py-4 border-t border-[var(--border)] space-y-3">
-            {navLinks.map((link) => (
-              (user || !link.authRequired) ? (
-                <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)}
-                  className="block px-2 py-2 text-sm font-medium text-foreground/70" style={{ fontFamily: "var(--font-display)" }}>{link.label}</Link>
-              ) : (
-                <button key={link.href} onClick={() => { openAuth(); setMobileOpen(false); }}
-                  className="block px-2 py-2 text-sm font-medium text-foreground/70 w-full text-left" style={{ fontFamily: "var(--font-display)" }}>{link.label}</button>
-              )
-            ))}
-            <Link href="/pricing" onClick={() => setMobileOpen(false)} className="block px-2 py-2 text-sm text-foreground/50" style={{ fontFamily: "var(--font-display)" }}>
-              {lang === "zh" ? "定价" : "Pricing"}
-            </Link>
-            {isAdmin && (
-              <Link href="/admin" onClick={() => setMobileOpen(false)} className="block px-2 py-2 text-sm text-[var(--primary)]" style={{ fontFamily: "var(--font-display)" }}>
-                {lang === "zh" ? "管理后台" : "Admin Panel"}
-              </Link>
-            )}
-            <button onClick={() => { setLang(lang === "en" ? "zh" : "en"); setMobileOpen(false); }}
-              className="flex items-center gap-1 text-xs text-foreground/50 px-2 py-1">
-              <Globe className="h-3.5 w-3.5" /> {lang === "en" ? "切换到中文" : "Switch to English"}
-            </button>
-            {user ? (
-              <button onClick={() => { logout(); setMobileOpen(false); }} className="block px-2 py-2 text-sm text-foreground/50">
-                {lang === "zh" ? "退出登录" : "Logout"}
-              </button>
-            ) : (
-              <button onClick={() => { openAuth(); setMobileOpen(false); }} className="flex items-center gap-1.5 px-2 py-2 text-sm text-foreground/70">
-                <LogIn className="h-4 w-4" /> {lang === "zh" ? "登录" : "Sign In"}
-              </button>
-            )}
-            <Link href="/generator" onClick={() => setMobileOpen(false)}
-              className="block w-full text-center rounded-full px-5 py-2.5 text-sm font-semibold text-white"
-              style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}>
-              {t("nav.start")}
-            </Link>
+          <div id="mobile-navigation" className="max-h-[calc(100dvh-4rem)] overflow-y-auto absolute inset-x-0 top-16 border-b-2 border-black bg-[#111] p-4 xl:hidden">
+            <div className="grid gap-1">
+              {links.map((link) => <Link key={link.label} href={link.href} onClick={() => setMobileOpen(false)} className="border-b border-white/10 px-2 py-3 text-sm font-bold text-white/70">{link.label}</Link>)}
+              {isAdmin && <Link href="/admin" onClick={() => setMobileOpen(false)} className="px-2 py-3 text-sm font-black text-[var(--acid)]">环卫后台</Link>}
+              <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="px-2 py-3 text-sm font-bold text-white/70">个人中心</Link>
+              <Link href="/help" onClick={() => setMobileOpen(false)} className="px-2 py-3 text-sm font-bold text-white/70">新手帮助</Link>
+              <Link href="/submit" onClick={() => setMobileOpen(false)} className="px-2 py-3 text-sm font-black text-[var(--acid)]">上交本坨</Link>
+              {user ? <button onClick={() => { logout(); setMobileOpen(false); }} className="px-2 py-3 text-left text-sm font-bold text-white/60">退出登录</button> : <button onClick={() => { openAuth(); setMobileOpen(false); }} className="px-2 py-3 text-left text-sm font-bold text-white/70">登录 / 注册</button>}
+            </div>
           </div>
         )}
       </nav>

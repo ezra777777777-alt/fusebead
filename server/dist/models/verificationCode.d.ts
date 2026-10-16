@@ -5,6 +5,7 @@ export interface VerificationCodeRow {
     type: "captcha" | "email_verify" | "password_reset";
     expires_at: string;
     created_at: string;
+    attempts: number;
 }
 export declare function create(params: {
     email: string;
