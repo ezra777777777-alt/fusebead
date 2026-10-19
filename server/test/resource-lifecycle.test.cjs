@@ -59,11 +59,10 @@ test('unpublished website-only reservations release safely; published and bot re
   assert.equal(checked.data.duplicate, true, '曾经公开的记录必须保留');
 
   const reservedUrl = 'https://github.com/owner/bot-reserved';
-  const reserved = await request('/registry/check', process.env.RESOURCE_REGISTRY_KEY, 'POST', { requestId: 'cli:reserved', project: 'PRJ-0008', channel: '网站', url: reservedUrl, reserveWebsite: true });
-  const botProject = await request('/projects', three, 'POST', { ...draft(reservedUrl), registryProof: { requestId: 'cli:reserved', token: reserved.data.claimToken } });
-  assert.equal(botProject.status, 201);
-  assert.equal((await request(`/projects/${botProject.data.id}/withdraw`, three, 'POST', { revision: 1 })).status, 200);
-  assert.equal((await request('/registry/check', process.env.RESOURCE_REGISTRY_KEY, 'POST', { requestId: 'bot-check', project: 'PRJ-0008', channel: '其他频道', url: reservedUrl })).data.duplicate, true, 'Bot 预登记不能被网站单方面释放');
+  const reserved = await request('/registry/check', process.env.RESOURCE_REGISTRY_KEY, 'POST', { requestId: 'cli:reserved', project: 'PRJ-0008', channel: '其他频道', url: reservedUrl });
+  assert.equal(reserved.data.duplicate, false);
+  assert.equal((await request('/projects', three, 'POST', draft(reservedUrl))).status, 409, '其他频道已登记的来源不能重复投稿');
+  assert.equal((await request('/registry/check', process.env.RESOURCE_REGISTRY_KEY, 'POST', { requestId: 'bot-check', project: 'PRJ-0008', channel: '其他频道', url: reservedUrl })).data.duplicate, true, '其他频道登记必须保留');
 
   const importedUrl = 'https://github.com/owner/imported';
   const importedProject = await request('/projects', four, 'POST', draft(importedUrl));

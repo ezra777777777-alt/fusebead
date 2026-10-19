@@ -21,7 +21,7 @@ app.use('/admin', require('../dist/routes/admin').adminRouter);
 app.use('/registry', require('../dist/routes/resource-registry').resourceRegistryRouter);
 app.use((error, _req, res, _next) => res.status(error.status || 500).json({ error: error.message }));
 
-test('website submission claims a matching bot reservation and blocks other duplicates', async t => {
+test('website preview does not reserve and submissions block duplicates', async t => {
   const user = async (name, admin = 0) => {
     const { insertId } = await query('INSERT INTO users (username,email,password_hash,email_verified,is_admin) VALUES (?, ?, ?, 1, ?)', [name, `${name}@example.invalid`, 'unused', admin]);
     return signToken({ userId: insertId, plan: 'free' });
@@ -54,15 +54,11 @@ test('website submission claims a matching bot reservation and blocks other dupl
   assert.equal((await request('/registry/check', process.env.RESOURCE_REGISTRY_KEY, 'POST', preview)).data.duplicate, true, '投稿后预查应发现登记');
   assert.equal((await request('/registry/check', process.env.RESOURCE_REGISTRY_KEY, 'POST', { requestId: 'feishu:bad-config', project: 'PRJ-0008', channel: '网站 ', url: draft.repoUrl })).status, 409);
   const reservation = await request('/registry/check', process.env.RESOURCE_REGISTRY_KEY, 'POST', { requestId: 'cli:task-1', project: 'PRJ-0008', channel: '网站', url: draft.repoUrl, reserveWebsite: true });
-  assert.equal(reservation.status, 200);
-  assert.equal(reservation.data.duplicate, false);
-  assert.match(reservation.data.claimToken, /^[a-f0-9]{64}$/);
-  assert.equal((await request('/projects', author, 'POST', draft)).status, 409);
-  assert.equal((await request('/projects', author, 'POST', { ...draft, registryProof: { requestId: 'cli:task-1', token: 'a'.repeat(64) } })).status, 409);
-  const proof = { requestId: 'cli:task-1', token: reservation.data.claimToken };
-  const created = await request('/projects', author, 'POST', { ...draft, registryProof: proof });
+  assert.equal(reservation.status, 409, '网站预登记必须拒绝，避免永久占位');
+  assert.equal((await query('SELECT id FROM resource_entries')).length, 1, '被拒绝的预登记不能占位');
+  const created = await request('/projects', author, 'POST', draft);
   assert.equal(created.status, 201);
-  assert.equal((await request('/projects', other, 'POST', { ...draft, title: '重复投稿', registryProof: proof })).status, 409);
+  assert.equal((await request('/projects', other, 'POST', { ...draft, title: '重复投稿' })).status, 409);
   let project = (await request(`/projects/${created.data.id}`, author)).data;
   assert.equal((await request(`/projects/${project.id}`, author, 'PUT', { ...draft, revision: project.revision, summary: '更新介绍' })).status, 200);
   project = (await request(`/projects/${project.id}`, author)).data;
@@ -76,9 +72,10 @@ test('website submission claims a matching bot reservation and blocks other dupl
   const attempts = await Promise.all([concurrentA, concurrentB].map(token => request('/projects', token, 'POST', fresh)));
   assert.deepEqual(attempts.map(item => item.status).sort(), [201, 409]);
   const forged = await user('forged');
-  assert.equal((await request('/projects', forged, 'POST', { ...draft, repoUrl: 'https://github.com/owner/different', registryProof: proof })).status, 409);
+  assert.equal((await request('/projects', forged, 'POST', { ...draft, repoUrl: 'https://github.com/owner/different', registryProof: { requestId: 'old', token: 'old' } })).status, 400);
   const outsider = await request('/registry/check', process.env.RESOURCE_REGISTRY_KEY, 'POST', { requestId: 'outsider', project: 'PRJ-0008', channel: '其他频道', url: 'https://github.com/owner/other-channel' });
-  assert.equal((await request('/projects', forged, 'POST', { ...draft, repoUrl: 'https://github.com/owner/other-channel', registryProof: { requestId: 'outsider', token: outsider.data.claimToken } })).status, 409);
+  assert.equal(outsider.data.duplicate, false);
+  assert.equal((await request('/projects', forged, 'POST', { ...draft, repoUrl: 'https://github.com/owner/other-channel' })).status, 409);
   project = (await request(`/projects/${project.id}`, author)).data;
   assert.equal((await request(`/projects/${project.id}/withdraw`, author, 'POST', { revision: project.revision })).status, 200);
   assert.equal((await request('/registry/check', process.env.RESOURCE_REGISTRY_KEY, 'POST', { requestId: 'after-withdraw', project: 'PRJ-0008', channel: '其他频道', url: draft.repoUrl })).data.duplicate, true);

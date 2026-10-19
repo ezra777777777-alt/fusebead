@@ -138,6 +138,8 @@ exports.projectsRouter.get("/:id", auth_1.optionalAuth, (0, http_1.asyncRoute)(a
     res.json({ ...project, author_name: author?.username, author_avatar: author?.avatar_url, author_points: author?.contribution_points || 0, has_voted: votes.length > 0 });
 }));
 exports.projectsRouter.post("/", auth_1.authMiddleware, (0, rateLimit_1.rateLimit)(5), (0, http_1.asyncRoute)(async (req, res) => {
+    if (req.body?.registryProof != null)
+        throw new http_1.HttpError(400, "网站不再使用预登记凭证");
     const values = projectInput(req.body);
     const id = await (0, db_1.transaction)(async () => {
         await (0, resource_registry_1.guardWebsiteRegistry)();
@@ -148,12 +150,14 @@ exports.projectsRouter.post("/", auth_1.authMiddleware, (0, rateLimit_1.rateLimi
             throw new http_1.HttpError(409, "相同作品正在审核，请到个人中心查看");
         const result = await (0, db_1.query)(`INSERT INTO projects (user_id, title, summary, category, demo_url, repo_url, tech_stack, confession, cover_url, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`, [req.user.userId, ...values]);
-        await (0, resource_registry_1.checkWebsiteResource)(result.insertId, 1, [values[4], values[3]].filter(Boolean), req.body.registryProof);
+        await (0, resource_registry_1.checkWebsiteResource)(result.insertId, 1, [values[4], values[3]].filter(Boolean));
         return result.insertId;
     });
     res.status(201).json({ id, status: "pending" });
 }));
 exports.projectsRouter.put("/:id", auth_1.authMiddleware, (0, rateLimit_1.rateLimit)(10), (0, http_1.asyncRoute)(async (req, res) => {
+    if (req.body?.registryProof != null)
+        throw new http_1.HttpError(400, "网站不再使用预登记凭证");
     const values = projectInput(req.body);
     await (0, db_1.transaction)(async () => {
         await (0, resource_registry_1.guardWebsiteRegistry)();
@@ -164,7 +168,7 @@ exports.projectsRouter.put("/:id", auth_1.authMiddleware, (0, rateLimit_1.rateLi
             throw new http_1.HttpError(409, "作品已被管理员下架，请先通过反馈申诉");
         if ((0, http_1.positiveInt)(req.body.revision) !== project.revision)
             throw new http_1.HttpError(409, "作品已更新，请刷新后再修改");
-        await (0, resource_registry_1.checkWebsiteResource)(project.id, project.revision + 1, [values[4], values[3]].filter(Boolean), req.body.registryProof);
+        await (0, resource_registry_1.checkWebsiteResource)(project.id, project.revision + 1, [values[4], values[3]].filter(Boolean));
         await (0, resource_registry_1.releaseWebsiteResource)(project.id, [project.repo_url, project.demo_url], "changed", [values[4], values[3]]);
         await (0, db_1.query)(`UPDATE projects SET title = ?, summary = ?, category = ?, demo_url = ?, repo_url = ?, tech_stack = ?, confession = ?, cover_url = ?,
       status = 'pending', moderation_note = '', is_featured = 0, revision = revision + 1, updated_at = datetime('now') WHERE id = ?`, [...values, project.id]);

@@ -37,6 +37,7 @@ test('history backfill is atomic, detects conflicts and is safely repeatable', a
   const cli = spawnSync(process.execPath, [require.resolve('../dist/resource-backfill')], { input: '[]', encoding: 'utf8', env: { ...process.env, DB_PATH: path.join(temporary, 'cli.db'), RESOURCE_REGISTRY_SITE_PROJECT: 'PRJ-0008' } });
   assert.equal(cli.status, 0, cli.stderr);
   assert.equal(JSON.parse(cli.stdout).mode, 'dry-run');
+  assert.match(cli.stderr, /持锁阻塞/, '预演必须明确提示持锁');
   const pendingUrl = 'https://github.com/example/pending';
   const pending = await query("INSERT INTO projects (user_id,title,summary,category,demo_url,repo_url,status) VALUES (?, '待审资源', '简介', 'GitHub 实用项目', ?, ?, 'pending')", [insertId, pendingUrl, pendingUrl]);
   await backfillResources('PRJ-0008', '网站', legacy, true, aliases);

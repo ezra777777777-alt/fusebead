@@ -89,6 +89,7 @@ if (require.main === module) {
   process.stdin.on("end", async () => {
     try {
       const aliases = JSON.parse(process.env.RESOURCE_REGISTRY_SITE_HISTORY_CHANNELS || "[]");
+      if (args[0] !== "--apply") console.error("回填预演会执行写入并回滚，期间持锁阻塞投稿和登记；请只在隔离副本或写入已暂停时运行。");
       const counts = await backfillResources(process.env.RESOURCE_REGISTRY_SITE_PROJECT || "", process.env.RESOURCE_REGISTRY_SITE_CHANNEL || "网站", JSON.parse(input), args[0] === "--apply", aliases);
       console.log(JSON.stringify({ mode: args[0] === "--apply" ? "applied" : "dry-run", ...counts }));
     } catch (error) { console.error("历史回填失败：" + (error instanceof Error ? error.message : "未知错误")); process.exitCode = 1; }

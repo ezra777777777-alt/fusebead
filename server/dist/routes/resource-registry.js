@@ -13,12 +13,6 @@ const rateLimit_1 = require("../middleware/rateLimit");
 const http_1 = require("../utils/http");
 exports.resourceRegistryRouter = (0, express_1.Router)();
 function digest(value) { return (0, crypto_1.createHash)("sha256").update(value).digest("hex"); }
-function claimToken(secret, requestId, id) {
-    return (0, crypto_1.createHmac)("sha256", secret).update(JSON.stringify([requestId, Number(id)])).digest("hex");
-}
-function sameSecret(a, b) {
-    return (0, crypto_1.timingSafeEqual)((0, crypto_1.createHash)("sha256").update(a).digest(), (0, crypto_1.createHash)("sha256").update(b).digest());
-}
 function requestData(body) {
     if (!body || typeof body !== "object" || Array.isArray(body))
         throw new http_1.HttpError(400, "查重请求无效");
@@ -123,7 +117,7 @@ async function checkResource(body) {
     });
 }
 // Must be called inside the same transaction as the website project write.
-async function checkWebsiteResource(id, revision, urls, proof) {
+async function checkWebsiteResource(id, revision, urls) {
     const project = process.env.RESOURCE_REGISTRY_SITE_PROJECT;
     if (!project)
         return;
@@ -143,30 +137,8 @@ async function checkWebsiteResource(id, revision, urls, proof) {
             await bindAliases(data.aliases, entry.id);
             return;
         }
-        if (!proof || typeof proof !== "object" || Array.isArray(proof))
-            throw new http_1.HttpError(409, "该来源已被收录或登记，不能重复投稿");
-        const { requestId, token } = proof;
-        if (typeof requestId !== "string" || typeof token !== "string" || requestId.length > 200 || token.length !== 64 ||
-            !sameSecret(token, claimToken(secret, requestId, entry.id)))
-            throw new http_1.HttpError(409, "查重登记凭证无效");
-        const [request] = await (0, db_1.query)("SELECT result FROM resource_requests WHERE request_id = ?", [requestId]);
-        let result;
-        try {
-            result = JSON.parse(request?.result || "null");
-        }
-        catch {
-            result = null;
-        }
-        if (!result || result.duplicate !== false || Number(result.id) !== Number(entry.id) || entry.project !== project || entry.channel !== channel)
-            throw new http_1.HttpError(409, "查重登记与网站投稿不匹配");
-        const bound = await (0, db_1.query)("UPDATE resource_entries SET website_project_id = ? WHERE id = ? AND website_project_id IS NULL", [id, entry.id]);
-        if (bound.affectedRows !== 1)
-            throw new http_1.HttpError(409, "该查重登记已被其他投稿使用");
-        await bindAliases(data.aliases, entry.id);
-        return;
+        throw new http_1.HttpError(409, "该来源已被收录或登记，不能重复投稿");
     }
-    if (proof != null)
-        throw new http_1.HttpError(409, "查重登记与网站投稿不匹配");
     const result = await checkResource({ requestId: data.requestId, project, channel, urls });
     if (result.duplicate)
         throw new http_1.HttpError(409, "该来源已被收录或登记，不能重复投稿");
@@ -245,10 +217,10 @@ exports.resourceRegistryRouter.post("/check", (0, rateLimit_1.rateLimit)(120), (
     const isWebsite = !!process.env.RESOURCE_REGISTRY_SITE_PROJECT && req.body?.project === process.env.RESOURCE_REGISTRY_SITE_PROJECT && typeof req.body.channel === "string" && req.body.channel.trim() === (process.env.RESOURCE_REGISTRY_SITE_CHANNEL || "网站");
     if (isWebsite && process.env.RESOURCE_REGISTRY_BACKFILL_COMPLETE !== "yes")
         throw new http_1.HttpError(503, "网站查重尚未准备完成，请稍后重试");
-    if (isWebsite && req.body?.preview !== true && req.body?.reserveWebsite !== true)
-        throw new http_1.HttpError(409, "网站请求需预查，或明确使用带凭证的预登记");
-    if (req.body?.reserveWebsite === true && (!isWebsite || req.body?.preview === true))
-        throw new http_1.HttpError(400, "网站预登记模式无效");
+    if (req.body?.reserveWebsite === true)
+        throw new http_1.HttpError(409, "网站不支持预登记，请预查后直接投稿");
+    if (isWebsite && req.body?.preview !== true)
+        throw new http_1.HttpError(409, "网站请求只能预查，投稿时会登记");
     if (req.body?.preview === true) {
         const project = process.env.RESOURCE_REGISTRY_SITE_PROJECT;
         const channel = process.env.RESOURCE_REGISTRY_SITE_CHANNEL || "网站";
@@ -264,5 +236,5 @@ exports.resourceRegistryRouter.post("/check", (0, rateLimit_1.rateLimit)(120), (
         return;
     }
     const result = await checkResource(req.body);
-    res.json(result.duplicate ? result : { ...result, claimToken: claimToken(secret, req.body.requestId, result.id) });
+    res.json(result);
 }));

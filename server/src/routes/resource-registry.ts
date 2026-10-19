@@ -1,4 +1,4 @@
-import { createHash, createHmac, timingSafeEqual } from "crypto";
+import { createHash, timingSafeEqual } from "crypto";
 import { Router } from "express";
 import { lockResourceRegistry, query, transaction } from "../config/db";
 import { rateLimit } from "../middleware/rateLimit";
@@ -7,12 +7,6 @@ import { asyncRoute, HttpError } from "../utils/http";
 export const resourceRegistryRouter = Router();
 
 function digest(value: string) { return createHash("sha256").update(value).digest("hex"); }
-function claimToken(secret: string, requestId: string, id: number) {
-  return createHmac("sha256", secret).update(JSON.stringify([requestId, Number(id)])).digest("hex");
-}
-function sameSecret(a: string, b: string) {
-  return timingSafeEqual(createHash("sha256").update(a).digest(), createHash("sha256").update(b).digest());
-}
 
 function requestData(body: Record<string, unknown>) {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new HttpError(400, "查重请求无效");
@@ -105,7 +99,7 @@ export async function checkResource(body: Record<string, unknown>) {
 }
 
 // Must be called inside the same transaction as the website project write.
-export async function checkWebsiteResource(id: number, revision: number, urls: string[], proof?: unknown) {
+export async function checkWebsiteResource(id: number, revision: number, urls: string[]) {
   const project = process.env.RESOURCE_REGISTRY_SITE_PROJECT;
   if (!project) return;
   const secret = process.env.RESOURCE_REGISTRY_KEY;
@@ -118,20 +112,8 @@ export async function checkWebsiteResource(id: number, revision: number, urls: s
     const [entry] = await query<any[]>("SELECT * FROM resource_entries WHERE id = ? FOR UPDATE", [matches[0].id]);
     if (!entry || entry.is_released) throw new HttpError(409, "登记状态已变化，请重试");
     if (Number(entry.website_project_id) === id) { await bindAliases(data.aliases, entry.id); return; }
-    if (!proof || typeof proof !== "object" || Array.isArray(proof)) throw new HttpError(409, "该来源已被收录或登记，不能重复投稿");
-    const { requestId, token } = proof as Record<string, unknown>;
-    if (typeof requestId !== "string" || typeof token !== "string" || requestId.length > 200 || token.length !== 64 ||
-        !sameSecret(token, claimToken(secret, requestId, entry.id))) throw new HttpError(409, "查重登记凭证无效");
-    const [request] = await query<any[]>("SELECT result FROM resource_requests WHERE request_id = ?", [requestId]);
-    let result;
-    try { result = JSON.parse(request?.result || "null"); } catch { result = null; }
-    if (!result || result.duplicate !== false || Number(result.id) !== Number(entry.id) || entry.project !== project || entry.channel !== channel) throw new HttpError(409, "查重登记与网站投稿不匹配");
-    const bound = await query<{ affectedRows: number }>("UPDATE resource_entries SET website_project_id = ? WHERE id = ? AND website_project_id IS NULL", [id, entry.id]);
-    if (bound.affectedRows !== 1) throw new HttpError(409, "该查重登记已被其他投稿使用");
-    await bindAliases(data.aliases, entry.id);
-    return;
+    throw new HttpError(409, "该来源已被收录或登记，不能重复投稿");
   }
-  if (proof != null) throw new HttpError(409, "查重登记与网站投稿不匹配");
   const result = await checkResource({ requestId: data.requestId, project, channel, urls });
   if (result.duplicate) throw new HttpError(409, "该来源已被收录或登记，不能重复投稿");
   const bound = await query<{ affectedRows: number }>("UPDATE resource_entries SET website_project_id = ?, website_owned = 1 WHERE id = ? AND website_project_id IS NULL", [id, result.id]);
@@ -194,8 +176,8 @@ resourceRegistryRouter.post("/check", rateLimit(120), asyncRoute(async (req, res
   if (req.body?.reserveWebsite != null && typeof req.body.reserveWebsite !== "boolean") throw new HttpError(400, "查重模式无效");
   const isWebsite = !!process.env.RESOURCE_REGISTRY_SITE_PROJECT && req.body?.project === process.env.RESOURCE_REGISTRY_SITE_PROJECT && typeof req.body.channel === "string" && req.body.channel.trim() === (process.env.RESOURCE_REGISTRY_SITE_CHANNEL || "网站");
   if (isWebsite && process.env.RESOURCE_REGISTRY_BACKFILL_COMPLETE !== "yes") throw new HttpError(503, "网站查重尚未准备完成，请稍后重试");
-  if (isWebsite && req.body?.preview !== true && req.body?.reserveWebsite !== true) throw new HttpError(409, "网站请求需预查，或明确使用带凭证的预登记");
-  if (req.body?.reserveWebsite === true && (!isWebsite || req.body?.preview === true)) throw new HttpError(400, "网站预登记模式无效");
+  if (req.body?.reserveWebsite === true) throw new HttpError(409, "网站不支持预登记，请预查后直接投稿");
+  if (isWebsite && req.body?.preview !== true) throw new HttpError(409, "网站请求只能预查，投稿时会登记");
   if (req.body?.preview === true) {
     const project = process.env.RESOURCE_REGISTRY_SITE_PROJECT;
     const channel = process.env.RESOURCE_REGISTRY_SITE_CHANNEL || "网站";
@@ -208,5 +190,5 @@ resourceRegistryRouter.post("/check", rateLimit(120), asyncRoute(async (req, res
     return;
   }
   const result = await checkResource(req.body);
-  res.json(result.duplicate ? result : { ...result, claimToken: claimToken(secret, req.body.requestId, result.id) });
+  res.json(result);
 }));

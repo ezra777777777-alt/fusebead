@@ -62,7 +62,7 @@ test('PostgreSQL shared registry serializes concurrent claims and backfills hist
   assert.equal((await call('/projects', previewDraft, author)).status, 201);
   assert.equal((await registry(preview)).data.duplicate, true);
 
-  const common = { project: 'PRJ-0008', channel: '网站', reserveWebsite: true, url: `https://github.com/isolated/race-${uid}` };
+  const common = { project: 'PRJ-0008', channel: '其他频道', url: `https://github.com/isolated/race-${uid}` };
   const attempts = await Promise.all(Array.from({ length: 12 }, (_, i) => registry({ ...common, requestId: `race-${uid}-${i}` })));
   assert.equal(attempts.filter(r => r.status === 200 && !r.data.duplicate).length, 1, 'Only one concurrent request may reserve the source');
   assert.ok(attempts.every(r => r.status === 200 || r.status === 409), JSON.stringify(attempts));
@@ -80,13 +80,9 @@ test('PostgreSQL shared registry serializes concurrent claims and backfills hist
   const mixedRetries = await Promise.all(mixed.map(registry));
   assert.ok(mixedRetries.every(r => r.status === 200), JSON.stringify(mixedRetries));
   assert.equal(mixedRetries.filter(r => !r.data.duplicate).length, 1);
-  const winner = retries.findIndex(r => !r.data.duplicate);
   const draft = { title: '并发查重测试', summary: '独立测试', category: 'GitHub 实用项目', repoUrl: common.url, acceptedRules: true };
-  const proof = { requestId: `race-${uid}-${winner}`, token: retries[winner].data.claimToken };
-  const created = await call('/projects', { ...draft, registryProof: proof }, author);
-  assert.equal(created.status, 201, JSON.stringify(created));
-  assert.equal((await call('/projects', { ...draft, title: '重复', registryProof: proof }, author)).status, 409);
-  assert.equal((await registry({ ...common, requestId: `after-${uid}`, channel: '其他频道', reserveWebsite: false })).data.duplicate, true);
+  assert.equal((await call('/projects', draft, author)).status, 409, '其他频道登记后网站投稿必须拒绝');
+  assert.equal((await registry({ ...common, requestId: `after-${uid}` })).data.duplicate, true);
   const another = await query('INSERT INTO users (username,email,password_hash,email_verified) VALUES (?, ?, ?, 1)', ['second', `second-${uid}@test.invalid`, 'unused']);
   const secondAuthor = signToken({ userId: another.insertId, plan: 'free' });
   const simultaneous = { ...draft, title: '网站与 Bot 并发测试', repoUrl: `https://github.com/isolated/competition-${uid}` };
@@ -102,7 +98,7 @@ test('PostgreSQL shared registry serializes concurrent claims and backfills hist
   const demo = `https://example.com/demo-${uid}`;
   const multi = { ...draft, repoUrl: `https://github.com/isolated/multi-${uid}`, demoUrl: demo };
   assert.equal((await call('/projects', multi, secondAuthor)).status, 201);
-  assert.equal((await registry({ ...common, requestId: `demo-${uid}`, channel: '其他频道', reserveWebsite: false, url: demo })).data.duplicate, true);
+  assert.equal((await registry({ ...common, requestId: `demo-${uid}`, channel: '其他频道', url: demo })).data.duplicate, true);
   assert.equal((await call('/projects', { ...multi, repoUrl: `https://github.com/isolated/other-${uid}` }, author)).status, 409);
   const sharedDemo = `https://example.com/demo-race-${uid}`;
   const racers = await Promise.all(['racer-a', 'racer-b'].map(async name => {
