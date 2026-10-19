@@ -26,7 +26,8 @@ projectsRouter.post("/cover", authMiddleware, rateLimit(6), rateLimit(30, 24 * 6
   await writeFile(path.join(coverDirectory, filename), Buffer.from(prepared.image, "base64"), { mode: 0o600, flag: "wx" });
   res.status(201).json({ path: `/projects/covers/${filename}` });
 }));
-const categories = new Set(["能跑就行", "AI 套壳", "网页小玩具", "手机端", "游戏乱炖", "纯抽象", "教程与求助"]);
+const githubCategory = "GitHub 实用项目";
+const categories = new Set(["能跑就行", "AI 套壳", "网页小玩具", "手机端", "游戏乱炖", "纯抽象", "教程与求助", githubCategory]);
 
 function text(value: unknown, max: number, required = false): string {
   if (value === undefined || value === null) value = "";
@@ -47,7 +48,17 @@ function projectInput(body: Record<string, unknown>) {
   const summary = text(body.summary, 240, true);
   const category = text(body.category, 40, true);
   if (!categories.has(category) || body.acceptedRules !== true) throw new HttpError(400, "请选择分区并同意社区投稿规则");
-  return [title, summary, category, url(body.demoUrl, true), url(body.repoUrl), text(body.techStack, 120), text(body.confession, 1500), url(body.coverUrl)];
+  const github = category === githubCategory;
+  let repoUrl = url(body.repoUrl, github);
+  if (github) {
+    const repo = new URL(repoUrl);
+    const repositoryPath = repo.pathname.replace(/\/$/, "").replace(/\.git$/, "");
+    if (repo.origin !== "https://github.com" || !/^\/[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?\/[a-z\d_.-]+$/i.test(repositoryPath)) {
+      throw new HttpError(400, "请填写 GitHub 仓库主页：https://github.com/作者/项目");
+    }
+    repoUrl = `${repo.origin}${repositoryPath}`;
+  }
+  return [title, summary, category, url(body.demoUrl, !github) || repoUrl, repoUrl, text(body.techStack, 120), text(body.confession, 1500), url(body.coverUrl)];
 }
 async function visibleProject(req: Request, lock = false) {
   const id = positiveInt(req.params.id);
@@ -71,8 +82,8 @@ projectsRouter.get("/", optionalAuth, asyncRoute(async (req, res) => {
   const search = text(req.query.search, 80);
   if (category && category !== "全部") { conditions.push("p.category = ?"); values.push(category); }
   if (search) {
-    conditions.push("(LOWER(p.title) LIKE ? ESCAPE '!' OR LOWER(p.summary) LIKE ? ESCAPE '!' OR LOWER(p.tech_stack) LIKE ? ESCAPE '!' OR LOWER(u.username) LIKE ? ESCAPE '!')");
-    values.push(...Array(4).fill(`%${search.toLowerCase().replace(/[!%_]/g, "!$&")}%`));
+    conditions.push("(LOWER(p.title) LIKE ? ESCAPE '!' OR LOWER(p.summary) LIKE ? ESCAPE '!' OR LOWER(p.tech_stack) LIKE ? ESCAPE '!' OR LOWER(u.username) LIKE ? ESCAPE '!' OR LOWER(p.repo_url) LIKE ? ESCAPE '!')");
+    values.push(...Array(5).fill(`%${search.toLowerCase().replace(/[!%_]/g, "!$&")}%`));
   }
   if (req.query.authorId) { conditions.push("p.user_id = ?"); values.push(positiveInt(req.query.authorId)); }
   const where = `WHERE ${conditions.join(" AND ")}`;

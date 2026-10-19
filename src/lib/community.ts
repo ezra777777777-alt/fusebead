@@ -1,4 +1,8 @@
-export const categories = ["能跑就行", "AI 套壳", "网页小玩具", "手机端", "游戏乱炖", "纯抽象", "教程与求助"];
+export const GITHUB_CATEGORY = "GitHub 实用项目";
+export function categoryLabel(category: string): string {
+  return category === GITHUB_CATEGORY ? "资源分享" : category;
+}
+export const categories = ["能跑就行", "AI 套壳", "网页小玩具", "手机端", "游戏乱炖", "纯抽象", "教程与求助", GITHUB_CATEGORY];
 export const projectStatus: Record<string, string> = { pending: "待审核", approved: "已公开", rejected: "需修改", withdrawn: "已撤回" };
 export function serverDate(value: string): Date {
   // Database timestamps without an offset are UTC, not the viewer's local time.
