@@ -4,7 +4,7 @@
 **Builder Prime 开发，Gatekeeper Prime 独立审查，主人对每次合并说“好”。**
 
 ## 必须遵守
-1. 一个改动一个分支一个 PR，从最新 `main` 切出（如 `feat/xxx`、`fix/123-xxx`、`codex/xxx`）。**禁止直接推送或合并到 main**，即使 CI 全绿、审查通过。
+1. 一个改动一个分支一个 PR，从最新 `main` 切出（如 `feat/xxx`、`fix/123-xxx`、`codex/xxx`）。**禁止直接推送 main；禁止自主合并；只有用户批准明确的 PR 编号 + head SHA 后才可合并（squash）。**即使 CI 全绿、审查通过也一样。
 2. 禁止 force-push、改写已推送提交、`--no-verify`；禁止 `git add .`，只按明确路径提交。
 3. **禁止生产部署**（`部署线上.cmd`、`deploy-production.ps1` 等）、连接生产服务器、对真实数据库执行迁移，除非主人对该次操作单独明确同意。
 4. 不读取、复制、提交：`.env*`、`.local/`、`server/data/`、`*.db`/`*.sqlite`、私钥、令牌、账号备份、交接 ZIP。
