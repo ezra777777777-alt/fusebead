@@ -1,0 +1,35 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { createHash } = require('node:crypto');
+const { spawnSync } = require('node:child_process');
+const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'resource-backfill-'));
+process.env.DB_PATH = path.join(temporary, 'test.db');
+process.env.DATABASE_URL = '';
+const { query } = require('../dist/config/db');
+const { backfillResources } = require('../dist/resource-backfill');
+const urlAlias = url => 'url:' + createHash('sha256').update(url).digest('hex');
+
+test('history backfill is atomic, detects conflicts and is safely repeatable', async t => {
+  t.after(() => fs.rmSync(temporary, { recursive: true, force: true }));
+  const { insertId } = await query("INSERT INTO users (username,email,password_hash) VALUES ('user','backfill@test.invalid','unused')");
+  const site = await query("INSERT INTO projects (user_id,title,summary,category,demo_url,repo_url,status) VALUES (?, '网站资源', '简介', 'GitHub 实用项目', ?, ?, 'approved')", [insertId, 'https://github.com/example/repo', 'https://github.com/example/repo']);
+  const legacy = [{ sourceId: 'local-dedup:1', project: 'PRJ-0008', channel: '网站历史快照', aliases: [urlAlias('https://github.com/example/repo')] }, { sourceId: 'local-dedup:2', project: 'PRJ-0008', channel: '其他频道', aliases: [urlAlias('https://example.com/other')] }];
+  const aliases = ['网站历史快照'];
+  await assert.rejects(backfillResources('PRJ-0008', '网站', legacy), /跨频道重复/);
+  assert.deepEqual(await backfillResources('PRJ-0008', '网站', legacy, false, aliases), { website: 1, legacy: 2, merged: 1 });
+  assert.equal((await query('SELECT COUNT(*) AS n FROM resource_entries'))[0].n, 0, '预演不能留下登记');
+  await assert.rejects(backfillResources('PRJ-0008', '网站', [...legacy, { sourceId: 'local-dedup:3', project: 'PRJ-0008', channel: '另一频道', aliases: [urlAlias('https://github.com/example/repo')] }], true, aliases), /跨频道重复/);
+  assert.equal((await query('SELECT COUNT(*) AS n FROM resource_entries'))[0].n, 0, '冲突时整批回滚');
+  assert.deepEqual(await backfillResources('PRJ-0008', '网站', legacy, true, aliases), { website: 1, legacy: 2, merged: 1 });
+  assert.equal((await query('SELECT COUNT(*) AS n FROM resource_entries'))[0].n, 2);
+  assert.equal((await query('SELECT website_project_id FROM resource_entries WHERE website_project_id = ?', [site.insertId]))[0].website_project_id, site.insertId);
+  assert.deepEqual(await backfillResources('PRJ-0008', '网站', legacy, true, aliases), { website: 1, legacy: 2, merged: 0 });
+  await assert.rejects(backfillResources('PRJ-0008', '网站', [{ ...legacy[0], channel: '改动频道' }], true, aliases), /编号内容已改变/);
+  await assert.rejects(backfillResources('PRJ-0008', '网站', [{ ...legacy[0], aliases: ['url:invalid'] }], true), /清单无效/);
+  const cli = spawnSync(process.execPath, [require.resolve('../dist/resource-backfill')], { input: '[]', encoding: 'utf8', env: { ...process.env, DB_PATH: path.join(temporary, 'cli.db'), RESOURCE_REGISTRY_SITE_PROJECT: 'PRJ-0008' } });
+  assert.equal(cli.status, 0, cli.stderr);
+  assert.equal(JSON.parse(cli.stdout).mode, 'dry-run');
+});

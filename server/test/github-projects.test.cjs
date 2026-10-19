@@ -95,8 +95,8 @@ test('GitHub sharing uses the moderated community lifecycle', async t => {
       const user = await makeUser();
       await api('/projects', user.token, 'POST', { ...draft, repoUrl }, 400);
     }
-    const cleaned = await api('/projects', (await makeUser()).token, 'POST', { ...draft, repoUrl: 'https://github.com/Owner-1/Repo.Name.git?x=1#readme' }, 201);
-    assert.equal((await api(`/projects/${cleaned.id}`, admin.token)).repo_url, 'https://github.com/Owner-1/Repo.Name');
+    const cleaned = await api('/projects', (await makeUser()).token, 'POST', { ...draft, repoUrl: 'https://github.com/Owner-1/Repo.Name.GIT?x=1#readme' }, 201);
+    assert.equal((await api(`/projects/${cleaned.id}`, admin.token)).repo_url, 'https://github.com/owner-1/repo.name');
     const slash = await api('/projects', (await makeUser()).token, 'POST', { ...draft, repoUrl: 'https://github.com/owner/repo/' }, 201);
     assert.equal((await api(`/projects/${slash.id}`, admin.token)).repo_url, 'https://github.com/owner/repo');
     const other = await makeUser();
