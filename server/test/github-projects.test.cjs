@@ -91,12 +91,14 @@ test('GitHub sharing uses the moderated community lifecycle', async t => {
     assert.equal((await query('SELECT contribution_points FROM users WHERE id = ?', [author.id]))[0].contribution_points, 10);
   });
   await t.test('more URL edge cases, other categories keep old rules, authors cannot self-approve', async () => {
-    for (const repoUrl of ['https://www.github.com/owner/repo', 'data:text/html,<b>x</b>', 'https://gitlab.com/owner/repo', 'ftp://github.com/owner/repo']) {
+    for (const repoUrl of ['https://www.github.com/owner/repo', 'https://github.com/owner/repo/tree/main', 'data:text/html,<b>x</b>', 'https://gitlab.com/owner/repo', 'ftp://github.com/owner/repo']) {
       const user = await makeUser();
       await api('/projects', user.token, 'POST', { ...draft, repoUrl }, 400);
     }
     const cleaned = await api('/projects', (await makeUser()).token, 'POST', { ...draft, repoUrl: 'https://github.com/Owner-1/Repo.Name.git?x=1#readme' }, 201);
     assert.equal((await api(`/projects/${cleaned.id}`, admin.token)).repo_url, 'https://github.com/Owner-1/Repo.Name');
+    const slash = await api('/projects', (await makeUser()).token, 'POST', { ...draft, repoUrl: 'https://github.com/owner/repo/' }, 201);
+    assert.equal((await api(`/projects/${slash.id}`, admin.token)).repo_url, 'https://github.com/owner/repo');
     const other = await makeUser();
     const base = { title: '普通作品', summary: '普通分区', category: '网页小玩具', acceptedRules: true };
     await api('/projects', other.token, 'POST', base, 400);

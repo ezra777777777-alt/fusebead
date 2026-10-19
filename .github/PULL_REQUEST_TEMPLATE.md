@@ -16,7 +16,7 @@
 
 ## Test plan
 <!-- Commands you ran and their results. A manual checklist for anything that needs the owner's own account or hardware. -->
-- [ ] 
+- [ ]
 
 ## 资源分享出处（仅当改动涉及收录的 GitHub 项目）
 <!-- 每个项目：原作者 / 仓库链接 / 许可证 / 用途 / 安装步骤 / 限制。内容为待审草稿，不自动发布。不涉及写 "n/a"。 -->
