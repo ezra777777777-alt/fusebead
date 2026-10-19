@@ -90,4 +90,23 @@ test('GitHub sharing uses the moderated community lifecycle', async t => {
     assert.equal(edited.status, 'pending');
     assert.equal((await query('SELECT contribution_points FROM users WHERE id = ?', [author.id]))[0].contribution_points, 10);
   });
+  await t.test('more URL edge cases, other categories keep old rules, authors cannot self-approve', async () => {
+    for (const repoUrl of ['https://www.github.com/owner/repo', 'data:text/html,<b>x</b>', 'https://gitlab.com/owner/repo', 'ftp://github.com/owner/repo']) {
+      const user = await makeUser();
+      await api('/projects', user.token, 'POST', { ...draft, repoUrl }, 400);
+    }
+    const cleaned = await api('/projects', (await makeUser()).token, 'POST', { ...draft, repoUrl: 'https://github.com/Owner-1/Repo.Name.git?x=1#readme' }, 201);
+    assert.equal((await api(`/projects/${cleaned.id}`, admin.token)).repo_url, 'https://github.com/Owner-1/Repo.Name');
+    const other = await makeUser();
+    const base = { title: '普通作品', summary: '普通分区', category: '网页小玩具', acceptedRules: true };
+    await api('/projects', other.token, 'POST', base, 400);
+    await api('/projects', other.token, 'POST', { ...base, demoUrl: 'data:text/html,x' }, 400);
+    const normal = await api('/projects', other.token, 'POST', { ...base, demoUrl: 'https://example.invalid/app', repoUrl: 'https://gitee.com/owner/repo' }, 201);
+    const normalProject = await api(`/projects/${normal.id}`, other.token);
+    assert.equal(normalProject.repo_url, 'https://gitee.com/owner/repo');
+    const forged = await api('/projects', other.token, 'POST', { ...draft, title: '自批尝试', status: 'approved', is_featured: 1 }, 201);
+    assert.equal((await api(`/projects/${forged.id}`, other.token)).status, 'pending');
+    await api(`/admin/projects/${forged.id}`, other.token, 'PUT', { action: 'approve', revision: 1 }, 403);
+    assert.equal((await api(`/projects/${forged.id}`, other.token)).status, 'pending');
+  });
 });
