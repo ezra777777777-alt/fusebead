@@ -3,12 +3,10 @@
 import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Project } from "@/lib/community";
+import { categories, categoryLabel, GITHUB_CATEGORY, Project } from "@/lib/community";
 import { ArrowLeft, CheckCircle2, Code2, ExternalLink, ImagePlus, Loader2, Save, ShieldCheck, Upload } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { api, API_BASE } from "@/lib/api";
-
-const categories = ["能跑就行", "AI 套壳", "网页小玩具", "手机端", "游戏乱炖", "纯抽象", "教程与求助"];
 
 type Draft = {
   title: string;
@@ -34,18 +32,22 @@ const emptyDraft: Draft = {
 
 export default function SubmitPage() { return <Suspense fallback={<p className="px-5 py-32 text-center">正在读取投稿…</p>}><SubmitEntry /></Suspense>; }
 function SubmitEntry() {
-  const editId = useSearchParams().get("edit");
+  const params = useSearchParams();
+  const editId = params.get("edit");
+  const initialCategory = params.get("category") === GITHUB_CATEGORY ? GITHUB_CATEGORY : emptyDraft.category;
   const { user } = useAuth();
-  return <SubmitForm key={`${user?.id || "guest"}:${editId || "new"}`} editId={editId} />;
+  return <SubmitForm key={`${user?.id || "guest"}:${editId || initialCategory}`} editId={editId} initialCategory={initialCategory} />;
 }
-function SubmitForm({ editId }: { editId: string | null }) {
+function SubmitForm({ editId, initialCategory }: { editId: string | null; initialCategory: string }) {
   const router = useRouter();
   const successRef = useRef<HTMLDivElement>(null);
   const [original, setOriginal] = useState<Project | null>(null);
   const [reading, setReading] = useState(!!editId);
   const { user, loading, openAuth } = useAuth();
-  const [draft, setDraft] = useState<Draft>(emptyDraft);
-  const draftRef = useRef<Draft>(emptyDraft);
+  const [draft, setDraft] = useState<Draft>({ ...emptyDraft, category: initialCategory });
+  const draftRef = useRef<Draft>(draft);
+  const github = draft.category === GITHUB_CATEGORY;
+  const newSubmitHref = github ? `/submit?category=${encodeURIComponent(GITHUB_CATEGORY)}` : "/submit";
   const [draftNotice, setDraftNotice] = useState("");
   const [safe, setSafe] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -61,7 +63,8 @@ function SubmitForm({ editId }: { editId: string | null }) {
     }
   }, [submittedId]);
 
-  const draftKey = `cyber-haul-draft:${user?.id || "guest"}:${editId || "new"}`;
+  const draftScope = editId || (initialCategory === GITHUB_CATEGORY ? "github" : "new");
+  const draftKey = `cyber-haul-draft:${user?.id || "guest"}:${draftScope}`;
   const restoreDraft = (value: Draft) => { draftRef.current = value; setDraft(value); };
   const readDraft = (key: string) => {
     const stored = JSON.parse(localStorage.getItem(key) || "null");
@@ -91,16 +94,16 @@ function SubmitForm({ editId }: { editId: string | null }) {
     } else {
       try {
         const own = readDraft(draftKey);
-        const guestKey = "cyber-haul-draft:guest:new";
+        const guestKey = `cyber-haul-draft:guest:${draftScope}`;
         const stored = own || readDraft(guestKey);
         if (stored) {
           restoreDraft({ ...emptyDraft, ...stored }); setSaved(true); setDraftNotice("已恢复本机草稿，尚未提交审核。");
           if (user && !own) { localStorage.setItem(draftKey, JSON.stringify(stored)); localStorage.removeItem(guestKey); }
-        } else restoreDraft(emptyDraft);
+        } else restoreDraft({ ...emptyDraft, category: initialCategory });
       } catch { setDraftNotice("无法读取本机草稿，请保留自己的内容备份。"); }
     }
     return () => { active = false; };
-  }, [editId, user?.id, loading, draftKey]);
+  }, [editId, user?.id, loading, draftKey, draftScope, initialCategory]);
 
   const update = (key: keyof Draft, value: string) => {
     const next = { ...draftRef.current, [key]: value };
@@ -154,7 +157,7 @@ function SubmitForm({ editId }: { editId: string | null }) {
       });
       setSubmittedId(result.id);
       try { localStorage.removeItem(draftKey); } catch { /* Submission succeeded even if browser storage is unavailable. */ }
-      if (!editId) restoreDraft(emptyDraft);
+      if (!editId) restoreDraft({ ...emptyDraft, category: draft.category });
       setDraftNotice("");
     } catch (err: any) {
       setError(err?.message || "投稿失败，环卫车半路抛锚了");
@@ -170,12 +173,12 @@ function SubmitForm({ editId }: { editId: string | null }) {
     <div className="min-h-screen bg-[var(--background)] pt-16 text-black">
       <div className="border-b-4 border-black bg-[#111]">
         <div className="mx-auto max-w-5xl px-4 py-10 text-white sm:px-6 lg:px-8">
-          <Link href="/" className="inline-flex items-center gap-2 text-sm font-black text-white/50 hover:text-[var(--acid)]"><ArrowLeft className="h-4 w-4" /> 返回案发现场</Link>
+          <Link href={github ? "/github" : "/"} className="inline-flex items-center gap-2 text-sm font-black text-white/50 hover:text-[var(--acid)]"><ArrowLeft className="h-4 w-4" /> {github ? "返回资源分享" : "返回案发现场"}</Link>
           <div className="mt-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--acid)]">SUBMIT YOUR SHITWARE</div>
-              <h1 className="mt-2 text-4xl font-black tracking-[-0.05em] sm:text-6xl">{editId ? "改好了，再端上来。" : "自己拉的，自己端。"}</h1>
-              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/55">交代案发现场、作案工具和精神状态。不用吹，能打开就已经超过本站不少项目。</p>
+              <div className="text-xs font-black uppercase tracking-[0.2em] text-[var(--acid)]">{github ? "SHARE A RESOURCE" : "SUBMIT YOUR SHITWARE"}</div>
+              <h1 className="mt-2 text-4xl font-black tracking-[-0.05em] sm:text-6xl">{github ? (editId ? "补充体验，再分享。" : "好项目，别私藏。") : editId ? "改好了，再端上来。" : "自己拉的，自己端。"}</h1>
+              <p className="mt-3 max-w-2xl text-sm font-semibold leading-6 text-white/55">{github ? "推荐公开的 GitHub 仓库，介绍用途和上手体验。可以分享他人的项目，请保留原作者出处。" : "交代案发现场、作案工具和精神状态。不用吹，能打开就已经超过本站不少项目。"}</p>
             </div>
             <div className="border-2 border-white bg-[var(--orange)] px-4 py-2 text-xs font-black shadow-[4px_4px_0_#fff]">投稿后先质检再公开</div>
           </div>
@@ -188,47 +191,47 @@ function SubmitForm({ editId }: { editId: string | null }) {
           {submittedId && (
             <div ref={successRef} tabIndex={-1} role="status" className="mb-6 border-2 border-black bg-[var(--acid)] p-5 shadow-[4px_4px_0_#000]">
               <div className="flex items-center gap-2 text-lg font-black"><CheckCircle2 className="h-5 w-5" /> 已送进环卫站</div>
-              <p className="mt-2 text-sm font-bold text-black/60">污染编号 CN-404-{String(submittedId).padStart(6, "0")}，管理员放行后会出现在首页。</p>
+              <p className="mt-2 text-sm font-bold text-black/60">投稿编号 CN-404-{String(submittedId).padStart(6, "0")}，管理员放行后会出现在{github ? "资源分享专区" : "首页"}。</p>
               <Link href="/dashboard" className="mt-3 inline-flex text-xs font-black underline">进入个人中心查看进度</Link>
-              <button type="button" onClick={() => { if (editId) router.push("/submit"); else { setSubmittedId(null); setSafe(false); setSaved(false); setError(""); } }} className="ml-5 mt-3 text-xs font-black underline">继续新投稿</button>
+              <button type="button" onClick={() => { if (editId) router.push(newSubmitHref); else { setSubmittedId(null); setSafe(false); setSaved(false); setError(""); } }} className="ml-5 mt-3 text-xs font-black underline">继续新投稿</button>
             </div>
           )}
           {!submittedId && <div className="grid gap-5">
             <div className="border-l-4 border-[var(--acid)] bg-[var(--paper)] p-3 text-sm"><p role="status">{draftNotice || "填写时自动保存本机草稿，离开后可回到投稿页继续。"}</p><p className="mt-2 text-xs text-black/55">草稿仅保存在当前浏览器，清理网站数据后会消失。<Link href="/help#submit" className="ml-2 underline">查看投稿说明</Link></p></div>
-            <Field label="这坨叫什么" required>
-              <input value={draft.title} onChange={(e) => update("title", e.target.value)} required maxLength={80} placeholder="例如：老板键 Excel 生成器" className="cyber-input" />
+            <Field label={github ? "项目名称" : "这坨叫什么"} required>
+              <input value={draft.title} onChange={(e) => update("title", e.target.value)} required maxLength={80} placeholder={github ? "项目名 + 一句话亮点" : "例如：老板键 Excel 生成器"} className="cyber-input" />
             </Field>
 
-            <Field label="它到底祸害谁" required hint="一句话说明，别写融资计划书。">
-              <textarea value={draft.summary} onChange={(e) => update("summary", e.target.value)} required maxLength={240} rows={3} placeholder="解决了什么不存在的问题？" className="cyber-input resize-none" />
+            <Field label={github ? "它能帮你做什么" : "它到底祸害谁"} required hint={github ? "说明适合谁、解决什么问题。" : "一句话说明，别写融资计划书。"}>
+              <textarea value={draft.summary} onChange={(e) => update("summary", e.target.value)} required maxLength={240} rows={3} placeholder={github ? "例如：把重复的表格整理工作自动化。" : "解决了什么不存在的问题？"} className="cyber-input resize-none" />
             </Field>
 
             <fieldset><legend className="mb-2 text-sm font-black">送去哪个分拣区 <span className="text-[var(--orange)]">*</span></legend>
               <div className="flex flex-wrap gap-2">
                 {categories.map((category) => (
-                  <button key={category} type="button" aria-pressed={draft.category === category} onClick={() => update("category", category)} className={`border-2 border-black px-3 py-2 text-xs font-black ${draft.category === category ? "bg-black text-[var(--acid)]" : "bg-[var(--paper)] text-black"}`}>{category}</button>
+                  <button key={category} type="button" aria-pressed={draft.category === category} onClick={() => update("category", category)} className={`border-2 border-black px-3 py-2 text-xs font-black ${draft.category === category ? "bg-black text-[var(--acid)]" : "bg-[var(--paper)] text-black"}`}>{categoryLabel(category)}</button>
                 ))}
               </div>
             </fieldset>
 
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="案发现场" required icon={<ExternalLink className="h-4 w-4" />}>
-                <input type="url" value={draft.demoUrl} onChange={(e) => update("demoUrl", e.target.value)} required placeholder="https://..." className="cyber-input" />
+              <Field label={github ? "演示或官网" : "案发现场"} required={!github} hint={github ? "选填；没有在线演示也能分享。" : undefined} icon={<ExternalLink className="h-4 w-4" />}>
+                <input type="url" value={draft.demoUrl} onChange={(e) => update("demoUrl", e.target.value)} required={!github} placeholder="https://..." className="cyber-input" />
               </Field>
-              <Field label="屎山源头" icon={<Code2 className="h-4 w-4" />}>
-                <input type="url" value={draft.repoUrl} onChange={(e) => update("repoUrl", e.target.value)} placeholder="GitHub / Gitee，可不填" className="cyber-input" />
+              <Field label={github ? "GitHub 仓库地址" : "屎山源头"} required={github} hint={github ? "填写公开仓库主页，保留原作者出处。" : undefined} icon={<Code2 className="h-4 w-4" />}>
+                <input type="url" value={draft.repoUrl} onChange={(e) => update("repoUrl", e.target.value)} required={github} placeholder={github ? "https://github.com/owner/repo" : "GitHub / Gitee，可不填"} className="cyber-input" />
               </Field>
             </div>
 
-            <Field label="用了哪些高科技制造垃圾" hint="技术栈、模型、编辑器都可以写。">
-              <input value={draft.stack} onChange={(e) => update("stack", e.target.value)} maxLength={120} placeholder="Next.js、Cursor、Claude、三个通宵……" className="cyber-input" />
+            <Field label={github ? "技术栈或用途标签" : "用了哪些高科技制造垃圾"} hint={github ? "方便大家按工具类型、语言或用途搜索。" : "技术栈、模型、编辑器都可以写。"}>
+              <input value={draft.stack} onChange={(e) => update("stack", e.target.value)} maxLength={120} placeholder={github ? "Python、效率工具、数据整理……" : "Next.js、Cursor、Claude、三个通宵……"} className="cyber-input" />
             </Field>
 
-            <Field label="作案供述" hint="说说它为什么诞生、最离谱的 Bug，以及你是否后悔。">
-              <textarea value={draft.confession} onChange={(e) => update("confession", e.target.value)} maxLength={1500} rows={7} placeholder="本来只想做个按钮，后来不知道为什么接上了区块链……" className="cyber-input resize-y" />
+            <Field label={github ? "推荐理由与使用方法" : "作案供述"} hint={github ? "写明原作者、上手步骤、适用场景，以及你遇到的限制。" : "说说它为什么诞生、最离谱的 Bug，以及你是否后悔。"}>
+              <textarea value={draft.confession} onChange={(e) => update("confession", e.target.value)} maxLength={1500} rows={7} placeholder={github ? "为什么推荐？怎么开始用？需要什么环境？" : "本来只想做个按钮，后来不知道为什么接上了区块链……"} className="cyber-input resize-y" />
             </Field>
 
-            <Field label="犯罪现场照片" icon={<ImagePlus className="h-4 w-4" />} hint="可填写公开图片链接。">
+            <Field label={github ? "项目截图" : "犯罪现场照片"} icon={<ImagePlus className="h-4 w-4" />} hint="可填写公开图片链接。">
               <input type="url" value={draft.coverUrl} onChange={(e) => update("coverUrl", e.target.value)} placeholder="https://...（选填）" className="cyber-input" />
             </Field>
 
@@ -245,9 +248,9 @@ function SubmitForm({ editId }: { editId: string | null }) {
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <button type="button" onClick={() => saveDraft()} className="cyber-button flex-1 bg-white text-black"><Save className="h-5 w-5" />{saved ? "已经存本机了" : "先存草稿"}</button>
-              <button type="submit" disabled={submitting || uploading || !!submittedId || (Boolean(editId) && !original) || !safe || !draft.title || !draft.summary || !draft.demoUrl} className="cyber-button flex-[1.4] bg-[var(--orange)] text-white disabled:cursor-not-allowed disabled:opacity-35">{submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}{user ? (submitting ? "清运中..." : (editId ? "修改并重新送审" : "送去环卫质检")) : "登录后端上去"}</button>
+              <button type="submit" disabled={submitting || uploading || !!submittedId || (Boolean(editId) && !original) || !safe || !draft.title.trim() || !draft.summary.trim() || !(github ? draft.repoUrl.trim() : draft.demoUrl.trim())} className="cyber-button flex-[1.4] bg-[var(--orange)] text-white disabled:cursor-not-allowed disabled:opacity-35">{submitting ? <Loader2 className="h-5 w-5 animate-spin" /> : <Upload className="h-5 w-5" />}{user ? (submitting ? "清运中..." : (editId ? "修改并重新送审" : "送去环卫质检")) : "登录后端上去"}</button>
             </div>
-            {error && <p className="border-2 border-red-500 bg-red-50 p-3 text-sm font-bold text-red-600">{error}</p>}
+            {error && <p role="alert" className="border-2 border-red-500 bg-red-50 p-3 text-sm font-bold text-red-600">{error}</p>}
           </div>}
         </form>
 
@@ -255,9 +258,9 @@ function SubmitForm({ editId }: { editId: string | null }) {
           <section className="border-2 border-black bg-[var(--acid)] p-4 shadow-[5px_5px_0_#000]">
             <h2 className="flex items-center gap-2 text-sm font-black"><CheckCircle2 className="h-4 w-4" /> 什么值得清运</h2>
             <ul className="mt-3 space-y-2 text-xs font-bold leading-5 text-black/65">
-              <li>· 能直接打开试玩的网页项目</li>
-              <li>· 一眼就能看懂的奇怪用途</li>
-              <li>· 作者愿意交代作案过程</li>
+              <li>· {github ? "公开且能访问的 GitHub 仓库" : "能直接打开试玩的网页项目"}</li>
+              <li>· {github ? "清晰的用途和真实使用体验" : "一眼就能看懂的奇怪用途"}</li>
+              <li>· {github ? "推荐他人项目时注明原作者" : "作者愿意交代作案过程"}</li>
               <li>· 有截图、有源码更加分</li>
             </ul>
           </section>

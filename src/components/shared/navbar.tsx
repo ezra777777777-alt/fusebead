@@ -11,6 +11,7 @@ export function Navbar() {
 
   const links = [
     { href: "/?sort=latest#feed", label: "最新作品" },
+    { href: "/github", label: "资源分享" },
     { href: "/#community-boards", label: "软件分区" },
     { href: "/?category=教程与求助#feed", label: "教程求助" },
     { href: "/?sort=popular#feed", label: "污染热榜" },

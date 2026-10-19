@@ -35,3 +35,6 @@ processor/venv/
 # Logs and system files
 *.log
 .DS_Store
+
+# Private local account backups
+/私密账号备份/

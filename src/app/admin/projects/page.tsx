@@ -1,6 +1,6 @@
 "use client";
 
-import { serverDate } from "@/lib/community";
+import { categoryLabel, serverDate } from "@/lib/community";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -61,7 +61,7 @@ export default function AdminProjectsPage() {
             <article key={item.id} className="border-2 border-black bg-white p-5 shadow-[4px_4px_0_#000]">
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <div className="text-[10px] font-black uppercase tracking-wider text-[var(--orange)]">CN-404-{String(item.id).padStart(6, "0")} · {item.category}</div>
+                  <div className="text-[10px] font-black uppercase tracking-wider text-[var(--orange)]">CN-404-{String(item.id).padStart(6, "0")} · {categoryLabel(item.category)}</div>
                   <h2 className="mt-1 text-lg font-black">{item.title}</h2>
                   <p className="mt-1 text-sm font-semibold leading-6 text-black/50">{item.summary}</p>
                   <p className="mt-2 text-xs font-bold text-black/35">搬运工：{item.author_name} · {serverDate(item.created_at).toLocaleString("zh-CN")}</p>
@@ -72,6 +72,7 @@ export default function AdminProjectsPage() {
               <label className="mt-4 block text-xs font-bold">审核说明（退回 / 下架必填）<textarea value={notes[item.id] || ""} onChange={e => setNotes(current => ({ ...current, [item.id]: e.target.value }))} maxLength={1000} rows={2} className="cyber-input mt-2" placeholder="具体说明需要修改的地方" /></label>
               <div className="mt-4 flex flex-wrap gap-2 border-t border-black/15 pt-4">
                 <a href={item.demo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 border border-black px-2.5 py-1.5 text-xs font-black"><ExternalLink className="h-3.5 w-3.5" />检查链接</a>
+                {item.repo_url && item.repo_url !== item.demo_url && <a href={item.repo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 border border-black px-2.5 py-1.5 text-xs font-black"><ExternalLink className="h-3.5 w-3.5" />检查源码仓库</a>}
                 <Link href={`/projects/${item.id}`} className="flex items-center gap-1 border border-black px-2.5 py-1.5 text-xs font-black"><ShieldCheck className="h-3.5 w-3.5" />查看档案</Link>
                 {!item.is_deleted && item.status === "pending" && <button disabled={busy} onClick={() => act(item.id, "approve")} className="flex items-center gap-1 border border-black bg-[var(--acid)] px-2.5 py-1.5 text-xs font-black"><Check className="h-3.5 w-3.5" />放行</button>}
                 {!item.is_deleted && item.status === "pending" && <button disabled={busy} onClick={() => act(item.id, "reject")} className="flex items-center gap-1 border border-black bg-yellow-100 px-2.5 py-1.5 text-xs font-black"><X className="h-3.5 w-3.5" />退回</button>}

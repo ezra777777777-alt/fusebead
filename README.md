@@ -267,3 +267,7 @@ POST http://localhost:5000/convert
 - 管理员初始化脚本不要使用默认密码
 - 支付相关配置未填写时，部分 provider 会返回模拟二维码或不可用状态
 - 如果图片转换接口返回 503，通常是 Python processor 服务未启动或 `PROCESSOR_URL` 配置错误
+
+## Credits
+
+协作规则与 PR 模板改编自 [smfworks/prime-directive](https://github.com/smfworks/prime-directive)（MIT）。详见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。

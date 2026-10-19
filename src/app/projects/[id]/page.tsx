@@ -1,6 +1,6 @@
 "use client";
 
-import { serverDate } from "@/lib/community";
+import { categoryLabel, serverDate } from "@/lib/community";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -9,17 +9,20 @@ import { ArrowLeft, Code2, ExternalLink, Eye, Flag, Loader2, MessageCircle, Send
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 
-import { Project, projectStatus } from "@/lib/community";
+import { GITHUB_CATEGORY, Project, projectStatus } from "@/lib/community";
 
 type Comment = { id: number; user_id: number; content: string; username: string; contribution_points: number; created_at: string };
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
   const projectId = Number(params.id);
-  const feed = new URLSearchParams(useSearchParams().get("feed") || "");
-  const backHref = `/${feed.size ? `?${feed}` : ""}#feed`;
+  const searchParams = useSearchParams();
+  const feed = new URLSearchParams(searchParams.get("feed") || "");
   const { user, loading: authLoading, openAuth } = useAuth();
   const [project, setProject] = useState<Project | null>(null);
+  const github = project?.category === GITHUB_CATEGORY;
+  const returnToGithub = searchParams.get("from") === "github" || (github && !searchParams.has("feed"));
+  const backHref = `${returnToGithub ? "/github" : "/"}${feed.size ? `?${feed}` : ""}#${returnToGithub ? "projects" : "feed"}`;
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -107,10 +110,10 @@ export default function ProjectDetailPage() {
     <div className="min-h-screen bg-[var(--background)] pt-16 text-black">
       <div className="border-b-4 border-black bg-[#111] text-white">
         <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-          <Link href={backHref} className="inline-flex items-center gap-2 text-sm font-black text-white/45 hover:text-[var(--acid)]"><ArrowLeft className="h-4 w-4" />返回污染区</Link>
+          <Link href={backHref} className="inline-flex items-center gap-2 text-sm font-black text-white/45 hover:text-[var(--acid)]"><ArrowLeft className="h-4 w-4" />{returnToGithub ? "返回资源分享" : "返回污染区"}</Link>
           <div className="mt-6 flex flex-wrap items-center gap-2 text-xs font-black">
             <span className="bg-[var(--acid)] px-2 py-1 text-black">CN-404-{String(project.id).padStart(6, "0")}</span>
-            <span className="border border-white/30 px-2 py-1 text-white/65">{project.category}</span>
+            <span className="border border-white/30 px-2 py-1 text-white/65">{categoryLabel(project.category)}</span>
             {project.is_featured ? <span className="bg-[var(--orange)] px-2 py-1">重点污染物</span> : null}
             {project.status !== "approved" || project.is_deleted ? <span className="bg-yellow-300 px-2 py-1 text-black">{project.is_deleted ? "已下架" : projectStatus[project.status]}</span> : null}
           </div>
@@ -131,10 +134,10 @@ export default function ProjectDetailPage() {
           {project.cover_url && <div className="overflow-hidden border-2 border-black bg-black shadow-[6px_6px_0_#000]"><img src={project.cover_url} alt={`${project.title} 截图`} className="max-h-[520px] w-full object-contain" /></div>}
 
           <section className="border-2 border-black bg-white p-5 shadow-[5px_5px_0_#000] sm:p-7">
-            <div className="text-xs font-black uppercase tracking-[0.18em] text-[var(--orange)]">INCIDENT REPORT</div>
-            <h2 className="mt-1 text-2xl font-black">作案供述</h2>
-            <p className="mt-5 [overflow-wrap:anywhere] whitespace-pre-wrap text-sm font-semibold leading-7 text-black/65">{project.confession || "作者什么都没交代，态度十分嚣张。"}</p>
-            {project.tech_stack && <div className="mt-6 border-l-4 border-[var(--acid)] bg-[var(--paper)] p-4"><div className="text-xs font-black text-black/35">作案工具</div><div className="mt-1 [overflow-wrap:anywhere] text-sm font-black">{project.tech_stack}</div></div>}
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-[var(--orange)]">{github ? "PROJECT NOTES" : "INCIDENT REPORT"}</div>
+            <h2 className="mt-1 text-2xl font-black">{github ? "推荐理由与使用方法" : "作案供述"}</h2>
+            <p className="mt-5 [overflow-wrap:anywhere] whitespace-pre-wrap text-sm font-semibold leading-7 text-black/65">{project.confession || (github ? "分享者还没有补充使用体验，欢迎在评论里交流。" : "作者什么都没交代，态度十分嚣张。")}</p>
+            {project.tech_stack && <div className="mt-6 border-l-4 border-[var(--acid)] bg-[var(--paper)] p-4"><div className="text-xs font-black text-black/35">{github ? "技术栈与用途" : "作案工具"}</div><div className="mt-1 [overflow-wrap:anywhere] text-sm font-black">{project.tech_stack}</div></div>}
           </section>
 
           <section className="border-2 border-black bg-white shadow-[5px_5px_0_#000]">
@@ -161,18 +164,19 @@ export default function ProjectDetailPage() {
         <aside className="space-y-5">
           <section className="border-2 border-black bg-white p-4 shadow-[5px_5px_0_#000]">
             <div className="grid grid-cols-3 divide-x divide-black/15 text-center">
-              <div><div className="text-xl font-black">{project.votes_count}</div><div className="text-[10px] font-bold text-black/35">好屎</div></div>
+              <div><div className="text-xl font-black">{project.votes_count}</div><div className="text-[10px] font-bold text-black/35">{github ? "觉得有用" : "好屎"}</div></div>
               <div><div className="text-xl font-black">{project.comments_count}</div><div className="text-[10px] font-bold text-black/35">锐评</div></div>
               <div><div className="text-xl font-black">{project.views_count}</div><div className="text-[10px] font-bold text-black/35">围观</div></div>
             </div>
-            <button disabled={busy || project.status !== "approved" || !!project.is_deleted} onClick={vote} className={`mt-4 flex w-full items-center justify-center gap-2 border-2 border-black py-3 text-sm font-black shadow-[3px_3px_0_#000] ${project.has_voted ? "bg-[var(--acid)]" : "bg-white"}`}><ThumbsUp className="h-4 w-4" />{project.has_voted ? "好吃，爱吃" : "鉴定为好屎"}</button>
+            <button disabled={busy || project.status !== "approved" || !!project.is_deleted} onClick={vote} className={`mt-4 flex w-full items-center justify-center gap-2 border-2 border-black py-3 text-sm font-black shadow-[3px_3px_0_#000] ${project.has_voted ? "bg-[var(--acid)]" : "bg-white"}`}><ThumbsUp className="h-4 w-4" />{github ? (project.has_voted ? "已赞 · 再点取消" : "这个项目有用") : (project.has_voted ? "好吃，爱吃" : "鉴定为好屎")}</button>
           </section>
 
           <section className="border-2 border-black bg-[#fff7d6] p-4 shadow-[5px_5px_0_#000]">
             <h2 className="flex items-center gap-2 text-sm font-black"><ShieldCheck className="h-4 w-4" />外链安全提示</h2>
-            <p className="mt-2 text-xs font-bold leading-5 text-black/50">试玩地址由投稿者提供，外部网站的内容可能随时变化；不要输入密码、验证码或支付信息。</p>
-            <a href={project.demo_url} target="_blank" rel="noopener noreferrer nofollow" className="mt-4 flex items-center justify-center gap-2 border-2 border-black bg-[var(--orange)] py-3 text-sm font-black text-white shadow-[3px_3px_0_#000]"><ExternalLink className="h-4 w-4" />打开案发现场</a>
-            {project.repo_url && <a href={project.repo_url} target="_blank" rel="noopener noreferrer nofollow" className="mt-3 flex items-center justify-center gap-2 border-2 border-black bg-white py-2.5 text-sm font-black"><Code2 className="h-4 w-4" />查看屎山源码</a>}
+            <p className="mt-2 text-xs font-bold leading-5 text-black/50">{github ? "项目由社区用户推荐，原作者和许可证以仓库为准。安装或运行前请阅读说明并核对权限；审核不代表代码安全保证。" : "试玩地址由投稿者提供，外部网站的内容可能随时变化；不要输入密码、验证码或支付信息。"}</p>
+            {github && project.repo_url && <p className="mt-3 [overflow-wrap:anywhere] text-xs font-bold">原仓库：{project.repo_url.replace("https://github.com/", "")}</p>}
+            <a href={github ? project.repo_url : project.demo_url} target="_blank" rel="noopener noreferrer nofollow" className="mt-4 flex items-center justify-center gap-2 border-2 border-black bg-[var(--orange)] py-3 text-sm font-black text-white shadow-[3px_3px_0_#000]"><ExternalLink className="h-4 w-4" />{github ? "打开 GitHub 仓库" : "打开案发现场"}</a>
+            {github ? project.demo_url !== project.repo_url && <a href={project.demo_url} target="_blank" rel="noopener noreferrer nofollow" className="mt-3 block border-2 border-black bg-white py-2.5 text-center text-sm font-black">查看演示 / 官网</a> : project.repo_url && <a href={project.repo_url} target="_blank" rel="noopener noreferrer nofollow" className="mt-3 flex items-center justify-center gap-2 border-2 border-black bg-white py-2.5 text-sm font-black"><Code2 className="h-4 w-4" />查看屎山源码</a>}
           </section>
 
           <section className="border-2 border-black bg-white p-4">
