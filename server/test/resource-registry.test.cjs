@@ -8,6 +8,7 @@ process.env.DB_PATH = path.join(temporary, 'test.db');
 process.env.DATABASE_URL = '';
 process.env.RESOURCE_REGISTRY_KEY = 'test-key-not-valid-outside-this-test-123456789';
 const express = require('express');
+require('../dist/config/db').enableResourceRegistryMigration();
 const { resourceRegistryRouter } = require('../dist/routes/resource-registry');
 const app = express();
 app.use(express.json());

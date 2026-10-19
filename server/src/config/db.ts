@@ -10,6 +10,12 @@ function usePg(): boolean {
   return !!process.env.DATABASE_URL;
 }
 
+let resourceRegistryMigration = false;
+export function enableResourceRegistryMigration() {
+  if (pgSchemaReady || sqliteReady) throw new Error("数据库已初始化，不能再执行查重迁移");
+  resourceRegistryMigration = true;
+}
+
 // ── PostgreSQL ──
 
 let pgPool: Pool | null = null;
@@ -257,6 +263,7 @@ async function initPgSchema(): Promise<void> {
       id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       event_key TEXT NOT NULL, points INTEGER NOT NULL, UNIQUE(user_id, event_key)
     )`);
+    if (resourceRegistryMigration) {
     await client.query(`CREATE TABLE IF NOT EXISTS resource_entries (
       id SERIAL PRIMARY KEY, project TEXT NOT NULL, channel TEXT NOT NULL
     )`);
@@ -280,6 +287,7 @@ async function initPgSchema(): Promise<void> {
       id SERIAL PRIMARY KEY, entry_id INTEGER NOT NULL REFERENCES resource_entries(id),
       website_project_id INTEGER NOT NULL, action TEXT NOT NULL, created_at TEXT DEFAULT (NOW() AT TIME ZONE 'UTC')::text
     )`);
+    }
     await client.query("CREATE INDEX IF NOT EXISTS idx_projects_status_created ON projects(status, created_at)");
     await client.query("CREATE INDEX IF NOT EXISTS idx_project_comments_project ON project_comments(project_id)");
   } finally {
@@ -553,6 +561,7 @@ function initSqliteSchema(database: SqlJsDatabase) {
     id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     event_key TEXT NOT NULL, points INTEGER NOT NULL, UNIQUE(user_id, event_key)
   )`);
+  if (resourceRegistryMigration) {
   database.run(`CREATE TABLE IF NOT EXISTS resource_entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT, project TEXT NOT NULL, channel TEXT NOT NULL
   )`);
@@ -576,6 +585,7 @@ function initSqliteSchema(database: SqlJsDatabase) {
     id INTEGER PRIMARY KEY AUTOINCREMENT, entry_id INTEGER NOT NULL REFERENCES resource_entries(id),
     website_project_id INTEGER NOT NULL, action TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
+  }
   database.run("CREATE INDEX IF NOT EXISTS idx_projects_status_created ON projects(status, created_at)");
   database.run("CREATE INDEX IF NOT EXISTS idx_project_comments_project ON project_comments(project_id)");
 
@@ -662,6 +672,12 @@ export async function query<T = any>(sql: string, params: any[] = []): Promise<T
     if (!/^\s*(SELECT|WITH|PRAGMA)\b/i.test(sql)) saveSqliteDb();
     return result;
   });
+}
+
+export async function lockResourceRegistry() {
+  const context = transactionContext.getStore();
+  if (!context) throw new Error("查重锁必须在事务中使用");
+  if (context.client) await context.client.query("SELECT pg_advisory_xact_lock($1)", [17491623]);
 }
 
 export async function transaction<T>(work: () => Promise<T>): Promise<T> {

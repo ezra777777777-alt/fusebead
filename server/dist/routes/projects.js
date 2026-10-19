@@ -140,8 +140,10 @@ exports.projectsRouter.get("/:id", auth_1.optionalAuth, (0, http_1.asyncRoute)(a
 exports.projectsRouter.post("/", auth_1.authMiddleware, (0, rateLimit_1.rateLimit)(5), (0, http_1.asyncRoute)(async (req, res) => {
     const values = projectInput(req.body);
     const id = await (0, db_1.transaction)(async () => {
+        await (0, resource_registry_1.guardWebsiteRegistry)();
         await (0, db_1.query)("SELECT id FROM users WHERE id = ? FOR UPDATE", [req.user.userId]);
-        const existing = await (0, db_1.query)("SELECT id FROM projects WHERE user_id = ? AND title = ? AND demo_url = ? AND is_deleted = 0 AND status = 'pending'", [req.user.userId, values[0], values[3]]);
+        const githubFallback = values[2] === githubCategory && values[3] === values[4];
+        const existing = await (0, db_1.query)("SELECT id FROM projects WHERE user_id = ? AND title = ? AND (demo_url = ? OR (? = 1 AND category = ? AND LOWER(demo_url) = ?)) AND is_deleted = 0 AND status = 'pending'", [req.user.userId, values[0], values[3], githubFallback ? 1 : 0, githubCategory, values[3].toLowerCase()]);
         if (existing.length)
             throw new http_1.HttpError(409, "相同作品正在审核，请到个人中心查看");
         const result = await (0, db_1.query)(`INSERT INTO projects (user_id, title, summary, category, demo_url, repo_url, tech_stack, confession, cover_url, status)
@@ -154,6 +156,7 @@ exports.projectsRouter.post("/", auth_1.authMiddleware, (0, rateLimit_1.rateLimi
 exports.projectsRouter.put("/:id", auth_1.authMiddleware, (0, rateLimit_1.rateLimit)(10), (0, http_1.asyncRoute)(async (req, res) => {
     const values = projectInput(req.body);
     await (0, db_1.transaction)(async () => {
+        await (0, resource_registry_1.guardWebsiteRegistry)();
         const project = await visibleProject(req, true);
         if (project.user_id !== req.user.userId)
             throw new http_1.HttpError(403, "只能修改自己的作品");
@@ -170,6 +173,7 @@ exports.projectsRouter.put("/:id", auth_1.authMiddleware, (0, rateLimit_1.rateLi
 }));
 exports.projectsRouter.post("/:id/withdraw", auth_1.authMiddleware, (0, http_1.asyncRoute)(async (req, res) => {
     await (0, db_1.transaction)(async () => {
+        await (0, resource_registry_1.guardWebsiteRegistry)();
         const project = await visibleProject(req, true);
         if (project.user_id !== req.user.userId)
             throw new http_1.HttpError(403, "只能撤回自己的作品");

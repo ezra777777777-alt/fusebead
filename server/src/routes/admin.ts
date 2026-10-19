@@ -6,7 +6,7 @@ import * as AdminLog from "../models/adminLog";
 import * as SystemSetting from "../models/systemSetting";
 import * as Feedback from "../models/feedback";
 import { query, transaction } from "../config/db";
-import { checkWebsiteResource, markWebsiteResourcePublished, releaseWebsiteResource } from "./resource-registry";
+import { checkWebsiteResource, guardWebsiteRegistry, markWebsiteResourcePublished, releaseWebsiteResource } from "./resource-registry";
 
 import { asyncRoute, HttpError, positiveInt } from "../utils/http";
 
@@ -170,6 +170,7 @@ adminRouter.put("/projects/:id", asyncRoute(async (req, res) => {
   const note = typeof req.body.note === "string" ? req.body.note.trim() : "";
   if (note.length > 1000 || (["reject", "softDelete"].includes(action) && !note)) throw new HttpError(400, "退回或下架时请填写原因（最多 1000 字）");
   await transaction(async () => {
+    await guardWebsiteRegistry();
     const [project] = await query<any[]>("SELECT * FROM projects WHERE id = ? FOR UPDATE", [id]);
     if (!project) throw new HttpError(404, "作品不存在");
     if (positiveInt(req.body.revision) !== project.revision) throw new HttpError(409, "作者或其他管理员已更新作品，请刷新后审核");

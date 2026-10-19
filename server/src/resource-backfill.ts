@@ -1,5 +1,5 @@
 import { createHash } from "crypto";
-import { query, transaction } from "./config/db";
+import { lockResourceRegistry, query, transaction } from "./config/db";
 import { checkResource } from "./routes/resource-registry";
 
 type LegacyEntry = { sourceId: string; project: string | null; channel: string; aliases: string[] };
@@ -21,13 +21,17 @@ export async function backfillResources(project: string, channel: string, legacy
   const counts: Counts = { website: 0, legacy: 0, merged: 0 };
   try {
     await transaction(async () => {
-      const rows = await query<any[]>("SELECT id, repo_url, demo_url FROM projects WHERE status = 'approved' OR (status = 'pending' AND is_deleted = 0) ORDER BY id");
+      await lockResourceRegistry();
+      const readyValue = JSON.stringify([project, channel]);
+      const [ready] = await query<any[]>("SELECT setting_value FROM system_settings WHERE setting_key = ?", ["resource_registry_ready"]);
+      if (ready && ready.setting_value !== readyValue) throw new Error("查重已绑定其他项目或频道，不能直接切换");
+      const rows = await query<any[]>("SELECT id, repo_url, demo_url, status FROM projects WHERE status = 'approved' OR (status = 'pending' AND is_deleted = 0) ORDER BY id");
       for (const row of rows) {
         const result = await checkResource({ requestId: `website:backfill:${row.id}`, project, channel, urls: [row.repo_url, row.demo_url].filter(Boolean) });
         const entryId = result.duplicate ? result.existing.id : result.id;
         const [entry] = await query<any[]>("SELECT * FROM resource_entries WHERE id = ? FOR UPDATE", [entryId]);
         if (!entry || entry.project !== project || entry.channel !== channel || (entry.website_project_id != null && Number(entry.website_project_id) !== Number(row.id))) throw new Error(`网站历史来源冲突，作品编号 ${row.id}`);
-        await query("UPDATE resource_entries SET website_project_id = ? WHERE id = ?", [row.id, entryId]);
+        await query("UPDATE resource_entries SET website_project_id = ?, website_owned = CASE WHEN ? = 1 THEN 1 ELSE website_owned END, ever_published = CASE WHEN ? = 1 THEN 1 ELSE ever_published END WHERE id = ?", [row.id, result.duplicate ? 0 : 1, row.status === 'approved' ? 1 : 0, entryId]);
         counts.website++;
       }
       for (const item of legacy) {
@@ -64,6 +68,7 @@ export async function backfillResources(project: string, channel: string, legacy
         counts.legacy++;
       }
       if (!apply) throw dryRun;
+      await query("INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON CONFLICT(setting_key) DO NOTHING", ["resource_registry_ready", readyValue]);
     });
   } catch (error) { if (error !== dryRun) throw error; }
   return counts;

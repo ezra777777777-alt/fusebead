@@ -9,6 +9,7 @@ const temporary = fs.mkdtempSync(path.join(os.tmpdir(), 'resource-backfill-'));
 process.env.DB_PATH = path.join(temporary, 'test.db');
 process.env.DATABASE_URL = '';
 const { query } = require('../dist/config/db');
+require('../dist/config/db').enableResourceRegistryMigration();
 const { backfillResources } = require('../dist/resource-backfill');
 const urlAlias = url => 'url:' + createHash('sha256').update(url).digest('hex');
 
@@ -31,7 +32,16 @@ test('history backfill is atomic, detects conflicts and is safely repeatable', a
   assert.deepEqual(await backfillResources('PRJ-0008', '网站', legacy, true, aliases), { website: 1, legacy: 2, merged: 0 });
   await assert.rejects(backfillResources('PRJ-0008', '网站', [{ ...legacy[0], channel: '改动频道' }], true, aliases), /编号内容已改变/);
   await assert.rejects(backfillResources('PRJ-0008', '网站', [{ ...legacy[0], aliases: ['url:invalid'] }], true), /清单无效/);
+  const migrated = spawnSync(process.execPath, [require.resolve('../dist/migrate-resource-registry')], { encoding: 'utf8', env: { ...process.env, DB_PATH: path.join(temporary, 'cli.db') } });
+  assert.equal(migrated.status, 0, migrated.stderr);
   const cli = spawnSync(process.execPath, [require.resolve('../dist/resource-backfill')], { input: '[]', encoding: 'utf8', env: { ...process.env, DB_PATH: path.join(temporary, 'cli.db'), RESOURCE_REGISTRY_SITE_PROJECT: 'PRJ-0008' } });
   assert.equal(cli.status, 0, cli.stderr);
   assert.equal(JSON.parse(cli.stdout).mode, 'dry-run');
+  const pendingUrl = 'https://github.com/example/pending';
+  const pending = await query("INSERT INTO projects (user_id,title,summary,category,demo_url,repo_url,status) VALUES (?, '待审资源', '简介', 'GitHub 实用项目', ?, ?, 'pending')", [insertId, pendingUrl, pendingUrl]);
+  await backfillResources('PRJ-0008', '网站', legacy, true, aliases);
+  process.env.RESOURCE_REGISTRY_SITE_PROJECT = 'PRJ-0008';
+  await require('../dist/config/db').transaction(() => require('../dist/routes/resource-registry').releaseWebsiteResource(pending.insertId, [pendingUrl], 'rejected'));
+  assert.equal((await query('SELECT is_released FROM resource_entries WHERE website_project_id = ?', [pending.insertId]))[0].is_released, 1, '回填的未公开作品退回后应释放');
+  assert.equal((await query('SELECT ever_published FROM resource_entries WHERE website_project_id = ?', [site.insertId]))[0].ever_published, 1, '已公开作品必须保留');
 });

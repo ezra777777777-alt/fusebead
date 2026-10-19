@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resourceRegistryRouter = void 0;
+exports.guardWebsiteRegistry = guardWebsiteRegistry;
 exports.checkResource = checkResource;
 exports.checkWebsiteResource = checkWebsiteResource;
 exports.releaseWebsiteResource = releaseWebsiteResource;
@@ -72,9 +73,21 @@ async function bindAliases(aliases, id) {
             throw new http_1.HttpError(409, "并发查重发生冲突，请使用相同请求编号重试");
     }
 }
+async function guardWebsiteRegistry() {
+    await (0, db_1.lockResourceRegistry)();
+    const [ready] = await (0, db_1.query)("SELECT setting_value FROM system_settings WHERE setting_key = ?", ["resource_registry_ready"]);
+    const project = process.env.RESOURCE_REGISTRY_SITE_PROJECT;
+    if (!ready && !project)
+        return;
+    const secret = process.env.RESOURCE_REGISTRY_KEY;
+    const expected = JSON.stringify([project, process.env.RESOURCE_REGISTRY_SITE_CHANNEL || "网站"]);
+    if (!ready || ready.setting_value !== expected || !project || !/^PRJ-\d{4,}$/.test(project) || !secret || Buffer.byteLength(secret) < 32 || process.env.RESOURCE_REGISTRY_BACKFILL_COMPLETE !== "yes")
+        throw new http_1.HttpError(503, "网站查重尚未准备完成，请稍后重试");
+}
 async function checkResource(body) {
     const data = requestData(body);
     return (0, db_1.transaction)(async () => {
+        await (0, db_1.lockResourceRegistry)();
         const claim = await (0, db_1.query)("INSERT INTO resource_requests (request_id, fingerprint) VALUES (?, ?) ON CONFLICT(request_id) DO NOTHING", [data.requestId, data.fingerprint]);
         if (!claim.affectedRows) {
             const [prior] = await (0, db_1.query)("SELECT fingerprint, result FROM resource_requests WHERE request_id = ?", [data.requestId]);
@@ -244,7 +257,7 @@ exports.resourceRegistryRouter.post("/check", (0, rateLimit_1.rateLimit)(120), (
         if (req.body.project !== project || req.body.channel !== channel || !req.body.url)
             throw new http_1.HttpError(400, "预查仅适用于网站投稿来源链接");
         const data = requestData(req.body);
-        const matches = await matchingEntries(data.aliases);
+        const matches = await (0, db_1.transaction)(async () => { await guardWebsiteRegistry(); return matchingEntries(data.aliases); });
         if (matches.length > 1)
             throw new http_1.HttpError(409, "链接与内容分别匹配不同记录，请人工核对");
         res.json(matches[0] ? { duplicate: true, preview: true, existing: matches[0] } : { duplicate: false, preview: true });

@@ -12,6 +12,7 @@ test('PostgreSQL shared registry serializes concurrent claims and backfills hist
   process.env.RESOURCE_REGISTRY_SITE_PROJECT = 'PRJ-0008';
   process.env.RESOURCE_REGISTRY_BACKFILL_COMPLETE = 'yes';
   const { query } = require('../dist/config/db');
+  require('../dist/config/db').enableResourceRegistryMigration();
   const { signToken } = require('../dist/middleware/auth');
   const { backfillResources } = require('../dist/resource-backfill');
   const express = require('express');
@@ -40,6 +41,21 @@ test('PostgreSQL shared registry serializes concurrent claims and backfills hist
   assert.equal(Number((await query('SELECT COUNT(*) AS n FROM resource_entries'))[0].n), 0);
   assert.deepEqual(await backfillResources('PRJ-0008', '网站', legacy, true, ['网站历史']), { website: 1, legacy: 1, merged: 1 });
   assert.deepEqual(await backfillResources('PRJ-0008', '网站', legacy, true, ['网站历史']), { website: 1, legacy: 1, merged: 0 });
+  let releaseLock, locked;
+  const lockAcquired = new Promise(resolve => { locked = resolve; });
+  const hold = require('../dist/config/db').transaction(async () => {
+    await require('../dist/config/db').lockResourceRegistry();
+    locked();
+    await new Promise(resolve => { releaseLock = resolve; });
+  });
+  await lockAcquired;
+  let completed = false;
+  const blocked = registry({ requestId: `lock-${uid}`, project: 'PRJ-0008', channel: '其他频道', url: `https://example.com/lock-${uid}` }).then(result => { completed = true; return result; });
+  await new Promise(resolve => setTimeout(resolve, 100));
+  assert.equal(completed, false, '其他登记必须等待回填锁');
+  releaseLock();
+  await hold;
+  assert.equal((await blocked).status, 200);
   const preview = { requestId: `feishu-preview-${uid}`, project: 'PRJ-0008', channel: '网站', url: `https://github.com/isolated/preview-${uid}`, preview: true };
   assert.deepEqual((await registry(preview)).data, { duplicate: false, preview: true });
   const previewDraft = { title: '预查后投稿', summary: '测试', category: 'GitHub 实用项目', repoUrl: preview.url, acceptedRules: true };

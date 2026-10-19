@@ -12,6 +12,7 @@ process.env.RESOURCE_REGISTRY_SITE_PROJECT = 'PRJ-0008';
 process.env.RESOURCE_REGISTRY_BACKFILL_COMPLETE = 'yes';
 const express = require('express');
 const { query } = require('../dist/config/db');
+require('../dist/config/db').enableResourceRegistryMigration();
 const { checkResource } = require('../dist/routes/resource-registry');
 const { signToken } = require('../dist/middleware/auth');
 const app = express();
@@ -22,6 +23,7 @@ app.use('/registry', require('../dist/routes/resource-registry').resourceRegistr
 app.use((error, _req, res, _next) => res.status(error.status || 500).json({ error: error.message }));
 
 test('both website URLs are checked together and lifecycle changes preserve the right aliases', async t => {
+  await require('../dist/resource-backfill').backfillResources('PRJ-0008', '网站', [], true);
   const user = async (name, admin = 0) => {
     const { insertId } = await query('INSERT INTO users (username,email,password_hash,email_verified,is_admin) VALUES (?, ?, ?, 1, ?)', [name, `${name}@example.invalid`, 'unused', admin]);
     return signToken({ userId: insertId, plan: 'free' });

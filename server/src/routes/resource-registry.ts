@@ -1,6 +1,6 @@
 import { createHash, createHmac, timingSafeEqual } from "crypto";
 import { Router } from "express";
-import { query, transaction } from "../config/db";
+import { lockResourceRegistry, query, transaction } from "../config/db";
 import { rateLimit } from "../middleware/rateLimit";
 import { asyncRoute, HttpError } from "../utils/http";
 
@@ -60,9 +60,20 @@ async function bindAliases(aliases: string[], id: number) {
   }
 }
 
+export async function guardWebsiteRegistry() {
+  await lockResourceRegistry();
+  const [ready] = await query<any[]>("SELECT setting_value FROM system_settings WHERE setting_key = ?", ["resource_registry_ready"]);
+  const project = process.env.RESOURCE_REGISTRY_SITE_PROJECT;
+  if (!ready && !project) return;
+  const secret = process.env.RESOURCE_REGISTRY_KEY;
+  const expected = JSON.stringify([project, process.env.RESOURCE_REGISTRY_SITE_CHANNEL || "网站"]);
+  if (!ready || ready.setting_value !== expected || !project || !/^PRJ-\d{4,}$/.test(project) || !secret || Buffer.byteLength(secret) < 32 || process.env.RESOURCE_REGISTRY_BACKFILL_COMPLETE !== "yes") throw new HttpError(503, "网站查重尚未准备完成，请稍后重试");
+}
+
 export async function checkResource(body: Record<string, unknown>) {
   const data = requestData(body);
   return transaction(async () => {
+    await lockResourceRegistry();
     const claim = await query<{ affectedRows: number }>("INSERT INTO resource_requests (request_id, fingerprint) VALUES (?, ?) ON CONFLICT(request_id) DO NOTHING", [data.requestId, data.fingerprint]);
     if (!claim.affectedRows) {
       const [prior] = await query<any[]>("SELECT fingerprint, result FROM resource_requests WHERE request_id = ?", [data.requestId]);
@@ -191,7 +202,7 @@ resourceRegistryRouter.post("/check", rateLimit(120), asyncRoute(async (req, res
     if (!project || !/^PRJ-\d{4,}$/.test(project) || process.env.RESOURCE_REGISTRY_BACKFILL_COMPLETE !== "yes") throw new HttpError(503, "网站查重尚未准备完成，请稍后重试");
     if (req.body.project !== project || req.body.channel !== channel || !req.body.url) throw new HttpError(400, "预查仅适用于网站投稿来源链接");
     const data = requestData(req.body);
-    const matches = await matchingEntries(data.aliases);
+    const matches = await transaction(async () => { await guardWebsiteRegistry(); return matchingEntries(data.aliases); });
     if (matches.length > 1) throw new HttpError(409, "链接与内容分别匹配不同记录，请人工核对");
     res.json(matches[0] ? { duplicate: true, preview: true, existing: matches[0] } : { duplicate: false, preview: true });
     return;

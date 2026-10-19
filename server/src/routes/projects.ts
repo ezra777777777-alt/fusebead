@@ -6,7 +6,7 @@ import { authMiddleware, optionalAuth } from "../middleware/auth";
 import { rateLimit } from "../middleware/rateLimit";
 import { query, transaction } from "../config/db";
 import { asyncRoute, HttpError, positiveInt } from "../utils/http";
-import { checkWebsiteResource, releaseWebsiteResource } from "./resource-registry";
+import { checkWebsiteResource, guardWebsiteRegistry, releaseWebsiteResource } from "./resource-registry";
 
 export const projectsRouter = Router();
 const coverDirectory = path.resolve(process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : "data", "covers");
@@ -118,8 +118,10 @@ projectsRouter.get("/:id", optionalAuth, asyncRoute(async (req, res) => {
 projectsRouter.post("/", authMiddleware, rateLimit(5), asyncRoute(async (req, res) => {
   const values = projectInput(req.body);
   const id = await transaction(async () => {
+    await guardWebsiteRegistry();
     await query("SELECT id FROM users WHERE id = ? FOR UPDATE", [req.user!.userId]);
-    const existing = await query<any[]>("SELECT id FROM projects WHERE user_id = ? AND title = ? AND demo_url = ? AND is_deleted = 0 AND status = 'pending'", [req.user!.userId, values[0], values[3]]);
+    const githubFallback = values[2] === githubCategory && values[3] === values[4];
+    const existing = await query<any[]>("SELECT id FROM projects WHERE user_id = ? AND title = ? AND (demo_url = ? OR (? = 1 AND category = ? AND LOWER(demo_url) = ?)) AND is_deleted = 0 AND status = 'pending'", [req.user!.userId, values[0], values[3], githubFallback ? 1 : 0, githubCategory, values[3].toLowerCase()]);
     if (existing.length) throw new HttpError(409, "相同作品正在审核，请到个人中心查看");
     const result = await query(`INSERT INTO projects (user_id, title, summary, category, demo_url, repo_url, tech_stack, confession, cover_url, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`, [req.user!.userId, ...values]);
@@ -132,6 +134,7 @@ projectsRouter.post("/", authMiddleware, rateLimit(5), asyncRoute(async (req, re
 projectsRouter.put("/:id", authMiddleware, rateLimit(10), asyncRoute(async (req, res) => {
   const values = projectInput(req.body);
   await transaction(async () => {
+    await guardWebsiteRegistry();
     const project = await visibleProject(req, true);
     if (project.user_id !== req.user!.userId) throw new HttpError(403, "只能修改自己的作品");
     if (project.is_deleted) throw new HttpError(409, "作品已被管理员下架，请先通过反馈申诉");
@@ -146,6 +149,7 @@ projectsRouter.put("/:id", authMiddleware, rateLimit(10), asyncRoute(async (req,
 
 projectsRouter.post("/:id/withdraw", authMiddleware, asyncRoute(async (req, res) => {
   await transaction(async () => {
+    await guardWebsiteRegistry();
     const project = await visibleProject(req, true);
     if (project.user_id !== req.user!.userId) throw new HttpError(403, "只能撤回自己的作品");
     if (project.is_deleted) throw new HttpError(409, "作品已下架");

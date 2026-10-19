@@ -4,10 +4,12 @@ const { randomUUID } = require('node:crypto');
 
 test('PostgreSQL release rehearsal: migration, auth, moderation and concurrent points', { skip: !process.env.PG_TEST_DATABASE_URL }, async t => {
   const url = new URL(process.env.PG_TEST_DATABASE_URL);
+  assert.equal(url.hostname, 'localhost', 'Only a local disposable database is permitted');
   assert.match(url.pathname, /^\/fusebead_releasecheck_[a-z0-9_]+$/, 'Use a disposable restored database, never production');
   process.env.DATABASE_URL = url.toString();
   process.env.JWT_SECRET = 'isolated-postgres-release-test';
   const { query } = require('../dist/config/db');
+  assert.equal((await query("SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename = 'resource_entries'")).length, 0, '普通启动不能创建查重表');
   const codes = require('../dist/models/verificationCode');
   const messages = [];
   require('../dist/utils/mailer').sendVerificationCode = async (email, code, type) => messages.push({ email, code, type });
@@ -51,6 +53,10 @@ test('PostgreSQL release rehearsal: migration, auth, moderation and concurrent p
   const adminEmail = `admin-${randomUUID()}@test.invalid`;
   const adminId = (await query("INSERT INTO users (username,email,password_hash,is_admin,email_verified) VALUES ('PG 测试审核员',?,'unused',1,1)", [adminEmail])).insertId;
   const adminToken = require('../dist/middleware/auth').signToken({ userId: adminId, plan: 'free' });
+  const legacyUser = (await query("INSERT INTO users (username,email,password_hash,email_verified) VALUES ('历史投稿者',?,'unused',1)", [`legacy-${randomUUID()}@test.invalid`])).insertId;
+  const legacyToken = require('../dist/middleware/auth').signToken({ userId: legacyUser, plan: 'free' });
+  await query("INSERT INTO projects (user_id,title,summary,category,demo_url,repo_url,status) VALUES (?, '历史投稿', '测试', 'GitHub 实用项目', 'https://github.com/Owner/Repo', 'https://github.com/Owner/Repo', 'pending')", [legacyUser]);
+  await api('/projects', { title: '历史投稿', summary: '测试', category: 'GitHub 实用项目', repoUrl: 'https://github.com/owner/repo', acceptedRules: true }, 409, legacyToken);
   const draft = { title: `PG 测试 ${randomUUID()}`, summary: '独立副本测试', category: '网页小玩具', demoUrl: 'https://example.com/', acceptedRules: true };
   const project = await api('/projects', draft, 201, author.token);
   await api(`/projects/${project.id}`, undefined, 404, undefined, 'GET');

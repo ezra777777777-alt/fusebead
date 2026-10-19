@@ -52,7 +52,8 @@ app.use("/api/user", user_1.userRouter);
 app.use("/api/admin", admin_1.adminRouter);
 app.use("/api/payments", payments_1.paymentsRouter);
 app.use("/api/projects", projects_1.projectsRouter);
-app.use("/api/resource-registry", resource_registry_1.resourceRegistryRouter);
+if (process.env.RESOURCE_REGISTRY_KEY)
+    app.use("/api/resource-registry", resource_registry_1.resourceRegistryRouter);
 app.use((error, _req, res, _next) => {
     const status = error instanceof http_1.HttpError ? error.status : 500;
     if (status === 500)

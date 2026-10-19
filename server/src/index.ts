@@ -51,7 +51,7 @@ app.use("/api/user", userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/projects", projectsRouter);
-app.use("/api/resource-registry", resourceRegistryRouter);
+if (process.env.RESOURCE_REGISTRY_KEY) app.use("/api/resource-registry", resourceRegistryRouter);
 
 app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const status = error instanceof HttpError ? error.status : 500;

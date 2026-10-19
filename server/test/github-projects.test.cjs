@@ -38,6 +38,12 @@ test('GitHub sharing uses the moderated community lifecycle', async t => {
   const list = (extra = '') => api(`/projects?category=${encodeURIComponent(draft.category)}${extra}`);
   let project;
 
+  await t.test('older mixed-case GitHub submissions still block the same pending project', async () => {
+    const user = await makeUser();
+    await query("INSERT INTO projects (user_id,title,summary,category,demo_url,repo_url,status) VALUES (?, ?, ?, ?, ?, ?, 'pending')", [user.id, draft.title, draft.summary, draft.category, 'https://github.com/Example-Owner/Data_Tools', 'https://github.com/Example-Owner/Data_Tools']);
+    await api('/projects', user.token, 'POST', draft, 409);
+  });
+
   await t.test('rejects non-repositories, spoofed hosts, credentials and unsafe URLs', async () => {
     await api('/projects', null, 'POST', draft, 401);
     for (const repoUrl of ['', 'http://github.com/owner/repo', 'https://github.com.evil.invalid/owner/repo', 'https://github.com@evil.invalid/owner/repo', 'https://user:password@github.com/owner/repo', 'https://github.com/owner', 'https://github.com/owner/repo/issues', 'https://github.com/owner/.git', 'https://github.com:8443/owner/repo', 'javascript:alert(1)']) {

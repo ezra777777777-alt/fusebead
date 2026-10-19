@@ -210,6 +210,7 @@ exports.adminRouter.put("/projects/:id", (0, http_1.asyncRoute)(async (req, res)
     if (note.length > 1000 || (["reject", "softDelete"].includes(action) && !note))
         throw new http_1.HttpError(400, "退回或下架时请填写原因（最多 1000 字）");
     await (0, db_1.transaction)(async () => {
+        await (0, resource_registry_1.guardWebsiteRegistry)();
         const [project] = await (0, db_1.query)("SELECT * FROM projects WHERE id = ? FOR UPDATE", [id]);
         if (!project)
             throw new http_1.HttpError(404, "作品不存在");

@@ -3,7 +3,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.enableResourceRegistryMigration = enableResourceRegistryMigration;
 exports.query = query;
+exports.lockResourceRegistry = lockResourceRegistry;
 exports.transaction = transaction;
 const pg_1 = require("pg");
 const async_hooks_1 = require("async_hooks");
@@ -13,6 +15,12 @@ const path_1 = __importDefault(require("path"));
 // ── Detect backend ──
 function usePg() {
     return !!process.env.DATABASE_URL;
+}
+let resourceRegistryMigration = false;
+function enableResourceRegistryMigration() {
+    if (pgSchemaReady || sqliteReady)
+        throw new Error("数据库已初始化，不能再执行查重迁移");
+    resourceRegistryMigration = true;
 }
 // ── PostgreSQL ──
 let pgPool = null;
@@ -253,29 +261,31 @@ async function initPgSchema() {
       id SERIAL PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       event_key TEXT NOT NULL, points INTEGER NOT NULL, UNIQUE(user_id, event_key)
     )`);
-        await client.query(`CREATE TABLE IF NOT EXISTS resource_entries (
+        if (resourceRegistryMigration) {
+            await client.query(`CREATE TABLE IF NOT EXISTS resource_entries (
       id SERIAL PRIMARY KEY, project TEXT NOT NULL, channel TEXT NOT NULL
     )`);
-        await client.query("ALTER TABLE resource_entries ADD COLUMN IF NOT EXISTS website_project_id INTEGER");
-        await client.query("ALTER TABLE resource_entries ADD COLUMN IF NOT EXISTS website_owned INTEGER NOT NULL DEFAULT 0");
-        await client.query("ALTER TABLE resource_entries ADD COLUMN IF NOT EXISTS ever_published INTEGER NOT NULL DEFAULT 0");
-        await client.query("ALTER TABLE resource_entries ADD COLUMN IF NOT EXISTS is_released INTEGER NOT NULL DEFAULT 0");
-        await client.query(`CREATE TABLE IF NOT EXISTS resource_aliases (
+            await client.query("ALTER TABLE resource_entries ADD COLUMN IF NOT EXISTS website_project_id INTEGER");
+            await client.query("ALTER TABLE resource_entries ADD COLUMN IF NOT EXISTS website_owned INTEGER NOT NULL DEFAULT 0");
+            await client.query("ALTER TABLE resource_entries ADD COLUMN IF NOT EXISTS ever_published INTEGER NOT NULL DEFAULT 0");
+            await client.query("ALTER TABLE resource_entries ADD COLUMN IF NOT EXISTS is_released INTEGER NOT NULL DEFAULT 0");
+            await client.query(`CREATE TABLE IF NOT EXISTS resource_aliases (
       id SERIAL PRIMARY KEY, alias TEXT NOT NULL UNIQUE,
       entry_id INTEGER NOT NULL REFERENCES resource_entries(id)
     )`);
-        await client.query(`CREATE TABLE IF NOT EXISTS resource_requests (
+            await client.query(`CREATE TABLE IF NOT EXISTS resource_requests (
       id SERIAL PRIMARY KEY, request_id TEXT NOT NULL UNIQUE,
       fingerprint TEXT NOT NULL, result TEXT
     )`);
-        await client.query(`CREATE TABLE IF NOT EXISTS resource_imports (
+            await client.query(`CREATE TABLE IF NOT EXISTS resource_imports (
       id SERIAL PRIMARY KEY, source_id TEXT NOT NULL UNIQUE,
       fingerprint TEXT NOT NULL, entry_id INTEGER NOT NULL REFERENCES resource_entries(id)
     )`);
-        await client.query(`CREATE TABLE IF NOT EXISTS resource_events (
+            await client.query(`CREATE TABLE IF NOT EXISTS resource_events (
       id SERIAL PRIMARY KEY, entry_id INTEGER NOT NULL REFERENCES resource_entries(id),
       website_project_id INTEGER NOT NULL, action TEXT NOT NULL, created_at TEXT DEFAULT (NOW() AT TIME ZONE 'UTC')::text
     )`);
+        }
         await client.query("CREATE INDEX IF NOT EXISTS idx_projects_status_created ON projects(status, created_at)");
         await client.query("CREATE INDEX IF NOT EXISTS idx_project_comments_project ON project_comments(project_id)");
     }
@@ -561,31 +571,33 @@ function initSqliteSchema(database) {
     id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     event_key TEXT NOT NULL, points INTEGER NOT NULL, UNIQUE(user_id, event_key)
   )`);
-    database.run(`CREATE TABLE IF NOT EXISTS resource_entries (
+    if (resourceRegistryMigration) {
+        database.run(`CREATE TABLE IF NOT EXISTS resource_entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT, project TEXT NOT NULL, channel TEXT NOT NULL
   )`);
-    if (!database.exec("PRAGMA table_info(resource_entries)")[0].values.some(row => row[1] === "website_project_id"))
-        database.run("ALTER TABLE resource_entries ADD COLUMN website_project_id INTEGER");
-    for (const column of ["website_owned", "ever_published", "is_released"]) {
-        if (!database.exec("PRAGMA table_info(resource_entries)")[0].values.some(row => row[1] === column))
-            database.run(`ALTER TABLE resource_entries ADD COLUMN ${column} INTEGER NOT NULL DEFAULT 0`);
-    }
-    database.run(`CREATE TABLE IF NOT EXISTS resource_aliases (
+        if (!database.exec("PRAGMA table_info(resource_entries)")[0].values.some(row => row[1] === "website_project_id"))
+            database.run("ALTER TABLE resource_entries ADD COLUMN website_project_id INTEGER");
+        for (const column of ["website_owned", "ever_published", "is_released"]) {
+            if (!database.exec("PRAGMA table_info(resource_entries)")[0].values.some(row => row[1] === column))
+                database.run(`ALTER TABLE resource_entries ADD COLUMN ${column} INTEGER NOT NULL DEFAULT 0`);
+        }
+        database.run(`CREATE TABLE IF NOT EXISTS resource_aliases (
     id INTEGER PRIMARY KEY AUTOINCREMENT, alias TEXT NOT NULL UNIQUE,
     entry_id INTEGER NOT NULL REFERENCES resource_entries(id)
   )`);
-    database.run(`CREATE TABLE IF NOT EXISTS resource_requests (
+        database.run(`CREATE TABLE IF NOT EXISTS resource_requests (
     id INTEGER PRIMARY KEY AUTOINCREMENT, request_id TEXT NOT NULL UNIQUE,
     fingerprint TEXT NOT NULL, result TEXT
   )`);
-    database.run(`CREATE TABLE IF NOT EXISTS resource_imports (
+        database.run(`CREATE TABLE IF NOT EXISTS resource_imports (
     id INTEGER PRIMARY KEY AUTOINCREMENT, source_id TEXT NOT NULL UNIQUE,
     fingerprint TEXT NOT NULL, entry_id INTEGER NOT NULL REFERENCES resource_entries(id)
   )`);
-    database.run(`CREATE TABLE IF NOT EXISTS resource_events (
+        database.run(`CREATE TABLE IF NOT EXISTS resource_events (
     id INTEGER PRIMARY KEY AUTOINCREMENT, entry_id INTEGER NOT NULL REFERENCES resource_entries(id),
     website_project_id INTEGER NOT NULL, action TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
+    }
     database.run("CREATE INDEX IF NOT EXISTS idx_projects_status_created ON projects(status, created_at)");
     database.run("CREATE INDEX IF NOT EXISTS idx_project_comments_project ON project_comments(project_id)");
     // Migration: expand verification_codes CHECK to include password_reset
@@ -682,6 +694,13 @@ async function query(sql, params = []) {
             saveSqliteDb();
         return result;
     });
+}
+async function lockResourceRegistry() {
+    const context = transactionContext.getStore();
+    if (!context)
+        throw new Error("查重锁必须在事务中使用");
+    if (context.client)
+        await context.client.query("SELECT pg_advisory_xact_lock($1)", [17491623]);
 }
 async function transaction(work) {
     if (transactionContext.getStore())
