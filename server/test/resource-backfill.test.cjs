@@ -15,7 +15,7 @@ const urlAlias = url => 'url:' + createHash('sha256').update(url).digest('hex');
 test('history backfill is atomic, detects conflicts and is safely repeatable', async t => {
   t.after(() => fs.rmSync(temporary, { recursive: true, force: true }));
   const { insertId } = await query("INSERT INTO users (username,email,password_hash) VALUES ('user','backfill@test.invalid','unused')");
-  const site = await query("INSERT INTO projects (user_id,title,summary,category,demo_url,repo_url,status) VALUES (?, '网站资源', '简介', 'GitHub 实用项目', ?, ?, 'approved')", [insertId, 'https://github.com/example/repo', 'https://github.com/example/repo']);
+  const site = await query("INSERT INTO projects (user_id,title,summary,category,demo_url,repo_url,status) VALUES (?, '网站资源', '简介', 'GitHub 实用项目', ?, ?, 'approved')", [insertId, 'https://example.com/demo', 'https://github.com/example/repo']);
   const legacy = [{ sourceId: 'local-dedup:1', project: 'PRJ-0008', channel: '网站历史快照', aliases: [urlAlias('https://github.com/example/repo')] }, { sourceId: 'local-dedup:2', project: 'PRJ-0008', channel: '其他频道', aliases: [urlAlias('https://example.com/other')] }];
   const aliases = ['网站历史快照'];
   await assert.rejects(backfillResources('PRJ-0008', '网站', legacy), /跨频道重复/);
@@ -26,6 +26,8 @@ test('history backfill is atomic, detects conflicts and is safely repeatable', a
   assert.deepEqual(await backfillResources('PRJ-0008', '网站', legacy, true, aliases), { website: 1, legacy: 2, merged: 1 });
   assert.equal((await query('SELECT COUNT(*) AS n FROM resource_entries'))[0].n, 2);
   assert.equal((await query('SELECT website_project_id FROM resource_entries WHERE website_project_id = ?', [site.insertId]))[0].website_project_id, site.insertId);
+  const [demoAlias] = await query('SELECT entry_id FROM resource_aliases WHERE alias = ?', [urlAlias('https://example.com/demo')]);
+  assert.ok(demoAlias, '历史回填必须同时登记仓库和演示链接');
   assert.deepEqual(await backfillResources('PRJ-0008', '网站', legacy, true, aliases), { website: 1, legacy: 2, merged: 0 });
   await assert.rejects(backfillResources('PRJ-0008', '网站', [{ ...legacy[0], channel: '改动频道' }], true, aliases), /编号内容已改变/);
   await assert.rejects(backfillResources('PRJ-0008', '网站', [{ ...legacy[0], aliases: ['url:invalid'] }], true), /清单无效/);

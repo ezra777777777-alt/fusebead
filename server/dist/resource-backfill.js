@@ -24,7 +24,7 @@ async function backfillResources(project, channel, legacy, apply = false, siteAl
         await (0, db_1.transaction)(async () => {
             const rows = await (0, db_1.query)("SELECT id, repo_url, demo_url FROM projects WHERE status = 'approved' OR (status = 'pending' AND is_deleted = 0) ORDER BY id");
             for (const row of rows) {
-                const result = await (0, resource_registry_1.checkResource)({ requestId: `website:backfill:${row.id}`, project, channel, url: row.repo_url || row.demo_url });
+                const result = await (0, resource_registry_1.checkResource)({ requestId: `website:backfill:${row.id}`, project, channel, urls: [row.repo_url, row.demo_url].filter(Boolean) });
                 const entryId = result.duplicate ? result.existing.id : result.id;
                 const [entry] = await (0, db_1.query)("SELECT * FROM resource_entries WHERE id = ? FOR UPDATE", [entryId]);
                 if (!entry || entry.project !== project || entry.channel !== channel || (entry.website_project_id != null && Number(entry.website_project_id) !== Number(row.id)))

@@ -23,7 +23,7 @@ export async function backfillResources(project: string, channel: string, legacy
     await transaction(async () => {
       const rows = await query<any[]>("SELECT id, repo_url, demo_url FROM projects WHERE status = 'approved' OR (status = 'pending' AND is_deleted = 0) ORDER BY id");
       for (const row of rows) {
-        const result = await checkResource({ requestId: `website:backfill:${row.id}`, project, channel, url: row.repo_url || row.demo_url });
+        const result = await checkResource({ requestId: `website:backfill:${row.id}`, project, channel, urls: [row.repo_url, row.demo_url].filter(Boolean) });
         const entryId = result.duplicate ? result.existing.id : result.id;
         const [entry] = await query<any[]>("SELECT * FROM resource_entries WHERE id = ? FOR UPDATE", [entryId]);
         if (!entry || entry.project !== project || entry.channel !== channel || (entry.website_project_id != null && Number(entry.website_project_id) !== Number(row.id))) throw new Error(`网站历史来源冲突，作品编号 ${row.id}`);

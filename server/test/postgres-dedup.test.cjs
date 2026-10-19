@@ -83,4 +83,19 @@ test('PostgreSQL shared registry serializes concurrent claims and backfills hist
   assert.equal(winners, 1, JSON.stringify(competing));
   assert.ok(competing.slice(0, 2).every(r => [201, 409].includes(r.status)), JSON.stringify(competing));
   assert.ok([200, 409].includes(competing[2].status), JSON.stringify(competing));
+  const demo = `https://example.com/demo-${uid}`;
+  const multi = { ...draft, repoUrl: `https://github.com/isolated/multi-${uid}`, demoUrl: demo };
+  assert.equal((await call('/projects', multi, secondAuthor)).status, 201);
+  assert.equal((await registry({ ...common, requestId: `demo-${uid}`, channel: '其他频道', reserveWebsite: false, url: demo })).data.duplicate, true);
+  assert.equal((await call('/projects', { ...multi, repoUrl: `https://github.com/isolated/other-${uid}` }, author)).status, 409);
+  const sharedDemo = `https://example.com/demo-race-${uid}`;
+  const racers = await Promise.all(['racer-a', 'racer-b'].map(async name => {
+    const user = await query('INSERT INTO users (username,email,password_hash,email_verified) VALUES (?, ?, ?, 1)', [name, `${name}-${uid}@test.invalid`, 'unused']);
+    return signToken({ userId: user.insertId, plan: 'free' });
+  }));
+  const dualRace = await Promise.all([
+    call('/projects', { ...multi, repoUrl: `https://github.com/isolated/dual-a-${uid}`, demoUrl: sharedDemo }, racers[0]),
+    call('/projects', { ...multi, repoUrl: `https://github.com/isolated/dual-b-${uid}`, demoUrl: sharedDemo }, racers[1]),
+  ]);
+  assert.deepEqual(dualRace.map(item => item.status).sort(), [201, 409], JSON.stringify(dualRace));
 });

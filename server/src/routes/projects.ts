@@ -123,7 +123,7 @@ projectsRouter.post("/", authMiddleware, rateLimit(5), asyncRoute(async (req, re
     if (existing.length) throw new HttpError(409, "相同作品正在审核，请到个人中心查看");
     const result = await query(`INSERT INTO projects (user_id, title, summary, category, demo_url, repo_url, tech_stack, confession, cover_url, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`, [req.user!.userId, ...values]);
-    await checkWebsiteResource(result.insertId, 1, values[4] || values[3], req.body.registryProof);
+    await checkWebsiteResource(result.insertId, 1, [values[4], values[3]].filter(Boolean), req.body.registryProof);
     return result.insertId;
   });
   res.status(201).json({ id, status: "pending" });
@@ -136,8 +136,8 @@ projectsRouter.put("/:id", authMiddleware, rateLimit(10), asyncRoute(async (req,
     if (project.user_id !== req.user!.userId) throw new HttpError(403, "只能修改自己的作品");
     if (project.is_deleted) throw new HttpError(409, "作品已被管理员下架，请先通过反馈申诉");
     if (positiveInt(req.body.revision) !== project.revision) throw new HttpError(409, "作品已更新，请刷新后再修改");
-    await checkWebsiteResource(project.id, project.revision + 1, values[4] || values[3], req.body.registryProof);
-    await releaseWebsiteResource(project.id, project.repo_url || project.demo_url, "changed", values[4] || values[3]);
+    await checkWebsiteResource(project.id, project.revision + 1, [values[4], values[3]].filter(Boolean), req.body.registryProof);
+    await releaseWebsiteResource(project.id, [project.repo_url, project.demo_url], "changed", [values[4], values[3]]);
     await query(`UPDATE projects SET title = ?, summary = ?, category = ?, demo_url = ?, repo_url = ?, tech_stack = ?, confession = ?, cover_url = ?,
       status = 'pending', moderation_note = '', is_featured = 0, revision = revision + 1, updated_at = datetime('now') WHERE id = ?`, [...values, project.id]);
   });
@@ -150,7 +150,7 @@ projectsRouter.post("/:id/withdraw", authMiddleware, asyncRoute(async (req, res)
     if (project.user_id !== req.user!.userId) throw new HttpError(403, "只能撤回自己的作品");
     if (project.is_deleted) throw new HttpError(409, "作品已下架");
     if (positiveInt(req.body.revision) !== project.revision) throw new HttpError(409, "作品已更新，请刷新列表");
-    await releaseWebsiteResource(project.id, project.repo_url || project.demo_url, "withdrawn");
+    await releaseWebsiteResource(project.id, [project.repo_url, project.demo_url], "withdrawn");
     await query("UPDATE projects SET status = 'withdrawn', is_featured = 0, revision = revision + 1, updated_at = datetime('now') WHERE id = ?", [project.id]);
   });
   res.json({ success: true });

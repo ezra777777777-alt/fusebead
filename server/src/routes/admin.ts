@@ -175,20 +175,20 @@ adminRouter.put("/projects/:id", asyncRoute(async (req, res) => {
     if (positiveInt(req.body.revision) !== project.revision) throw new HttpError(409, "作者或其他管理员已更新作品，请刷新后审核");
     if (action === "approve") {
       if (project.is_deleted || project.status !== "pending") throw new HttpError(409, "只能放行待审核的作品");
-      await checkWebsiteResource(project.id, project.revision, project.repo_url || project.demo_url);
-      await markWebsiteResourcePublished(project.id, project.repo_url || project.demo_url);
+      await checkWebsiteResource(project.id, project.revision, [project.repo_url, project.demo_url].filter(Boolean));
+      await markWebsiteResourcePublished(project.id, [project.repo_url, project.demo_url]);
       await query("UPDATE projects SET status = 'approved', moderation_note = '' WHERE id = ?", [id]);
       const award = await query("INSERT INTO contribution_events (user_id, event_key, points) VALUES (?, ?, 10) ON CONFLICT(user_id, event_key) DO NOTHING", [project.user_id, `project:${id}`]);
       if (award.affectedRows) await query("UPDATE users SET contribution_points = contribution_points + 10 WHERE id = ?", [project.user_id]);
     } else if (action === "reject") {
       if (project.is_deleted || project.status !== "pending") throw new HttpError(409, "只能退回待审核的作品");
-      await releaseWebsiteResource(project.id, project.repo_url || project.demo_url, "rejected");
+      await releaseWebsiteResource(project.id, [project.repo_url, project.demo_url], "rejected");
       await query("UPDATE projects SET status = 'rejected', moderation_note = ?, is_featured = 0 WHERE id = ?", [note, id]);
     } else if (action === "softDelete") {
       await query("UPDATE projects SET is_deleted = 1, is_featured = 0, moderation_note = ? WHERE id = ?", [note, id]);
     } else if (action === "restore") {
       if (!project.is_deleted) throw new HttpError(409, "作品未被下架");
-      await checkWebsiteResource(project.id, project.revision, project.repo_url || project.demo_url);
+      await checkWebsiteResource(project.id, project.revision, [project.repo_url, project.demo_url].filter(Boolean));
       await query("UPDATE projects SET is_deleted = 0, status = 'pending', moderation_note = '' WHERE id = ?", [id]);
     } else if (["feature", "unfeature"].includes(action)) {
       if (project.is_deleted || project.status !== "approved") throw new HttpError(409, "只能推荐已公开作品");
