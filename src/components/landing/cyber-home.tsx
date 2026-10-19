@@ -1,6 +1,6 @@
 "use client";
 
-import { serverDate } from "@/lib/community";
+import { categoryLabel, serverDate } from "@/lib/community";
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
@@ -186,6 +186,7 @@ function CommunityFeed() {
       <section id="community-boards" className="scroll-mt-16 border-b-2 border-black bg-white" aria-label="社区分区">
         <div className="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-max py-3">
+            <Link href="/github" className="mr-2 flex items-center gap-2 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black text-black hover:-translate-y-0.5"><Code2 className="h-4 w-4" /> 资源分享</Link>
             {boards.map((board) => {
               const Icon = board.icon;
               const active = board.name === activeBoard;
@@ -229,7 +230,7 @@ function CommunityFeed() {
 
           <div className="border-2 border-black bg-white shadow-[6px_6px_0_#000]">
             <div className="flex items-center justify-between border-b-2 border-black bg-[var(--paper)] px-4 py-3 text-xs font-black text-black">
-              <div className="flex items-center gap-2"><Flame className="h-4 w-4 text-[var(--orange)]" /> {activeBoard} · <select aria-label="作品排序" value={sort} onChange={e => { changeFilters({ sort: e.target.value, page: "1" }); }} className="bg-transparent"><option value="latest">最新发布</option><option value="popular">最多点赞</option><option value="discussed">最多评论</option></select></div>
+              <div className="flex items-center gap-2"><Flame className="h-4 w-4 text-[var(--orange)]" /> {categoryLabel(activeBoard)} · <select aria-label="作品排序" value={sort} onChange={e => { changeFilters({ sort: e.target.value, page: "1" }); }} className="bg-transparent"><option value="latest">最新发布</option><option value="popular">最多点赞</option><option value="discussed">最多评论</option></select></div>
               <span>{total} 个作品</span>
             </div>
 
@@ -245,7 +246,7 @@ function CommunityFeed() {
                 <div className="min-w-0">
                   <div className="mb-2 flex flex-wrap items-center gap-2">
                     {post.badge && <span className="border border-black bg-black px-1.5 py-0.5 text-[10px] font-black text-[var(--acid)]">{post.badge}</span>}
-                    <button onClick={() => { changeFilters({ category: post.board, page: "1" }); }} className="text-xs font-black text-[var(--orange)] hover:underline">[{post.board}]</button>
+                    <button onClick={() => { changeFilters({ category: post.board, page: "1" }); }} className="text-xs font-black text-[var(--orange)] hover:underline">[{categoryLabel(post.board)}]</button>
                   </div>
                   {post.live ? (
                     <Link href={projectHref(post.id)} className="block [overflow-wrap:anywhere] text-base font-black leading-6 text-black group-hover:text-[var(--orange)] sm:text-lg">{post.title}</Link>

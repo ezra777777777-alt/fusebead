@@ -15,6 +15,7 @@ export function Footer() {
           <h2 className="text-xs font-black uppercase tracking-[0.2em] text-[var(--acid)]">社区入口</h2>
           <div className="mt-4 grid gap-2 text-sm font-bold text-white/55">
             <Link href="/#feed" className="hover:text-white">最新热帖</Link>
+            <Link href="/github" className="hover:text-white">资源分享</Link>
             <Link href="/submit" className="hover:text-white">投稿一坨</Link>
             <Link href="/dashboard" className="hover:text-white">我的主页</Link>
             <Link href="/help" className="hover:text-white">新手帮助</Link>

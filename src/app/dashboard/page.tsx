@@ -6,7 +6,7 @@ import Link from "next/link";
 import { ArrowUpRight, ClipboardList, MessageCircle, RefreshCw, Upload } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
-import { Project, projectStatus } from "@/lib/community";
+import { categoryLabel, Project, projectStatus } from "@/lib/community";
 import BeadDashboard from "@/components/dashboard/BeadDashboard";
 import { MyFeedback } from "@/components/dashboard/MyFeedback";
 
@@ -78,7 +78,7 @@ function Dashboard() {
       {tab === "projects" && <>
         <div className="mb-5 flex items-center justify-between gap-3"><label className="text-sm font-bold">投稿状态 <select value={filter} onChange={e => setFilter(e.target.value)} className="ml-2 border-2 border-black bg-white p-2"><option value="all">全部</option>{Object.entries(projectStatus).map(([key,label]) => <option key={key} value={key}>{label}</option>)}<option value="deleted">已下架</option></select></label><button onClick={load} disabled={fetching} className="flex items-center gap-2 text-sm font-bold"><RefreshCw className="h-4 w-4" />刷新</button></div>
         {fetching ? <p className="py-12 text-center">正在读取投稿…</p> : visible.length ? <div className="space-y-4">{visible.map(item => <article key={item.id} className="border-2 border-black bg-white p-5 shadow-[4px_4px_0_#000]">
-          <div className="flex flex-wrap items-center gap-3 text-xs font-black"><span className="bg-black px-2 py-1 text-[var(--acid)]">{item.is_deleted ? "已下架" : projectStatus[item.status]}</span><span>#{item.id} · {item.category} · 第 {item.revision} 版</span></div>
+          <div className="flex flex-wrap items-center gap-3 text-xs font-black"><span className="bg-black px-2 py-1 text-[var(--acid)]">{item.is_deleted ? "已下架" : projectStatus[item.status]}</span><span>#{item.id} · {categoryLabel(item.category)} · 第 {item.revision} 版</span></div>
           <Link href={`/projects/${item.id}`} className="mt-3 block [overflow-wrap:anywhere] text-xl font-black hover:underline">{item.title}</Link><p className="mt-2 [overflow-wrap:anywhere] text-sm text-black/60">{item.summary}</p>
           {item.moderation_note && <div className="mt-4 border-l-4 border-[var(--orange)] bg-orange-50 p-3 text-sm"><strong>审核说明：</strong>{item.moderation_note}</div>}
           {item.status === "pending" && !item.is_deleted && <p className="mt-3 text-sm text-black/55">正在等待人工审核，通过后才会出现在社区。修改投稿会更新待审版本。</p>}
