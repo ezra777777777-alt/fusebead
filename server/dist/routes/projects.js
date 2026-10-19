@@ -177,7 +177,7 @@ exports.projectsRouter.put("/:id", auth_1.authMiddleware, (0, rateLimit_1.rateLi
 }));
 exports.projectsRouter.post("/:id/withdraw", auth_1.authMiddleware, (0, http_1.asyncRoute)(async (req, res) => {
     await (0, db_1.transaction)(async () => {
-        await (0, resource_registry_1.guardWebsiteRegistry)();
+        const canRelease = await (0, resource_registry_1.guardWebsiteRegistryForRemoval)();
         const project = await visibleProject(req, true);
         if (project.user_id !== req.user.userId)
             throw new http_1.HttpError(403, "只能撤回自己的作品");
@@ -185,7 +185,8 @@ exports.projectsRouter.post("/:id/withdraw", auth_1.authMiddleware, (0, http_1.a
             throw new http_1.HttpError(409, "作品已下架");
         if ((0, http_1.positiveInt)(req.body.revision) !== project.revision)
             throw new http_1.HttpError(409, "作品已更新，请刷新列表");
-        await (0, resource_registry_1.releaseWebsiteResource)(project.id, [project.repo_url, project.demo_url], "withdrawn");
+        if (canRelease)
+            await (0, resource_registry_1.releaseWebsiteResource)(project.id, [project.repo_url, project.demo_url], "withdrawn");
         await (0, db_1.query)("UPDATE projects SET status = 'withdrawn', is_featured = 0, revision = revision + 1, updated_at = datetime('now') WHERE id = ?", [project.id]);
     });
     res.json({ success: true });

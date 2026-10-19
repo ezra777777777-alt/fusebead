@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resourceRegistryRouter = void 0;
 exports.guardWebsiteRegistry = guardWebsiteRegistry;
+exports.guardWebsiteRegistryForRemoval = guardWebsiteRegistryForRemoval;
 exports.checkResource = checkResource;
 exports.checkWebsiteResource = checkWebsiteResource;
 exports.releaseWebsiteResource = releaseWebsiteResource;
@@ -77,6 +78,17 @@ async function guardWebsiteRegistry() {
     const expected = JSON.stringify([project, process.env.RESOURCE_REGISTRY_SITE_CHANNEL || "网站"]);
     if (!ready || ready.setting_value !== expected || !project || !/^PRJ-\d{4,}$/.test(project) || !secret || Buffer.byteLength(secret) < 32 || process.env.RESOURCE_REGISTRY_BACKFILL_COMPLETE !== "yes")
         throw new http_1.HttpError(503, "网站查重尚未准备完成，请稍后重试");
+}
+async function guardWebsiteRegistryForRemoval() {
+    try {
+        await guardWebsiteRegistry();
+        return true;
+    }
+    catch (error) {
+        if (error instanceof http_1.HttpError && error.status === 503)
+            return false;
+        throw error;
+    }
 }
 async function checkResource(body) {
     const data = requestData(body);

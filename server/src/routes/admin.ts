@@ -6,7 +6,7 @@ import * as AdminLog from "../models/adminLog";
 import * as SystemSetting from "../models/systemSetting";
 import * as Feedback from "../models/feedback";
 import { query, transaction } from "../config/db";
-import { checkWebsiteResource, guardWebsiteRegistry, markWebsiteResourcePublished, releaseWebsiteResource } from "./resource-registry";
+import { checkWebsiteResource, guardWebsiteRegistry, guardWebsiteRegistryForRemoval, markWebsiteResourcePublished, releaseWebsiteResource } from "./resource-registry";
 
 import { asyncRoute, HttpError, positiveInt } from "../utils/http";
 
@@ -170,7 +170,8 @@ adminRouter.put("/projects/:id", asyncRoute(async (req, res) => {
   const note = typeof req.body.note === "string" ? req.body.note.trim() : "";
   if (note.length > 1000 || (["reject", "softDelete"].includes(action) && !note)) throw new HttpError(400, "退回或下架时请填写原因（最多 1000 字）");
   await transaction(async () => {
-    await guardWebsiteRegistry();
+    const canRelease = action === "reject" ? await guardWebsiteRegistryForRemoval() : false;
+    if (["approve", "restore"].includes(action)) await guardWebsiteRegistry();
     const [project] = await query<any[]>("SELECT * FROM projects WHERE id = ? FOR UPDATE", [id]);
     if (!project) throw new HttpError(404, "作品不存在");
     if (positiveInt(req.body.revision) !== project.revision) throw new HttpError(409, "作者或其他管理员已更新作品，请刷新后审核");
@@ -183,7 +184,7 @@ adminRouter.put("/projects/:id", asyncRoute(async (req, res) => {
       if (award.affectedRows) await query("UPDATE users SET contribution_points = contribution_points + 10 WHERE id = ?", [project.user_id]);
     } else if (action === "reject") {
       if (project.is_deleted || project.status !== "pending") throw new HttpError(409, "只能退回待审核的作品");
-      await releaseWebsiteResource(project.id, [project.repo_url, project.demo_url], "rejected");
+      if (canRelease) await releaseWebsiteResource(project.id, [project.repo_url, project.demo_url], "rejected");
       await query("UPDATE projects SET status = 'rejected', moderation_note = ?, is_featured = 0 WHERE id = ?", [note, id]);
     } else if (action === "softDelete") {
       await query("UPDATE projects SET is_deleted = 1, is_featured = 0, moderation_note = ? WHERE id = ?", [note, id]);
@@ -354,6 +355,7 @@ adminRouter.get("/logs", async (req: Request, res: Response) => {
 adminRouter.get("/settings", async (_req: Request, res: Response) => {
   try {
     const settings = await SystemSetting.getAll();
+    delete settings.resource_registry_ready;
     res.json(settings);
   } catch (err) {
     console.error("[admin] settings get error:", err);
@@ -364,7 +366,7 @@ adminRouter.get("/settings", async (_req: Request, res: Response) => {
 adminRouter.put("/settings", async (req: Request, res: Response) => {
   try {
     const settings: { key: string; value: string }[] = req.body;
-    if (!Array.isArray(settings)) {
+    if (!Array.isArray(settings) || settings.some(s => s?.key === "resource_registry_ready")) {
       res.status(400).json({ error: "Expected array of {key, value}" });
       return;
     }

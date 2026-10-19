@@ -6,7 +6,7 @@ import { authMiddleware, optionalAuth } from "../middleware/auth";
 import { rateLimit } from "../middleware/rateLimit";
 import { query, transaction } from "../config/db";
 import { asyncRoute, HttpError, positiveInt } from "../utils/http";
-import { checkWebsiteResource, guardWebsiteRegistry, releaseWebsiteResource } from "./resource-registry";
+import { checkWebsiteResource, guardWebsiteRegistry, guardWebsiteRegistryForRemoval, releaseWebsiteResource } from "./resource-registry";
 
 export const projectsRouter = Router();
 const coverDirectory = path.resolve(process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : "data", "covers");
@@ -151,12 +151,12 @@ projectsRouter.put("/:id", authMiddleware, rateLimit(10), asyncRoute(async (req,
 
 projectsRouter.post("/:id/withdraw", authMiddleware, asyncRoute(async (req, res) => {
   await transaction(async () => {
-    await guardWebsiteRegistry();
+    const canRelease = await guardWebsiteRegistryForRemoval();
     const project = await visibleProject(req, true);
     if (project.user_id !== req.user!.userId) throw new HttpError(403, "只能撤回自己的作品");
     if (project.is_deleted) throw new HttpError(409, "作品已下架");
     if (positiveInt(req.body.revision) !== project.revision) throw new HttpError(409, "作品已更新，请刷新列表");
-    await releaseWebsiteResource(project.id, [project.repo_url, project.demo_url], "withdrawn");
+    if (canRelease) await releaseWebsiteResource(project.id, [project.repo_url, project.demo_url], "withdrawn");
     await query("UPDATE projects SET status = 'withdrawn', is_featured = 0, revision = revision + 1, updated_at = datetime('now') WHERE id = ?", [project.id]);
   });
   res.json({ success: true });

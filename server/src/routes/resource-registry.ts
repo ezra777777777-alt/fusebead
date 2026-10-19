@@ -64,6 +64,11 @@ export async function guardWebsiteRegistry() {
   if (!ready || ready.setting_value !== expected || !project || !/^PRJ-\d{4,}$/.test(project) || !secret || Buffer.byteLength(secret) < 32 || process.env.RESOURCE_REGISTRY_BACKFILL_COMPLETE !== "yes") throw new HttpError(503, "网站查重尚未准备完成，请稍后重试");
 }
 
+export async function guardWebsiteRegistryForRemoval() {
+  try { await guardWebsiteRegistry(); return true; }
+  catch (error) { if (error instanceof HttpError && error.status === 503) return false; throw error; }
+}
+
 export async function checkResource(body: Record<string, unknown>) {
   const data = requestData(body);
   return transaction(async () => {
