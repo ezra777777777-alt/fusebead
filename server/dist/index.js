@@ -16,6 +16,7 @@ const admin_1 = require("./routes/admin");
 const verification_1 = require("./routes/verification");
 const payments_1 = require("./routes/payments");
 const projects_1 = require("./routes/projects");
+const resource_registry_1 = require("./routes/resource-registry");
 const verificationCode_1 = require("./models/verificationCode");
 const user_2 = require("./models/user");
 dotenv_1.default.config();
@@ -51,6 +52,8 @@ app.use("/api/user", user_1.userRouter);
 app.use("/api/admin", admin_1.adminRouter);
 app.use("/api/payments", payments_1.paymentsRouter);
 app.use("/api/projects", projects_1.projectsRouter);
+if (process.env.RESOURCE_REGISTRY_KEY)
+    app.use("/api/resource-registry", resource_registry_1.resourceRegistryRouter);
 app.use((error, _req, res, _next) => {
     const status = error instanceof http_1.HttpError ? error.status : 500;
     if (status === 500)

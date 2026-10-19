@@ -6,6 +6,7 @@ import { authMiddleware, optionalAuth } from "../middleware/auth";
 import { rateLimit } from "../middleware/rateLimit";
 import { query, transaction } from "../config/db";
 import { asyncRoute, HttpError, positiveInt } from "../utils/http";
+import { checkWebsiteResource, guardWebsiteRegistry, guardWebsiteRegistryForRemoval, releaseWebsiteResource } from "./resource-registry";
 
 export const projectsRouter = Router();
 const coverDirectory = path.resolve(process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : "data", "covers");
@@ -52,11 +53,11 @@ function projectInput(body: Record<string, unknown>) {
   let repoUrl = url(body.repoUrl, github);
   if (github) {
     const repo = new URL(repoUrl);
-    const repositoryPath = repo.pathname.replace(/\/$/, "").replace(/\.git$/, "");
+    const repositoryPath = repo.pathname.replace(/\/$/, "").replace(/\.git$/i, "");
     if (repo.origin !== "https://github.com" || !/^\/[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?\/[a-z\d_.-]+$/i.test(repositoryPath)) {
       throw new HttpError(400, "请填写 GitHub 仓库主页：https://github.com/作者/项目");
     }
-    repoUrl = `${repo.origin}${repositoryPath}`;
+    repoUrl = `${repo.origin}${repositoryPath.toLowerCase()}`;
   }
   return [title, summary, category, url(body.demoUrl, !github) || repoUrl, repoUrl, text(body.techStack, 120), text(body.confession, 1500), url(body.coverUrl)];
 }
@@ -115,25 +116,33 @@ projectsRouter.get("/:id", optionalAuth, asyncRoute(async (req, res) => {
 }));
 
 projectsRouter.post("/", authMiddleware, rateLimit(5), asyncRoute(async (req, res) => {
+  if (req.body?.registryProof != null) throw new HttpError(400, "网站不再使用预登记凭证");
   const values = projectInput(req.body);
   const id = await transaction(async () => {
+    await guardWebsiteRegistry();
     await query("SELECT id FROM users WHERE id = ? FOR UPDATE", [req.user!.userId]);
-    const existing = await query<any[]>("SELECT id FROM projects WHERE user_id = ? AND title = ? AND demo_url = ? AND is_deleted = 0 AND status = 'pending'", [req.user!.userId, values[0], values[3]]);
+    const githubFallback = values[2] === githubCategory && values[3] === values[4];
+    const existing = await query<any[]>("SELECT id FROM projects WHERE user_id = ? AND title = ? AND (demo_url = ? OR (? = 1 AND category = ? AND LOWER(demo_url) = ?)) AND is_deleted = 0 AND status = 'pending'", [req.user!.userId, values[0], values[3], githubFallback ? 1 : 0, githubCategory, values[3].toLowerCase()]);
     if (existing.length) throw new HttpError(409, "相同作品正在审核，请到个人中心查看");
     const result = await query(`INSERT INTO projects (user_id, title, summary, category, demo_url, repo_url, tech_stack, confession, cover_url, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`, [req.user!.userId, ...values]);
+    await checkWebsiteResource(result.insertId, 1, [values[4], values[3]].filter(Boolean));
     return result.insertId;
   });
   res.status(201).json({ id, status: "pending" });
 }));
 
 projectsRouter.put("/:id", authMiddleware, rateLimit(10), asyncRoute(async (req, res) => {
+  if (req.body?.registryProof != null) throw new HttpError(400, "网站不再使用预登记凭证");
   const values = projectInput(req.body);
   await transaction(async () => {
+    await guardWebsiteRegistry();
     const project = await visibleProject(req, true);
     if (project.user_id !== req.user!.userId) throw new HttpError(403, "只能修改自己的作品");
     if (project.is_deleted) throw new HttpError(409, "作品已被管理员下架，请先通过反馈申诉");
     if (positiveInt(req.body.revision) !== project.revision) throw new HttpError(409, "作品已更新，请刷新后再修改");
+    await checkWebsiteResource(project.id, project.revision + 1, [values[4], values[3]].filter(Boolean));
+    await releaseWebsiteResource(project.id, [project.repo_url, project.demo_url], "changed", [values[4], values[3]]);
     await query(`UPDATE projects SET title = ?, summary = ?, category = ?, demo_url = ?, repo_url = ?, tech_stack = ?, confession = ?, cover_url = ?,
       status = 'pending', moderation_note = '', is_featured = 0, revision = revision + 1, updated_at = datetime('now') WHERE id = ?`, [...values, project.id]);
   });
@@ -142,10 +151,12 @@ projectsRouter.put("/:id", authMiddleware, rateLimit(10), asyncRoute(async (req,
 
 projectsRouter.post("/:id/withdraw", authMiddleware, asyncRoute(async (req, res) => {
   await transaction(async () => {
+    const canRelease = await guardWebsiteRegistryForRemoval();
     const project = await visibleProject(req, true);
     if (project.user_id !== req.user!.userId) throw new HttpError(403, "只能撤回自己的作品");
     if (project.is_deleted) throw new HttpError(409, "作品已下架");
     if (positiveInt(req.body.revision) !== project.revision) throw new HttpError(409, "作品已更新，请刷新列表");
+    if (canRelease) await releaseWebsiteResource(project.id, [project.repo_url, project.demo_url], "withdrawn");
     await query("UPDATE projects SET status = 'withdrawn', is_featured = 0, revision = revision + 1, updated_at = datetime('now') WHERE id = ?", [project.id]);
   });
   res.json({ success: true });

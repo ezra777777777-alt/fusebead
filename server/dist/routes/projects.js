@@ -12,6 +12,7 @@ const auth_1 = require("../middleware/auth");
 const rateLimit_1 = require("../middleware/rateLimit");
 const db_1 = require("../config/db");
 const http_1 = require("../utils/http");
+const resource_registry_1 = require("./resource-registry");
 exports.projectsRouter = (0, express_1.Router)();
 const coverDirectory = path_1.default.resolve(process.env.DB_PATH ? path_1.default.dirname(process.env.DB_PATH) : "data", "covers");
 exports.projectsRouter.use("/covers", (0, express_1.static)(coverDirectory, { index: false, dotfiles: "deny", setHeaders: res => res.setHeader("X-Content-Type-Options", "nosniff") }));
@@ -69,11 +70,11 @@ function projectInput(body) {
     let repoUrl = url(body.repoUrl, github);
     if (github) {
         const repo = new URL(repoUrl);
-        const repositoryPath = repo.pathname.replace(/\/$/, "").replace(/\.git$/, "");
+        const repositoryPath = repo.pathname.replace(/\/$/, "").replace(/\.git$/i, "");
         if (repo.origin !== "https://github.com" || !/^\/[a-z\d](?:[a-z\d-]{0,37}[a-z\d])?\/[a-z\d_.-]+$/i.test(repositoryPath)) {
             throw new http_1.HttpError(400, "请填写 GitHub 仓库主页：https://github.com/作者/项目");
         }
-        repoUrl = `${repo.origin}${repositoryPath}`;
+        repoUrl = `${repo.origin}${repositoryPath.toLowerCase()}`;
     }
     return [title, summary, category, url(body.demoUrl, !github) || repoUrl, repoUrl, text(body.techStack, 120), text(body.confession, 1500), url(body.coverUrl)];
 }
@@ -137,21 +138,29 @@ exports.projectsRouter.get("/:id", auth_1.optionalAuth, (0, http_1.asyncRoute)(a
     res.json({ ...project, author_name: author?.username, author_avatar: author?.avatar_url, author_points: author?.contribution_points || 0, has_voted: votes.length > 0 });
 }));
 exports.projectsRouter.post("/", auth_1.authMiddleware, (0, rateLimit_1.rateLimit)(5), (0, http_1.asyncRoute)(async (req, res) => {
+    if (req.body?.registryProof != null)
+        throw new http_1.HttpError(400, "网站不再使用预登记凭证");
     const values = projectInput(req.body);
     const id = await (0, db_1.transaction)(async () => {
+        await (0, resource_registry_1.guardWebsiteRegistry)();
         await (0, db_1.query)("SELECT id FROM users WHERE id = ? FOR UPDATE", [req.user.userId]);
-        const existing = await (0, db_1.query)("SELECT id FROM projects WHERE user_id = ? AND title = ? AND demo_url = ? AND is_deleted = 0 AND status = 'pending'", [req.user.userId, values[0], values[3]]);
+        const githubFallback = values[2] === githubCategory && values[3] === values[4];
+        const existing = await (0, db_1.query)("SELECT id FROM projects WHERE user_id = ? AND title = ? AND (demo_url = ? OR (? = 1 AND category = ? AND LOWER(demo_url) = ?)) AND is_deleted = 0 AND status = 'pending'", [req.user.userId, values[0], values[3], githubFallback ? 1 : 0, githubCategory, values[3].toLowerCase()]);
         if (existing.length)
             throw new http_1.HttpError(409, "相同作品正在审核，请到个人中心查看");
         const result = await (0, db_1.query)(`INSERT INTO projects (user_id, title, summary, category, demo_url, repo_url, tech_stack, confession, cover_url, status)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`, [req.user.userId, ...values]);
+        await (0, resource_registry_1.checkWebsiteResource)(result.insertId, 1, [values[4], values[3]].filter(Boolean));
         return result.insertId;
     });
     res.status(201).json({ id, status: "pending" });
 }));
 exports.projectsRouter.put("/:id", auth_1.authMiddleware, (0, rateLimit_1.rateLimit)(10), (0, http_1.asyncRoute)(async (req, res) => {
+    if (req.body?.registryProof != null)
+        throw new http_1.HttpError(400, "网站不再使用预登记凭证");
     const values = projectInput(req.body);
     await (0, db_1.transaction)(async () => {
+        await (0, resource_registry_1.guardWebsiteRegistry)();
         const project = await visibleProject(req, true);
         if (project.user_id !== req.user.userId)
             throw new http_1.HttpError(403, "只能修改自己的作品");
@@ -159,6 +168,8 @@ exports.projectsRouter.put("/:id", auth_1.authMiddleware, (0, rateLimit_1.rateLi
             throw new http_1.HttpError(409, "作品已被管理员下架，请先通过反馈申诉");
         if ((0, http_1.positiveInt)(req.body.revision) !== project.revision)
             throw new http_1.HttpError(409, "作品已更新，请刷新后再修改");
+        await (0, resource_registry_1.checkWebsiteResource)(project.id, project.revision + 1, [values[4], values[3]].filter(Boolean));
+        await (0, resource_registry_1.releaseWebsiteResource)(project.id, [project.repo_url, project.demo_url], "changed", [values[4], values[3]]);
         await (0, db_1.query)(`UPDATE projects SET title = ?, summary = ?, category = ?, demo_url = ?, repo_url = ?, tech_stack = ?, confession = ?, cover_url = ?,
       status = 'pending', moderation_note = '', is_featured = 0, revision = revision + 1, updated_at = datetime('now') WHERE id = ?`, [...values, project.id]);
     });
@@ -166,6 +177,7 @@ exports.projectsRouter.put("/:id", auth_1.authMiddleware, (0, rateLimit_1.rateLi
 }));
 exports.projectsRouter.post("/:id/withdraw", auth_1.authMiddleware, (0, http_1.asyncRoute)(async (req, res) => {
     await (0, db_1.transaction)(async () => {
+        const canRelease = await (0, resource_registry_1.guardWebsiteRegistryForRemoval)();
         const project = await visibleProject(req, true);
         if (project.user_id !== req.user.userId)
             throw new http_1.HttpError(403, "只能撤回自己的作品");
@@ -173,6 +185,8 @@ exports.projectsRouter.post("/:id/withdraw", auth_1.authMiddleware, (0, http_1.a
             throw new http_1.HttpError(409, "作品已下架");
         if ((0, http_1.positiveInt)(req.body.revision) !== project.revision)
             throw new http_1.HttpError(409, "作品已更新，请刷新列表");
+        if (canRelease)
+            await (0, resource_registry_1.releaseWebsiteResource)(project.id, [project.repo_url, project.demo_url], "withdrawn");
         await (0, db_1.query)("UPDATE projects SET status = 'withdrawn', is_featured = 0, revision = revision + 1, updated_at = datetime('now') WHERE id = ?", [project.id]);
     });
     res.json({ success: true });

@@ -11,6 +11,7 @@ import { adminRouter } from "./routes/admin";
 import { verificationRouter } from "./routes/verification";
 import { paymentsRouter } from "./routes/payments";
 import { projectsRouter } from "./routes/projects";
+import { resourceRegistryRouter } from "./routes/resource-registry";
 import { cleanupExpired } from "./models/verificationCode";
 import { checkSubscriptionExpiry } from "./models/user";
 
@@ -50,6 +51,7 @@ app.use("/api/user", userRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/payments", paymentsRouter);
 app.use("/api/projects", projectsRouter);
+if (process.env.RESOURCE_REGISTRY_KEY) app.use("/api/resource-registry", resourceRegistryRouter);
 
 app.use((error: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const status = error instanceof HttpError ? error.status : 500;

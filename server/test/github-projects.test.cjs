@@ -38,6 +38,12 @@ test('GitHub sharing uses the moderated community lifecycle', async t => {
   const list = (extra = '') => api(`/projects?category=${encodeURIComponent(draft.category)}${extra}`);
   let project;
 
+  await t.test('older mixed-case GitHub submissions still block the same pending project', async () => {
+    const user = await makeUser();
+    await query("INSERT INTO projects (user_id,title,summary,category,demo_url,repo_url,status) VALUES (?, ?, ?, ?, ?, ?, 'pending')", [user.id, draft.title, draft.summary, draft.category, 'https://github.com/Example-Owner/Data_Tools', 'https://github.com/Example-Owner/Data_Tools']);
+    await api('/projects', user.token, 'POST', draft, 409);
+  });
+
   await t.test('rejects non-repositories, spoofed hosts, credentials and unsafe URLs', async () => {
     await api('/projects', null, 'POST', draft, 401);
     for (const repoUrl of ['', 'http://github.com/owner/repo', 'https://github.com.evil.invalid/owner/repo', 'https://github.com@evil.invalid/owner/repo', 'https://user:password@github.com/owner/repo', 'https://github.com/owner', 'https://github.com/owner/repo/issues', 'https://github.com/owner/.git', 'https://github.com:8443/owner/repo', 'javascript:alert(1)']) {
@@ -95,8 +101,8 @@ test('GitHub sharing uses the moderated community lifecycle', async t => {
       const user = await makeUser();
       await api('/projects', user.token, 'POST', { ...draft, repoUrl }, 400);
     }
-    const cleaned = await api('/projects', (await makeUser()).token, 'POST', { ...draft, repoUrl: 'https://github.com/Owner-1/Repo.Name.git?x=1#readme' }, 201);
-    assert.equal((await api(`/projects/${cleaned.id}`, admin.token)).repo_url, 'https://github.com/Owner-1/Repo.Name');
+    const cleaned = await api('/projects', (await makeUser()).token, 'POST', { ...draft, repoUrl: 'https://github.com/Owner-1/Repo.Name.GIT?x=1#readme' }, 201);
+    assert.equal((await api(`/projects/${cleaned.id}`, admin.token)).repo_url, 'https://github.com/owner-1/repo.name');
     const slash = await api('/projects', (await makeUser()).token, 'POST', { ...draft, repoUrl: 'https://github.com/owner/repo/' }, 201);
     assert.equal((await api(`/projects/${slash.id}`, admin.token)).repo_url, 'https://github.com/owner/repo');
     const other = await makeUser();

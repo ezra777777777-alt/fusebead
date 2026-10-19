@@ -42,6 +42,7 @@ const AdminLog = __importStar(require("../models/adminLog"));
 const SystemSetting = __importStar(require("../models/systemSetting"));
 const Feedback = __importStar(require("../models/feedback"));
 const db_1 = require("../config/db");
+const resource_registry_1 = require("./resource-registry");
 const http_1 = require("../utils/http");
 exports.adminRouter = (0, express_1.Router)();
 // All routes require admin
@@ -209,6 +210,9 @@ exports.adminRouter.put("/projects/:id", (0, http_1.asyncRoute)(async (req, res)
     if (note.length > 1000 || (["reject", "softDelete"].includes(action) && !note))
         throw new http_1.HttpError(400, "退回或下架时请填写原因（最多 1000 字）");
     await (0, db_1.transaction)(async () => {
+        const canRelease = action === "reject" ? await (0, resource_registry_1.guardWebsiteRegistryForRemoval)() : false;
+        if (["approve", "restore"].includes(action))
+            await (0, resource_registry_1.guardWebsiteRegistry)();
         const [project] = await (0, db_1.query)("SELECT * FROM projects WHERE id = ? FOR UPDATE", [id]);
         if (!project)
             throw new http_1.HttpError(404, "作品不存在");
@@ -217,6 +221,8 @@ exports.adminRouter.put("/projects/:id", (0, http_1.asyncRoute)(async (req, res)
         if (action === "approve") {
             if (project.is_deleted || project.status !== "pending")
                 throw new http_1.HttpError(409, "只能放行待审核的作品");
+            await (0, resource_registry_1.checkWebsiteResource)(project.id, project.revision, [project.repo_url, project.demo_url].filter(Boolean));
+            await (0, resource_registry_1.markWebsiteResourcePublished)(project.id, [project.repo_url, project.demo_url]);
             await (0, db_1.query)("UPDATE projects SET status = 'approved', moderation_note = '' WHERE id = ?", [id]);
             const award = await (0, db_1.query)("INSERT INTO contribution_events (user_id, event_key, points) VALUES (?, ?, 10) ON CONFLICT(user_id, event_key) DO NOTHING", [project.user_id, `project:${id}`]);
             if (award.affectedRows)
@@ -225,6 +231,8 @@ exports.adminRouter.put("/projects/:id", (0, http_1.asyncRoute)(async (req, res)
         else if (action === "reject") {
             if (project.is_deleted || project.status !== "pending")
                 throw new http_1.HttpError(409, "只能退回待审核的作品");
+            if (canRelease)
+                await (0, resource_registry_1.releaseWebsiteResource)(project.id, [project.repo_url, project.demo_url], "rejected");
             await (0, db_1.query)("UPDATE projects SET status = 'rejected', moderation_note = ?, is_featured = 0 WHERE id = ?", [note, id]);
         }
         else if (action === "softDelete") {
@@ -233,6 +241,7 @@ exports.adminRouter.put("/projects/:id", (0, http_1.asyncRoute)(async (req, res)
         else if (action === "restore") {
             if (!project.is_deleted)
                 throw new http_1.HttpError(409, "作品未被下架");
+            await (0, resource_registry_1.checkWebsiteResource)(project.id, project.revision, [project.repo_url, project.demo_url].filter(Boolean));
             await (0, db_1.query)("UPDATE projects SET is_deleted = 0, status = 'pending', moderation_note = '' WHERE id = ?", [id]);
         }
         else if (["feature", "unfeature"].includes(action)) {
@@ -406,6 +415,7 @@ exports.adminRouter.get("/logs", async (req, res) => {
 exports.adminRouter.get("/settings", async (_req, res) => {
     try {
         const settings = await SystemSetting.getAll();
+        delete settings.resource_registry_ready;
         res.json(settings);
     }
     catch (err) {
@@ -416,7 +426,7 @@ exports.adminRouter.get("/settings", async (_req, res) => {
 exports.adminRouter.put("/settings", async (req, res) => {
     try {
         const settings = req.body;
-        if (!Array.isArray(settings)) {
+        if (!Array.isArray(settings) || settings.some(s => s?.key === "resource_registry_ready")) {
             res.status(400).json({ error: "Expected array of {key, value}" });
             return;
         }
