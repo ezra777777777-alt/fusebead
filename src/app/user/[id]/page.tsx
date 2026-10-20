@@ -7,6 +7,8 @@ import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
+import { approvedWorksOnly, errorState, loadingState, presentLoad, readyState, runRequest, unauthorizedState } from "@/lib/load-state";
+import { LoadFailure, LoadingSkeleton } from "@/components/shared/LoadState";
 import { Project } from "@/lib/community";
 import { Pagination } from "@/components/shared/Pagination";
 import BeadProfile from "@/components/dashboard/BeadProfile";
@@ -19,23 +21,57 @@ export default function UserProfile() {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
+  const [authDenied, setAuthDenied] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [retry, setRetry] = useState(0);
   const [beads, setBeads] = useState(false);
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setLoading(false); setProjects([]); setProfile(null); return; }
+    if (!user) { setLoading(false); setProjects([]); setProfile(null); setError(""); setAuthDenied(false); return; }
     let active = true;
-    setLoading(true); setError("");
-    Promise.all([api(`/user/profile/${id}`), api(`/projects?authorId=${id}&page=${page}&limit=12`)]).then(([user, data]) => {
-      if (active) { setProfile(user); setProjects(data.projects); setTotal(data.total); }
-    }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
+    setLoading(true); setError(""); setAuthDenied(false);
+    void runRequest(async () => {
+      const [profileUser, data] = await Promise.all([
+        api<any>(`/user/profile/${id}`),
+        api<{ projects: Project[]; total: number }>(`/projects?authorId=${id}&page=${page}&limit=12`),
+      ]);
+      return { profile: profileUser, projects: approvedWorksOnly(data.projects), total: Number(data.total) || 0 };
+    }, "暂时无法读取作者档案").then(result => {
+      if (!active) return;
+      if (result.phase === "unauthorized") {
+        setAuthDenied(true);
+        setProfile(null);
+        setProjects([]);
+        setTotal(0);
+        setError("");
+        return;
+      }
+      setAuthDenied(false);
+      if (result.phase !== "ready" || !result.data) {
+        setProfile(null);
+        setProjects([]);
+        setError(result.error || "暂时无法读取作者档案");
+        return;
+      }
+      setProfile(result.data.profile);
+      setProjects(result.data.projects);
+      setTotal(result.data.total);
+    }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [id, page, user, authLoading]);
-  if (authLoading || (user && loading)) return <p className="px-5 py-32 text-center font-black">正在确认登录状态…</p>;
-  if (!user) return <div className="min-h-[70vh] px-5 pt-28"><div className="mx-auto max-w-3xl"><ContentLoginPrompt title="这位作者的作品需要登录" detail="未登录时不读取作品列表、图纸缩略图和评论。登录后回到这个主页。" returnTo={`/user/${id}`} /></div></div>;
+  }, [id, page, user, authLoading, retry]);
+  const listState = !user || authDenied
+    ? unauthorizedState<Project[]>()
+    : error
+      ? errorState<Project[]>(error, "暂时无法读取作者档案")
+      : loading
+        ? loadingState<Project[]>()
+        : readyState(projects);
+  const listView = presentLoad(listState, !!user && !authDenied);
+  if (authLoading) return <p className="px-5 py-32 text-center font-black">正在确认登录状态…</p>;
+  if (listView === "login") return <div data-phase="login" className="min-h-[70vh] px-5 pt-28"><div className="mx-auto max-w-3xl"><ContentLoginPrompt title="这位作者的作品需要登录" detail="未登录时不读取作品列表、图纸缩略图和评论。登录后回到这个主页。" returnTo={`/user/${id}`} /></div></div>;
   return <div className="min-h-[70vh] px-5 pb-12 pt-28 text-black"><div className="mx-auto max-w-5xl">
     <Link href="/" className="text-sm font-bold underline">← 返回社区</Link>
-    {error ? <p role="alert" className="my-8 border-2 border-red-500 p-5">{error}</p> : loading ? <p className="py-20 text-center">正在读取作者档案…</p> : profile && <>
+    {listView === "retry" ? <div className="my-8"><LoadFailure message={listState.error || "暂时无法读取作者档案"} onRetry={() => setRetry(value => value + 1)} /></div> : listView === "skeleton" ? <div className="my-8"><LoadingSkeleton label="正在读取作者档案…" /></div> : profile && <>
       <header className="my-7 flex flex-wrap items-center gap-5 border-2 border-black bg-white p-7 shadow-[6px_6px_0_#000]">
         <div className="flex shrink-0 h-20 w-20 items-center justify-center overflow-hidden border-2 border-black bg-black text-3xl font-black text-[var(--acid)]">{profile.avatar_url ? <img src={profile.avatar_url} alt="作者头像" className="h-full w-full object-cover" /> : profile.username.slice(0,1)}</div>
         <div className="min-w-0 flex-1"><h1 className="[overflow-wrap:anywhere] text-3xl font-black">{profile.username}</h1><p className="mt-2 text-sm text-black/55">{profile.projectCount} 份公开作品 · {profile.projectVotes} 个赞 · {profile.contribution_points} 清运值</p><p className="mt-2 text-xs text-black/40">加入于 {serverDate(profile.created_at).toLocaleDateString("zh-CN")}</p></div>

@@ -7,6 +7,8 @@ import { ArrowRight, Code2, MessageCircle, Plus, Search, ThumbsUp } from "lucide
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
 import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
+import { approvedWorksOnly, errorState, loadingState, presentLoad, readyState, runRequest, unauthorizedState } from "@/lib/load-state";
+import { LoadFailure, LoadingSkeleton } from "@/components/shared/LoadState";
 import { GITHUB_CATEGORY, Project, serverDate } from "@/lib/community";
 import { Pagination } from "@/components/shared/Pagination";
 
@@ -21,8 +23,17 @@ export function GithubProjects() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [authDenied, setAuthDenied] = useState(false);
   const [retry, setRetry] = useState(0);
   const submitHref = `/submit?category=${encodeURIComponent(GITHUB_CATEGORY)}`;
+  const listState = !user || authDenied
+    ? unauthorizedState<Project[]>()
+    : error
+      ? errorState<Project[]>(error, "暂时无法读取项目")
+      : loading
+        ? loadingState<Project[]>()
+        : readyState(projects);
+  const listView = presentLoad(listState, !!user && !authDenied);
   const changeFilters = (changes: Record<string, string>) => {
     const next = new URLSearchParams(params.toString());
     for (const [key, value] of Object.entries(changes)) {
@@ -34,15 +45,32 @@ export function GithubProjects() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setLoading(false); setProjects([]); setTotal(0); setError(""); return; }
+    if (!user) { setLoading(false); setProjects([]); setTotal(0); setError(""); setAuthDenied(false); return; }
     let active = true;
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setAuthDenied(false);
     const timer = window.setTimeout(() => {
       const query = new URLSearchParams({ category: GITHUB_CATEGORY, search: search.trim(), sort, page: String(page), limit: "12" });
-      api<{ projects: Project[]; total: number }>(`/projects?${query}`)
-        .then(data => { if (active) { setProjects(data.projects); setTotal(data.total); } })
-        .catch(e => { if (active) setError(e instanceof Error ? e.message : "暂时无法读取项目"); })
-        .finally(() => { if (active) setLoading(false); });
+      void runRequest(async () => {
+        const data = await api<{ projects: Project[]; total: number }>(`/projects?${query}`);
+        return { projects: approvedWorksOnly(data.projects), total: Number(data.total) || 0 };
+      }, "暂时无法读取项目").then(result => {
+        if (!active) return;
+        if (result.phase === "unauthorized") {
+          setAuthDenied(true);
+          setProjects([]);
+          setTotal(0);
+          setError("");
+          return;
+        }
+        setAuthDenied(false);
+        if (result.phase !== "ready" || !result.data) {
+          setProjects([]);
+          setError(result.error || "暂时无法读取项目");
+          return;
+        }
+        setProjects(result.data.projects);
+        setTotal(result.data.total);
+      }).finally(() => { if (active) setLoading(false); });
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
   }, [search, sort, page, retry, user, authLoading]);
@@ -73,7 +101,7 @@ export function GithubProjects() {
     </section>
 
     <section id="projects" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-9 sm:px-6 lg:px-8">
-      {authLoading ? <p className="py-16 text-center font-black">正在确认登录状态…</p> : !user ? <ContentLoginPrompt title="资源分享需要登录" detail="未登录时不加载项目名称、仓库、摘要或截图。登录后回到资源区。" returnTo={`/github${params.size ? `?${params.toString()}` : ""}#projects`} /> : <>
+      {authLoading ? <p className="py-16 text-center font-black">正在确认登录状态…</p> : listView === "login" ? <div data-phase="login"><ContentLoginPrompt title="资源分享需要登录" detail="未登录时不加载项目名称、仓库、摘要或截图。登录后回到资源区。" returnTo={`/github${params.size ? `?${params.toString()}` : ""}#projects`} /></div> : <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-xs font-black tracking-widest text-[var(--orange)]">COMMUNITY PICKS</p><h2 className="mt-1 text-2xl font-black">资源分享</h2><p aria-live="polite" className="mt-2 text-sm text-black/55">{loading ? "正在查找项目…" : error ? "项目暂时未加载" : `${total} 个已审核项目`}</p></div>
         <label className="flex min-w-0 items-center gap-2 border-2 border-black bg-white px-3 py-3 shadow-[3px_3px_0_#000] sm:w-80"><Search className="h-4 w-4 shrink-0" /><input aria-label="搜索资源" value={search} onChange={e => changeFilters({ search: e.target.value, page: "1" })} maxLength={80} placeholder="搜用途、技术栈或仓库名" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
@@ -82,7 +110,7 @@ export function GithubProjects() {
         <label>排序 <select aria-label="资源排序" value={sort} onChange={e => changeFilters({ sort: e.target.value, page: "1" })} className="ml-2 bg-transparent"><option value="latest">最新分享</option><option value="popular">最多点赞</option><option value="discussed">最多讨论</option></select></label>
         {(search || page > 1) && <button onClick={() => changeFilters({ search: "", page: "1" })} className="ml-auto underline">清除筛选</button>}
       </div>
-      {error ? <div role="alert" className="border-2 border-black bg-white p-10 text-center"><p>{error}</p><button onClick={() => setRetry(value => value + 1)} className="mt-4 font-bold underline">重新加载</button></div> : loading ? <p className="py-16 text-center">正在读取分享…</p> : projects.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      {listView === "retry" ? <LoadFailure message={listState.error || "暂时无法读取项目"} onRetry={() => setRetry(value => value + 1)} /> : listView === "skeleton" ? <LoadingSkeleton label="正在读取分享…" /> : projects.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {projects.map(project => <article key={project.id} className="flex min-w-0 flex-col border-2 border-black bg-white p-5 shadow-[5px_5px_0_#000]">
           <div className="flex items-center gap-2 text-xs font-bold text-black/55"><Code2 className="h-5 w-5 shrink-0" /><span className="min-w-0 [overflow-wrap:anywhere]">{project.repo_url?.replace("https://github.com/", "")}</span>{!!project.is_featured && <span className="ml-auto shrink-0 bg-[var(--acid)] px-2 py-1 text-black">推荐</span>}</div>
           <h3 className="mt-4 [overflow-wrap:anywhere] text-xl font-black"><Link href={`/projects/${project.id}?from=github&feed=${encodeURIComponent(params.toString())}`} className="hover:text-[var(--orange)]">{project.title}</Link></h3>
@@ -91,7 +119,7 @@ export function GithubProjects() {
           <div className="mt-5 flex flex-wrap gap-x-3 gap-y-2 border-t border-black/15 pt-3 text-xs text-black/55"><Link href={`/user/${project.user_id}`} className="[overflow-wrap:anywhere] hover:underline">分享者：{project.author_name}</Link><time>{serverDate(project.created_at).toLocaleDateString("zh-CN")}</time><span className="inline-flex items-center gap-1"><ThumbsUp className="h-3 w-3" />{project.votes_count}</span><span className="inline-flex items-center gap-1"><MessageCircle className="h-3 w-3" />{project.comments_count}</span></div>
         </article>)}
       </div> : <div className="border-2 border-dashed border-black/35 bg-white px-5 py-14 text-center"><Code2 className="mx-auto h-10 w-10 text-black/30" /><h3 className="mt-4 text-xl font-black">{search || page > 1 ? "没有找到匹配的项目" : "专区开张，等你分享第一个好项目"}</h3><p className="mt-3 text-sm leading-6 text-black/55">{search || page > 1 ? "换个关键词，或者清除筛选再看看。" : "推荐自己做的，也推荐别人做的；说清楚它帮你解决了什么。"}</p><Link href={submitHref} className="mt-5 inline-flex font-black underline">分享一个资源 →</Link></div>}
-      {!error && !loading && total > 12 && <Pagination page={page} totalPages={Math.ceil(total / 12)} onChange={value => changeFilters({ page: String(value) })} />}
+      {listView === "ready" && total > 12 && <Pagination page={page} totalPages={Math.ceil(total / 12)} onChange={value => changeFilters({ page: String(value) })} />}
       </>}
     </section>
   </div>;

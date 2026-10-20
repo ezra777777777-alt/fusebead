@@ -23,9 +23,11 @@ test('home approved-works entry is a door, not a thumbnail or title list', () =>
   const home = read('src/components/landing/cyber-home.tsx');
   const entry = home.slice(home.indexOf('data-approved-works'), home.indexOf('data-approved-works-end'));
   assert.equal(entry.includes('已审核作品'), true);
+  assert.equal(entry.includes('href="/works"'), true);
   assert.equal(entry.includes('<img'), false);
   assert.equal(entry.includes('thumbnail'), false);
   assert.equal(entry.includes('cover_url'), false);
+  assert.equal(entry.includes('/projects/'), false);
   assert.equal(entry.includes('openAuth'), true);
 });
 

@@ -4,6 +4,8 @@ import { Suspense, useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { categories, categoryLabel, GITHUB_CATEGORY, Project } from "@/lib/community";
+import { runRequest } from "@/lib/load-state";
+import { LoadFailure, LoadingSkeleton } from "@/components/shared/LoadState";
 import { ArrowLeft, CheckCircle2, Code2, ExternalLink, ImagePlus, Loader2, Save, ShieldCheck, Upload } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { api, API_BASE } from "@/lib/api";
@@ -31,7 +33,7 @@ const emptyDraft: Draft = {
   confession: "",
 };
 
-export default function SubmitPage() { return <Suspense fallback={<p className="px-5 py-32 text-center">正在读取投稿…</p>}><SubmitEntry /></Suspense>; }
+export default function SubmitPage() { return <Suspense fallback={<div className="min-h-screen bg-[var(--background)] px-4 pb-16 pt-24"><LoadingSkeleton label="正在读取投稿…" variant="form" /></div>}><SubmitEntry /></Suspense>; }
 function SubmitEntry() {
   const params = useSearchParams();
   const editId = params.get("edit");
@@ -56,6 +58,8 @@ function SubmitForm({ editId, initialCategory }: { editId: string | null; initia
   const [uploading, setUploading] = useState(false);
   const [submittedId, setSubmittedId] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [authDenied, setAuthDenied] = useState(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
 
   useEffect(() => {
     if (submittedId) {
@@ -80,10 +84,26 @@ function SubmitForm({ editId, initialCategory }: { editId: string | null; initia
     let active = true;
     if (editId) {
       setReading(true);
-      if (!user) { setReading(false); return; }
-      api<Project>(`/projects/${editId}`).then(project => {
+      setError("");
+      setAuthDenied(false);
+      if (!user) { setReading(false); setOriginal(null); return; }
+      const editor = user;
+      void runRequest(async () => {
+        const project = await api<Project>(`/projects/${editId}`);
+        if (project.user_id !== editor.id || project.is_deleted) throw new Error("这份投稿不能修改");
+        return project;
+      }, "暂时无法打开这份投稿").then(result => {
         if (!active) return;
-        if (project.user_id !== user.id || project.is_deleted) throw new Error("这份投稿不能修改");
+        if (result.phase === "unauthorized") {
+          setAuthDenied(true);
+          setOriginal(null);
+          setError("");
+          restoreDraft({ ...emptyDraft, category: initialCategory });
+          return;
+        }
+        if (result.phase !== "ready" || !result.data) { setAuthDenied(false); setError(result.error || "暂时无法打开这份投稿"); return; }
+        const project = result.data;
+        setAuthDenied(false);
         setOriginal(project);
         restoreDraft({ title: project.title, summary: project.summary, category: project.category, demoUrl: project.demo_url, repoUrl: project.repo_url || "", coverUrl: project.cover_url || "", stack: project.tech_stack || "", confession: project.confession || "" });
         try {
@@ -91,7 +111,7 @@ function SubmitForm({ editId, initialCategory }: { editId: string | null; initia
           if (stored?.revision === project.revision) { restoreDraft({ ...emptyDraft, ...stored }); setSaved(true); setDraftNotice("已恢复这份投稿的本机草稿，修改尚未送审。"); }
           else if (stored) setDraftNotice("审核版本已更新，当前显示最新投稿；旧草稿未覆盖新版本。");
         } catch { setDraftNotice("无法读取本机草稿，当前显示服务器保存的投稿。"); }
-      }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setReading(false); });
+      }).finally(() => { if (active) setReading(false); });
     } else {
       try {
         const own = readDraft(draftKey);
@@ -104,7 +124,7 @@ function SubmitForm({ editId, initialCategory }: { editId: string | null; initia
       } catch { setDraftNotice("无法读取本机草稿，请保留自己的内容备份。"); }
     }
     return () => { active = false; };
-  }, [editId, user?.id, loading, draftKey, draftScope, initialCategory]);
+  }, [editId, user?.id, loading, draftKey, draftScope, initialCategory, loadAttempt]);
 
   const update = (key: keyof Draft, value: string) => {
     const next = { ...draftRef.current, [key]: value };
@@ -167,9 +187,10 @@ function SubmitForm({ editId, initialCategory }: { editId: string | null; initia
     }
   };
 
-  if (loading || reading) return <p className="px-5 py-32 text-center">正在读取投稿…</p>;
-  if (editId && !user) return <div className="px-5 py-32 text-center"><h1 className="mb-5 text-2xl font-black">登录后修改投稿</h1><button onClick={() => openAuth()} className="cyber-button bg-[var(--acid)]">登录</button></div>;
-  if (editId && !original && error) return <div className="mx-auto max-w-xl px-5 py-32 text-center"><h1 className="text-2xl font-black">暂时无法打开这份投稿</h1><p role="alert" className="my-5">{error}</p><div className="flex flex-wrap justify-center gap-5"><button onClick={() => window.location.reload()} className="underline">重新加载</button><Link href="/dashboard" className="underline">返回我的投稿</Link><Link href="/submit" className="underline">新建投稿</Link></div></div>;
+  const retryEditLoad = () => { setError(""); setAuthDenied(false); setReading(true); setLoadAttempt(value => value + 1); };
+  if (loading || reading) return <div className="min-h-screen bg-[var(--background)] px-4 pb-16 pt-24"><LoadingSkeleton label="正在读取投稿…" variant="form" /></div>;
+  if (editId && (!user || authDenied)) return <div data-phase="login" className="px-5 py-32 text-center"><h1 className="mb-5 text-2xl font-black">登录后修改投稿</h1><p className="mb-5 text-sm font-semibold text-black/70">未登录时不读取投稿标题、正文或截图。</p><button onClick={() => openAuth()} className="cyber-button bg-[var(--acid)]">登录</button></div>;
+  if (editId && !original && error) return <div className="mx-auto max-w-xl px-5 py-24 text-center"><LoadFailure message={error} onRetry={retryEditLoad} /><div className="mt-5 flex flex-wrap justify-center gap-5"><Link href="/dashboard" className="underline">返回我的投稿</Link><Link href="/submit" className="underline">新建投稿</Link></div></div>;
   return (
     <div className="min-h-screen bg-[var(--background)] pt-16 text-black">
       <div className="border-b-4 border-black bg-[#111]">
