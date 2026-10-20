@@ -1,9 +1,9 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
 import { randomUUID } from "crypto";
 
-function getTransporter(): nodemailer.Transporter {
+function getTransporter(): Transporter {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || "smtp.163.com",
     port: Number(process.env.SMTP_PORT) || 465,
