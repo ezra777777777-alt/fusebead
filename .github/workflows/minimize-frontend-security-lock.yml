@@ -1,0 +1,43 @@
+name: Minimize frontend security lock
+
+on:
+  push:
+    branches: [codex/security-deps-audit]
+    paths: [.github/workflows/minimize-frontend-security-lock.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  update-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: |
+          git checkout origin/main -- package.json package-lock.json eslint.config.mjs
+          npm install next@16.4.2 --save-exact --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm uninstall eslint-config-next --save-dev --package-lock-only --ignore-scripts --no-audit --no-fund
+          npm install @eslint/js@9.39.4 typescript-eslint@8.59.3 --save-dev --package-lock-only --ignore-scripts --no-audit --no-fund
+      - run: |
+          cat > eslint.config.mjs <<'EOF'
+          import js from "@eslint/js";
+          import tseslint from "typescript-eslint";
+
+          export default tseslint.config(
+            { ignores: [".next/**", "out/**", "build/**", "next-env.d.ts", "server/**", "processor/**"] },
+            js.configs.recommended,
+            ...tseslint.configs.recommended,
+          );
+          EOF
+          npm audit --json > audit.json
+          node -e 'const a=require("./audit.json"); if ((a.metadata?.vulnerabilities?.total ?? 0) !== 0) process.exit(1)'
+      - run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add package.json package-lock.json eslint.config.mjs
+          git diff --cached --quiet || git commit -m "fix: minimize frontend security upgrades"
+          git push
+
