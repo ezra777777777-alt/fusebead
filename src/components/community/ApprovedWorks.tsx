@@ -73,15 +73,15 @@ export function ApprovedWorks() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--background)] pt-16 text-black">
-      <section className="cyber-hero border-b-4 border-black text-white">
+    <div className="editorial-site min-h-screen pt-16 text-black">
+      <section className="editorial-hero">
         <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
           <p className="inline-flex items-center gap-2 border-2 border-black bg-[var(--acid)] px-3 py-1 text-xs font-black tracking-widest text-black">
             <BadgeCheck className="h-4 w-4" /> APPROVED ONLY · 已审核
           </p>
           <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight sm:text-6xl">已审核作品</h1>
           <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-white/70">
-            这里只展示已通过审核、且未下架的公开作品。待审核、需修改、已撤回和已下架的内容不会出现。
+            脑洞已经过检，就等你来体验。逛逛新作品，给作者留一句反馈，也可以把自己的项目端上来。
           </p>
         </div>
       </section>
@@ -95,12 +95,12 @@ export function ApprovedWorks() {
               {view === "skeleton" ? "正在读取已审核作品…" : view === "retry" ? "列表暂时没有加载出来" : `${total} 份已审核作品`}
             </p>
           </div>
-          <label className="flex min-w-0 items-center gap-2 border-2 border-black bg-white px-3 py-3 shadow-[3px_3px_0_#000] sm:w-80">
+          <label className="editorial-search sm:w-80">
             <Search className="h-4 w-4 shrink-0" />
             <input aria-label="搜索已审核作品" value={search} onChange={event => changeFilters({ search: event.target.value, page: "1" })} maxLength={80} placeholder="搜标题、简介或作者" className="min-w-0 flex-1 bg-transparent text-sm outline-none" />
           </label>
         </div>
-        <div className="my-5 flex flex-wrap items-center gap-3 border-y-2 border-black py-3 text-sm font-bold">
+        <div className="my-5 flex flex-wrap items-center gap-3 border-y border-black/20 py-2 text-sm font-bold">
           <label>排序
             <select aria-label="作品排序" value={sort} onChange={event => changeFilters({ sort: event.target.value, page: "1" })} className="ml-2 bg-transparent">
               <option value="latest">最新通过</option>
@@ -108,13 +108,13 @@ export function ApprovedWorks() {
               <option value="discussed">最多评论</option>
             </select>
           </label>
-          {(search || page > 1 || sort !== "latest") && <button type="button" onClick={() => changeFilters({ search: "", sort: "latest", page: "1" })} className="ml-auto underline">清除筛选</button>}
+          {(search || page > 1 || sort !== "latest") && <button type="button" onClick={() => changeFilters({ search: "", sort: "latest", page: "1" })} className="ml-auto min-h-11 underline underline-offset-4">清除筛选</button>}
         </div>
 
         {view === "retry" ? <LoadFailure message={state.error || FALLBACK} onRetry={() => setRetry(value => value + 1)} /> : view === "skeleton" ? <LoadingSkeleton label="正在读取已审核作品…" /> : projects.length ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {projects.map(project => (
-              <article key={project.id} className="flex min-w-0 flex-col border-2 border-black bg-white p-5 shadow-[5px_5px_0_#000]">
+              <article key={project.id} className="editorial-card">
                 <div className="flex items-center gap-2 text-xs font-black text-[var(--orange)]">
                   <span>{categoryLabel(project.category)}</span>
                   <span className="ml-auto border border-black bg-[var(--acid)] px-1.5 py-0.5 text-[10px] text-black">已审核</span>
@@ -122,7 +122,7 @@ export function ApprovedWorks() {
                 <h3 className="mt-4 [overflow-wrap:anywhere] text-xl font-black">
                   <Link href={`/projects/${project.id}`} className="hover:text-[var(--orange)]">{project.title}</Link>
                 </h3>
-                <p className="mt-3 flex-1 [overflow-wrap:anywhere] text-sm leading-7 text-black/65">{project.summary}</p>
+                <p className="mt-3 line-clamp-3 flex-1 [overflow-wrap:anywhere] text-sm leading-7 text-black/65">{project.summary}</p>
                 <div className="mt-5 flex flex-wrap gap-x-3 gap-y-2 border-t border-black/15 pt-3 text-xs text-black/55">
                   <Link href={`/user/${project.user_id}`} className="[overflow-wrap:anywhere] hover:underline">{project.author_name || "匿名搬运工"}</Link>
                   <time>{serverDate(project.created_at).toLocaleDateString("zh-CN")}</time>
