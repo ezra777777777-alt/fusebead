@@ -75,22 +75,22 @@ export function GithubProjects() {
     return () => { active = false; window.clearTimeout(timer); };
   }, [search, sort, page, retry, user, authLoading]);
 
-  return <div className="min-h-screen bg-[var(--background)] pt-16 text-black">
-    <section className="cyber-hero border-b-4 border-black text-white">
+  return <div className="editorial-site min-h-screen pt-16 text-black">
+    <section className="editorial-hero">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1fr)_300px] lg:px-8 lg:py-16">
         <div>
           <p className="inline-flex items-center gap-2 border-2 border-black bg-[var(--acid)] px-3 py-1 text-xs font-black tracking-widest text-black"><Code2 className="h-4 w-4" /> RESOURCE SHARING · 资源分享</p>
-          <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight sm:text-6xl">这栏，<br /><span className="text-[var(--acid)]">真有点用。</span></h1>
+          <h1 className="mt-6 text-4xl font-black leading-tight tracking-tight sm:text-6xl">这栏，<span className="text-[var(--acid)]">真有点用。</span></h1>
           <p className="mt-5 max-w-2xl text-base font-semibold leading-7 text-white/65">开发工具、效率神器、学习资源。把你在 GitHub 上发现的好项目，连同“怎么用、好在哪”一起分享出来。</p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link href={submitHref} className="cyber-button bg-[var(--orange)] text-white"><Plus className="h-5 w-5" /> 分享资源</Link>
+            <Link href={submitHref} className="cyber-button bg-[var(--orange)] text-black"><Plus className="h-5 w-5" /> 分享资源</Link>
             <a href="#projects" className="cyber-button bg-white text-black"><Search className="h-5 w-5" /> 逛逛资源</a>
           </div>
         </div>
-        <aside className="self-center border-2 border-black bg-[#fff7d6] p-5 text-black shadow-[7px_7px_0_var(--orange)]">
-          <p className="font-mono text-xs font-bold text-black/50">GOOD TOOLS / REAL EXPERIENCE</p>
+        <aside className="self-center border-t-4 border-[var(--acid)] bg-white/5 p-6 text-white">
+          <p className="font-mono text-[10px] font-bold tracking-wider text-white/60">GOOD TOOLS / REAL EXPERIENCE</p>
           <h2 className="mt-3 text-xl font-black">贴个链接，再说两句。</h2>
-          <ol className="mt-4 space-y-3 text-sm font-semibold leading-6 text-black/65">
+          <ol className="mt-4 space-y-3 text-sm leading-6 text-white/75">
             <li>01 / 分享公开仓库，保留原作者出处。</li>
             <li>02 / 说明用途、上手方法和使用限制。</li>
             <li>03 / 审核通过后公开，大家一起补充体验。</li>
@@ -104,17 +104,17 @@ export function GithubProjects() {
       {authLoading ? <p className="py-16 text-center font-black">正在确认登录状态…</p> : listView === "login" ? <div data-phase="login"><ContentLoginPrompt title="资源分享需要登录" detail="未登录时不加载项目名称、仓库、摘要或截图。登录后回到资源区。" returnTo={`/github${params.size ? `?${params.toString()}` : ""}#projects`} /></div> : <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-xs font-black tracking-widest text-[var(--orange)]">COMMUNITY PICKS</p><h2 className="mt-1 text-2xl font-black">资源分享</h2><p aria-live="polite" className="mt-2 text-sm text-black/55">{loading ? "正在查找项目…" : error ? "项目暂时未加载" : `${total} 个已审核项目`}</p></div>
-        <label className="flex min-w-0 items-center gap-2 border-2 border-black bg-white px-3 py-3 shadow-[3px_3px_0_#000] sm:w-80"><Search className="h-4 w-4 shrink-0" /><input aria-label="搜索资源" value={search} onChange={e => changeFilters({ search: e.target.value, page: "1" })} maxLength={80} placeholder="搜用途、技术栈或仓库名" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
+        <label className="editorial-search sm:w-80"><Search className="h-4 w-4 shrink-0" /><input aria-label="搜索资源" value={search} onChange={e => changeFilters({ search: e.target.value, page: "1" })} maxLength={80} placeholder="搜用途、技术栈或仓库名" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
       </div>
-      <div className="my-5 flex flex-wrap items-center gap-3 border-y-2 border-black py-3 text-sm font-bold">
+      <div className="my-5 flex flex-wrap items-center gap-3 border-y border-black/20 py-2 text-sm font-bold">
         <label>排序 <select aria-label="资源排序" value={sort} onChange={e => changeFilters({ sort: e.target.value, page: "1" })} className="ml-2 bg-transparent"><option value="latest">最新分享</option><option value="popular">最多点赞</option><option value="discussed">最多讨论</option></select></label>
-        {(search || page > 1) && <button onClick={() => changeFilters({ search: "", page: "1" })} className="ml-auto underline">清除筛选</button>}
+        {(search || page > 1 || sort !== "latest") && <button onClick={() => changeFilters({ search: "", sort: "latest", page: "1" })} className="ml-auto min-h-11 underline underline-offset-4">清除筛选</button>}
       </div>
       {listView === "retry" ? <LoadFailure message={listState.error || "暂时无法读取项目"} onRetry={() => setRetry(value => value + 1)} /> : listView === "skeleton" ? <LoadingSkeleton label="正在读取分享…" /> : projects.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-        {projects.map(project => <article key={project.id} className="flex min-w-0 flex-col border-2 border-black bg-white p-5 shadow-[5px_5px_0_#000]">
+        {projects.map(project => <article key={project.id} className="editorial-card">
           <div className="flex items-center gap-2 text-xs font-bold text-black/55"><Code2 className="h-5 w-5 shrink-0" /><span className="min-w-0 [overflow-wrap:anywhere]">{project.repo_url?.replace("https://github.com/", "")}</span>{!!project.is_featured && <span className="ml-auto shrink-0 bg-[var(--acid)] px-2 py-1 text-black">推荐</span>}</div>
           <h3 className="mt-4 [overflow-wrap:anywhere] text-xl font-black"><Link href={`/projects/${project.id}?from=github&feed=${encodeURIComponent(params.toString())}`} className="hover:text-[var(--orange)]">{project.title}</Link></h3>
-          <p className="mt-3 flex-1 [overflow-wrap:anywhere] text-sm leading-7 text-black/65">{project.summary}</p>
+          <p className="mt-3 line-clamp-3 flex-1 [overflow-wrap:anywhere] text-sm leading-7 text-black/65">{project.summary}</p>
           {project.tech_stack && <p className="mt-4 border-l-4 border-[var(--acid)] pl-3 [overflow-wrap:anywhere] text-xs font-bold">{project.tech_stack}</p>}
           <div className="mt-5 flex flex-wrap gap-x-3 gap-y-2 border-t border-black/15 pt-3 text-xs text-black/55"><Link href={`/user/${project.user_id}`} className="[overflow-wrap:anywhere] hover:underline">分享者：{project.author_name}</Link><time>{serverDate(project.created_at).toLocaleDateString("zh-CN")}</time><span className="inline-flex items-center gap-1"><ThumbsUp className="h-3 w-3" />{project.votes_count}</span><span className="inline-flex items-center gap-1"><MessageCircle className="h-3 w-3" />{project.comments_count}</span></div>
         </article>)}

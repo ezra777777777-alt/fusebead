@@ -115,6 +115,122 @@ body {
   color: #141414;
 }
 
+/* Community layouts are scoped so the bead tools keep their existing theme. */
+.editorial-site {
+  --background: #f4f1e9;
+  background: var(--background);
+}
+
+.editorial-hero {
+  border-bottom: 5px solid var(--orange);
+  background: #181a16;
+  color: white;
+}
+
+.editorial-headline {
+  font-size: clamp(2.15rem, 5.3vw, 4.6rem);
+  line-height: 1.22;
+  letter-spacing: -.065em;
+  text-wrap: balance;
+}
+
+.poster-note {
+  position: relative;
+  align-self: center;
+  padding: 24px;
+  background: var(--orange);
+  color: #141414;
+  box-shadow: 8px 8px 0 #080808;
+  transform: rotate(2deg);
+}
+
+.poster-number {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  margin: 20px -5px 24px;
+  font: 900 100px/.9 'IBM Plex Mono', monospace;
+  letter-spacing: -.1em;
+}
+
+.poster-number span {
+  padding-bottom: 5px;
+  font: 700 10px/1.7 var(--font-sans);
+  letter-spacing: 0;
+}
+
+.poster-sticker {
+  margin: 0 -34px;
+  padding: 10px 16px;
+  border: 2px solid #141414;
+  background: var(--acid);
+  font: 700 15px/1.4 'IBM Plex Mono', monospace;
+  text-align: center;
+  transform: rotate(-6deg);
+}
+
+.editorial-search {
+  display: flex;
+  min-width: 0;
+  min-height: 48px;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #817f75;
+  background: #fffdf8;
+  padding: 10px 14px;
+}
+
+.editorial-search:focus-within {
+  outline: 2px solid var(--orange);
+  outline-offset: 3px;
+}
+
+.editorial-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid #c8c5b8;
+  border-top: 3px solid #191b16;
+  background: #fffdf8;
+  padding: 24px;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+
+.editorial-card:hover,
+.editorial-card:focus-within {
+  border-color: #191b16;
+  box-shadow: 4px 4px 0 #dcd8c9;
+}
+
+.editorial-site :is(a, button, select, input):focus-visible,
+.site-nav :is(a, button):focus-visible {
+  outline: 2px solid var(--orange);
+  outline-offset: 4px;
+}
+
+.editorial-site .cyber-button {
+  min-height: 48px;
+  font-size: 14px;
+  box-shadow: 3px 3px 0 #000;
+}
+
+.editorial-site select {
+  min-height: 40px;
+  max-width: 100%;
+}
+
+@media (max-width: 767px) {
+  .poster-note { transform: none; box-shadow: 5px 5px 0 #080808; }
+  .poster-number { display: none; }
+  .poster-sticker { margin: 20px -10px 0; font-size: 13px; }
+  .editorial-search input { font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .editorial-site *, .site-nav * { animation: none !important; transition: none !important; }
+}
+
 /* Bead gradient — warm rainbow across the bead spectrum */
 .bead-gradient-text {
   background: linear-gradient(135deg, #FF9EB5, #FFE082, #87CEEB);
