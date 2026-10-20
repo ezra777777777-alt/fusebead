@@ -34,7 +34,7 @@ jobs:
           );
           EOF
           npm audit --json > audit.json
-          node -e 'const a=require("./audit.json"); if ((a.metadata?.vulnerabilities?.total ?? 0) !== 0) process.exit(1)'
+          node -e 'const a=require("./audit.json"); console.log(JSON.stringify(Object.fromEntries(Object.entries(a.vulnerabilities || {}).map(([name, value]) => [name, value.severity])))); if ((a.metadata?.vulnerabilities?.total ?? 0) !== 0) process.exit(1)'
       - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
