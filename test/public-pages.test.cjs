@@ -29,6 +29,21 @@ test('home approved-works entry is a door, not a thumbnail or title list', () =>
   assert.equal(entry.includes('openAuth'), true);
 });
 
+test('submit upload copy matches the login gate', () => {
+  const submit = read('src/app/submit/page.tsx');
+  assert.equal(submit.includes('图片链接可直接访问'), false);
+  assert.equal(submit.includes('站内图片链接需要登录才能查看'), true);
+  assert.equal(submit.includes('AuthedCover'), true);
+  assert.equal(submit.includes('AttachmentGallery'), true);
+});
+
+test('project detail keeps the authenticated cover and the attachment gallery', () => {
+  const page = read('src/app/projects/[id]/page.tsx');
+  assert.equal(page.includes('<AuthedCover'), true);
+  assert.equal(page.includes('<img src={project.cover_url}'), false);
+  assert.equal(page.includes('<AttachmentGallery'), true);
+});
+
 test('sitemap and robots do not publish individual works', () => {
   const sitemap = read('src/app/sitemap.ts');
   const robots = read('src/app/robots.ts');

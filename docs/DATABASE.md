@@ -193,6 +193,30 @@ FuseBead 使用**双数据库引擎**设计：
 
 ---
 
+### 11. project_attachments — 帖子图片
+
+只在显式迁移后存在。服务进程启动不会建这张表，因此部署新代码本身不会改生产库。在准备好的库上执行：
+
+```bash
+cd server && npm run migrate:project-attachments
+```
+
+命令使用当前环境的 `DATABASE_URL`（PostgreSQL）或 `DB_PATH`（SQLite）。不要把生产连接串交给未获授权的运行。
+
+| 列名 | PG 类型 | SQLite 类型 | 约束 | 说明 |
+|------|---------|-------------|------|------|
+| `id` | SERIAL | INTEGER | PRIMARY KEY | 自增主键 |
+| `project_id` | INTEGER | INTEGER | NOT NULL, FK→projects(id) ON DELETE CASCADE | 所属帖子 |
+| `stored_name` | TEXT | TEXT | NOT NULL, UNIQUE | 随机文件名，不接受客户端路径 |
+| `mime` | TEXT | TEXT | NOT NULL | `image/jpeg`、`image/png` 或 `image/webp` |
+| `byte_size` | INTEGER | INTEGER | NOT NULL | 清洗后的字节数 |
+| `sort_order` | INTEGER | INTEGER | NOT NULL | 从 0 起的展示顺序 |
+| `created_at` | TEXT | TEXT | DEFAULT NOW() | 上传时间 |
+
+**索引:** `idx_project_attachments_project (project_id, sort_order)`
+
+文件不在站点静态目录里。下载必须经过登录后的附件接口，并遵守帖子的审核状态。
+
 ## 实体关系图 (ERD)
 
 ```

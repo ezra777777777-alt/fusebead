@@ -12,6 +12,7 @@ import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
 import { AuthedCover } from "@/components/community/AuthedCover";
 
 import { GITHUB_CATEGORY, Project, projectStatus } from "@/lib/community";
+import { AttachmentGallery } from "@/components/community/AttachmentGallery";
 
 type Comment = { id: number; user_id: number; content: string; username: string; contribution_points: number; created_at: string };
 
@@ -136,6 +137,7 @@ export default function ProjectDetailPage() {
           {error && <div role="alert" className="border-2 border-red-600 bg-red-50 p-4 text-red-700">{error}</div>}
           {(user?.id === project.user_id || user?.is_admin) && <div className="border-2 border-black bg-yellow-50 p-4 text-sm"><strong>{project.is_deleted ? "已下架" : projectStatus[project.status]} · 第 {project.revision} 版</strong>{project.moderation_note && <p className="mt-2">审核说明：{project.moderation_note}</p>}<div className="mt-3 flex gap-5"><Link href="/dashboard" className="underline">返回个人中心</Link>{user?.id === project.user_id && !project.is_deleted && <Link href={`/submit?edit=${project.id}`} className="font-black underline">修改并重新送审</Link>}</div></div>}
           {project.cover_url && <div className="overflow-hidden border-2 border-black bg-black shadow-[6px_6px_0_#000]"><AuthedCover src={project.cover_url} alt={`${project.title} 截图`} className="max-h-[520px] w-full object-contain" /></div>}
+          <AttachmentGallery projectId={project.id} initialRevision={project.revision} canEdit={!!user && (user.id === project.user_id || !!user.is_admin) && !project.is_deleted} enabled={!!user} onUpdated={(patch) => setProject((current) => current ? { ...current, revision: patch.revision, status: patch.status } : current)} />
 
           <section className="border-2 border-black bg-white p-5 shadow-[5px_5px_0_#000] sm:p-7">
             <div className="text-xs font-black uppercase tracking-[0.18em] text-[var(--orange)]">{github ? "PROJECT NOTES" : "INCIDENT REPORT"}</div>
