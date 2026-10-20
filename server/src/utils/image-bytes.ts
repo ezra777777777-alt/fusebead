@@ -111,33 +111,43 @@ function sanitizeJpeg(input: Buffer): Buffer {
   const out: Buffer[] = [Buffer.from([0xff, 0xd8])];
   let offset = 2;
   let sawFrame = false;
-  const strip = new Set([0xe1, 0xe2, 0xed, 0xfe]);
+  let sawScan = false;
+  // APP1–APP15 hold EXIF, ICC, IPTC and vendor metadata. APP0 (JFIF) stays.
+  const strip = new Set<number>([0xfe]);
+  for (let marker = 0xe1; marker <= 0xef; marker++) strip.add(marker);
   while (offset < input.length) {
     if (input[offset] !== 0xff) reject();
     while (offset < input.length - 1 && input[offset] === 0xff && input[offset + 1] === 0xff) offset++;
     if (offset + 1 >= input.length) reject();
     const marker = input[offset + 1];
     if (marker === 0xd8 || marker === 0x00 || (marker >= 0xd0 && marker <= 0xd7)) reject();
-    if (marker === 0xd9) reject();
+    if (marker === 0xd9) {
+      if (!sawFrame || !sawScan || offset + 2 !== input.length) reject();
+      out.push(Buffer.from([0xff, 0xd9]));
+      return Buffer.concat(out);
+    }
     if (marker === 0xda) {
+      // Progressive JPEG (SOF2) has several scans. A scan ends at the next marker, which may be another SOS.
       if (!sawFrame || offset + 4 > input.length) reject();
       const length = input.readUInt16BE(offset + 2);
       if (length < 8 || offset + 2 + length > input.length) reject();
-      const scan = offset + 2 + length;
-      let cursor = scan;
+      let cursor = offset + 2 + length;
+      let scanEnd = -1;
       while (cursor < input.length) {
         if (input[cursor] !== 0xff) { cursor++; continue; }
-        if (cursor + 1 >= input.length) reject();
-        const next = input[cursor + 1];
-        if (next === 0x00 || (next >= 0xd0 && next <= 0xd7)) { cursor += 2; continue; }
-        if (next === 0xd9) {
-          if (cursor + 2 !== input.length) reject();
-          out.push(input.subarray(offset, cursor + 2));
-          return Buffer.concat(out);
-        }
-        reject();
+        let probe = cursor;
+        while (probe < input.length - 1 && input[probe + 1] === 0xff) probe++;
+        if (probe + 1 >= input.length) reject();
+        const next = input[probe + 1];
+        if (next === 0x00 || (next >= 0xd0 && next <= 0xd7)) { cursor = probe + 2; continue; }
+        scanEnd = cursor;
+        break;
       }
-      reject();
+      if (scanEnd < 0) reject();
+      out.push(input.subarray(offset, scanEnd));
+      offset = scanEnd;
+      sawScan = true;
+      continue;
     }
     if (offset + 4 > input.length) reject();
     const length = input.readUInt16BE(offset + 2);
@@ -176,8 +186,11 @@ function sanitizeWebp(input: Buffer): Buffer {
   const extended = chunks.find((chunk) => chunk.tag === "VP8X");
   if (extended) {
     if (extended.data.length !== 10) reject();
-    if (extended.data[0] & 0x20) reject();
-    extended.data[0] &= ~0x18;
+    // Little-endian feature byte, same assignment as libwebp WebPFeatureFlags: animation 0x02, XMP 0x04, EXIF 0x08, alpha 0x10, ICC 0x20.
+    const animation = 0x02;
+    const metadata = 0x04 | 0x08;
+    if (extended.data[0] & animation) reject();
+    extended.data[0] &= ~metadata;
     checkPixels(1 + extended.data.readUIntLE(4, 3), 1 + extended.data.readUIntLE(7, 3));
   }
   const lossy = chunks.find((chunk) => chunk.tag === "VP8 ");
