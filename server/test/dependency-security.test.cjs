@@ -153,3 +153,12 @@ test('undici and form-data still complete a local request body', async () => {
     await new Promise((resolve) => server.close(resolve));
   }
 });
+
+test('next is pinned to 16.4.2', () => {
+  const root = path.join(__dirname, '..', '..');
+  const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const lock = JSON.parse(fs.readFileSync(path.join(root, 'package-lock.json'), 'utf8'));
+  assert.equal(pkg.dependencies.next, '16.4.2');
+  assert.equal(lock.packages[''].dependencies.next, '16.4.2');
+  assert.equal(lock.packages['node_modules/next'].version, '16.4.2');
+});
