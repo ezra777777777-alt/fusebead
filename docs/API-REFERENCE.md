@@ -604,6 +604,25 @@ action 取值: `approve` | `reject` | `feature` | `unfeature` | `softDelete` | `
 
 作者填写的站外图片地址不经过本站，接口不再把地址发给未登录访客。注册、登录、验证码和 `GET /api/health` 仍不需要登录 token。
 
+## 五之三、帖子图片 `/api/projects/:id/attachments` 🔒
+
+一篇帖子可以有最多 8 张图片。读取和字节下载都要带有效登录 token。没有 token 时返回 401，`code` 为 `AUTH_REQUIRED`，响应里没有图片字节。这和封面直链的登录门控同一做法：不新增静态目录，`<img>` 不能直接带上 token，页面要用带 Authorization 的请求换成 blob 再显示。
+
+图片是否对外可见跟随帖子审核：`pending`、`rejected`、`withdrawn` 或已下架时，只有作者和管理员能看到；`approved` 且未下架时，登录用户可以看。作者增删图片会把帖子退回 `pending`。调整顺序不改变审核状态。管理员修改不改变审核状态。删除后原来的地址返回 404，磁盘文件一并删除。
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | `/api/projects/:id/attachments` | 图片列表（不含磁盘文件名） |
+| POST | `/api/projects/:id/attachments` | 上传一张。请求体 `{ "image": "data:image/png;base64,...", "revision": 1 }`。按文件内容识别 PNG / JPEG / WebP，单张不超过 2 MB，并去掉 EXIF（含 GPS） |
+| PUT | `/api/projects/:id/attachments/order` | `{ "ids": [3, 1, 2], "revision": 1 }`，必须是当前图片的完整顺序 |
+| DELETE | `/api/projects/:id/attachments/:attachmentId` | `{ "revision": 1 }` |
+| GET | `/api/projects/:id/attachments/:attachmentId` | 大图字节。响应头含 `X-Content-Type-Options: nosniff` 和 `Cache-Control: private, no-store`。`?variant=thumbnail` 走同一鉴权，不能匿名访问 |
+| GET | `/api/projects/:id/attachments/:attachmentId?variant=thumbnail` | 缩略图字节，同样返回 401 给匿名请求，响应头含 `X-Content-Type-Options: nosniff` 和 `Cache-Control: private, no-store` |
+
+非作者且非管理员修改返回 403。帖子尚未对其可见时返回 404，不返回图片。
+
+表 `project_attachments` 不会在服务启动时创建。由主人在目标库执行 `cd server && npm run migrate:project-attachments`。本次改动没有对生产库执行。
+
 ## 六、工具模块 `/api/tool`
 
 ### `POST /api/tool/convert`

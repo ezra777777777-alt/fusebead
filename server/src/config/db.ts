@@ -16,6 +16,12 @@ export function enableResourceRegistryMigration() {
   resourceRegistryMigration = true;
 }
 
+let projectAttachmentsMigration = false;
+export function enableProjectAttachmentsMigration() {
+  if (pgSchemaReady || sqliteReady) throw new Error("数据库已初始化，不能再执行附件迁移");
+  projectAttachmentsMigration = true;
+}
+
 // ── PostgreSQL ──
 
 let pgPool: Pool | null = null;
@@ -287,6 +293,18 @@ async function initPgSchema(): Promise<void> {
       id SERIAL PRIMARY KEY, entry_id INTEGER NOT NULL REFERENCES resource_entries(id),
       website_project_id INTEGER NOT NULL, action TEXT NOT NULL, created_at TEXT DEFAULT (NOW() AT TIME ZONE 'UTC')::text
     )`);
+    }
+    if (projectAttachmentsMigration) {
+      await client.query(`CREATE TABLE IF NOT EXISTS project_attachments (
+        id SERIAL PRIMARY KEY,
+        project_id INTEGER NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+        stored_name TEXT NOT NULL UNIQUE,
+        mime TEXT NOT NULL,
+        byte_size INTEGER NOT NULL,
+        sort_order INTEGER NOT NULL,
+        created_at TEXT DEFAULT (NOW() AT TIME ZONE 'UTC')::text
+      )`);
+      await client.query("CREATE INDEX IF NOT EXISTS idx_project_attachments_project ON project_attachments(project_id, sort_order)");
     }
     await client.query("CREATE INDEX IF NOT EXISTS idx_projects_status_created ON projects(status, created_at)");
     await client.query("CREATE INDEX IF NOT EXISTS idx_project_comments_project ON project_comments(project_id)");
@@ -585,6 +603,19 @@ function initSqliteSchema(database: SqlJsDatabase) {
     id INTEGER PRIMARY KEY AUTOINCREMENT, entry_id INTEGER NOT NULL REFERENCES resource_entries(id),
     website_project_id INTEGER NOT NULL, action TEXT NOT NULL, created_at TEXT DEFAULT CURRENT_TIMESTAMP
   )`);
+  }
+  if (projectAttachmentsMigration) {
+    database.run(`CREATE TABLE IF NOT EXISTS project_attachments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      project_id INTEGER NOT NULL,
+      stored_name TEXT NOT NULL UNIQUE,
+      mime TEXT NOT NULL,
+      byte_size INTEGER NOT NULL,
+      sort_order INTEGER NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+    )`);
+    database.run("CREATE INDEX IF NOT EXISTS idx_project_attachments_project ON project_attachments(project_id, sort_order)");
   }
   database.run("CREATE INDEX IF NOT EXISTS idx_projects_status_created ON projects(status, created_at)");
   database.run("CREATE INDEX IF NOT EXISTS idx_project_comments_project ON project_comments(project_id)");

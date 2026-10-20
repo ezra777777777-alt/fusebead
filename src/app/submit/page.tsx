@@ -8,6 +8,7 @@ import { ArrowLeft, CheckCircle2, Code2, ExternalLink, ImagePlus, Loader2, Save,
 import { useAuth } from "@/lib/AuthContext";
 import { api, API_BASE } from "@/lib/api";
 import { AuthedCover } from "@/components/community/AuthedCover";
+import { AttachmentGallery } from "@/components/community/AttachmentGallery";
 
 type Draft = {
   title: string;
@@ -241,6 +242,8 @@ function SubmitForm({ editId, initialCategory }: { editId: string | null; initia
               <p className="mt-3 text-xs font-semibold leading-5 text-black/50">PNG / JPEG / WebP，最大 2 MB、1200 万像素。上传后会压缩并移除图片元数据。图片链接可直接访问，请勿包含私人信息。</p>
               {draft.coverUrl && <AuthedCover src={draft.coverUrl} alt="投稿截图预览" className="mt-4 max-h-64 w-full object-contain" />}
             </div>
+
+            {user && original && <AttachmentGallery projectId={original.id} initialRevision={original.revision} canEdit={!original.is_deleted} enabled onUpdated={(patch) => setOriginal((current) => current ? { ...current, revision: patch.revision, status: patch.status } : current)} />}
 
             <label className="flex cursor-pointer items-start gap-3 border-2 border-black bg-[#fff7d6] p-4">
               <input type="checkbox" checked={safe} onChange={(e) => setSafe(e.target.checked)} className="mt-1 h-4 w-4 accent-black" />
