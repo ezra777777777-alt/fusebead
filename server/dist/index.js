@@ -16,6 +16,7 @@ const admin_1 = require("./routes/admin");
 const verification_1 = require("./routes/verification");
 const payments_1 = require("./routes/payments");
 const projects_1 = require("./routes/projects");
+const project_attachments_1 = require("./routes/project-attachments");
 const resource_registry_1 = require("./routes/resource-registry");
 const verificationCode_1 = require("./models/verificationCode");
 const user_2 = require("./models/user");
@@ -51,6 +52,7 @@ app.use("/api/tool", tool_1.toolRouter);
 app.use("/api/user", user_1.userRouter);
 app.use("/api/admin", admin_1.adminRouter);
 app.use("/api/payments", payments_1.paymentsRouter);
+app.use("/api/projects", project_attachments_1.projectAttachmentsRouter);
 app.use("/api/projects", projects_1.projectsRouter);
 if (process.env.RESOURCE_REGISTRY_KEY)
     app.use("/api/resource-registry", resource_registry_1.resourceRegistryRouter);
