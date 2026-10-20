@@ -191,7 +191,7 @@ Railway 默认从仓库根目录构建，必须指定 `server/` 目录：
 cd server
 cp .env.example .env      # 编辑 .env 填入真实 SMTP 等配置
 npm install
-npm run dev               # nodemon + ts-node，监听 :3001
+npm run dev               # Node 内置监听 + ts-node，监听 :3001
 ```
 
 本地开发**不设置 `DATABASE_URL`** 时，自动使用 SQLite（文件在 `server/data/fusebead.db`）。
