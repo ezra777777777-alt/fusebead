@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { approvedWorksOnly } from "@/lib/load-state";
 import { Project } from "@/lib/community";
 import { Pagination } from "@/components/shared/Pagination";
 import BeadProfile from "@/components/dashboard/BeadProfile";
@@ -22,7 +23,7 @@ export default function UserProfile() {
     let active = true;
     setLoading(true); setError("");
     Promise.all([api(`/user/profile/${id}`), api(`/projects?authorId=${id}&page=${page}&limit=12`)]).then(([user, data]) => {
-      if (active) { setProfile(user); setProjects(data.projects); setTotal(data.total); }
+      if (active) { setProfile(user); setProjects(approvedWorksOnly(data.projects)); setTotal(data.total); }
     }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [id, page]);

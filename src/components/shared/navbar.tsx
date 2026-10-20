@@ -10,6 +10,7 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = [
+    { href: "/works", label: "已审核作品" },
     { href: "/?sort=latest#feed", label: "最新作品" },
     { href: "/github", label: "资源分享" },
     { href: "/#community-boards", label: "软件分区" },
