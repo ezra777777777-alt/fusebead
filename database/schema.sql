@@ -199,6 +199,20 @@ CREATE TABLE feedbacks (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB;
 
+-- 帖子多图。生产 PostgreSQL 不由本文件自动执行，见 server/src/migrate-project-attachments.ts。
+CREATE TABLE project_attachments (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  project_id INT NOT NULL,
+  stored_name VARCHAR(80) NOT NULL UNIQUE,
+  mime VARCHAR(40) NOT NULL,
+  byte_size INT NOT NULL,
+  sort_order INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_project_attachments_project ON project_attachments(project_id, sort_order);
+
 -- ── Admin: system settings ──
 CREATE TABLE system_settings (
   id INT AUTO_INCREMENT PRIMARY KEY,
