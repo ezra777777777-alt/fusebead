@@ -7,6 +7,7 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "migrate:resource-registry": "node dist/migrate-resource-registry.js",
+    "migrate:project-attachments": "node dist/migrate-project-attachments.js",
     "seed:community": "ts-node src/seed-community.ts",
     "test": "npm run build && node --test test/*.test.cjs"
   },
