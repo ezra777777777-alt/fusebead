@@ -45,6 +45,96 @@ function withWebpExif(webp, secret) {
   body.copy(out, 8);
   return out;
 }
+function jpegSegment(marker, payload) {
+  const segment = Buffer.alloc(4 + payload.length);
+  segment[0] = 0xff;
+  segment[1] = marker;
+  segment.writeUInt16BE(payload.length + 2, 2);
+  payload.copy(segment, 4);
+  return segment;
+}
+function webpChunk(tag, data) {
+  const header = Buffer.alloc(8);
+  header.write(tag, 0, 4, 'ascii');
+  header.writeUInt32LE(data.length, 4);
+  return Buffer.concat([header, data, data.length % 2 ? Buffer.from([0]) : Buffer.alloc(0)]);
+}
+function wrapWebp(chunks) {
+  const body = Buffer.concat([Buffer.from('WEBP'), ...chunks]);
+  const out = Buffer.alloc(8);
+  out.write('RIFF', 0, 4, 'ascii');
+  out.writeUInt32LE(body.length, 4);
+  return Buffer.concat([out, body]);
+}
+function vp8x(flags) {
+  const data = Buffer.alloc(10);
+  data[0] = flags;
+  return webpChunk('VP8X', data);
+}
+function vp8xFlags(bytes) {
+  const at = bytes.indexOf('VP8X');
+  assert.notEqual(at, -1);
+  return bytes[at + 8];
+}
+function progressiveJpeg() {
+  const jpeg = Buffer.from(TINY_JPEG);
+  const sof = jpeg.indexOf(Buffer.from([0xff, 0xc0]));
+  assert.notEqual(sof, -1);
+  jpeg[sof + 1] = 0xc2;
+  const sos = jpeg.lastIndexOf(Buffer.from([0xff, 0xda]));
+  const headerLength = 2 + jpeg.readUInt16BE(sos + 2);
+  const secondScan = Buffer.concat([jpeg.subarray(sos, sos + headerLength), Buffer.from([0x11])]);
+  return Buffer.concat([
+    jpeg.subarray(0, 2),
+    jpegSegment(0xe1, Buffer.from(`Exif\0\0${SECRET}`)),
+    jpegSegment(0xe3, Buffer.from('APP3-VENDOR-SECRET')),
+    jpegSegment(0xee, Buffer.from('Adobe\0APP14-SECRET')),
+    jpeg.subarray(2, jpeg.length - 2),
+    secondScan,
+    Buffer.from([0xff, 0xd9]),
+  ]);
+}
+
+test('progressive JPEG and extended WebP keep pixels and drop metadata', () => {
+  const progressive = sanitizeImage(progressiveJpeg());
+  assert.equal(progressive.mime, 'image/jpeg');
+  assert.equal(progressive.bytes[0], 0xff);
+  assert.equal(progressive.bytes[1], 0xd8);
+  assert.equal(progressive.bytes[progressive.bytes.length - 2], 0xff);
+  assert.equal(progressive.bytes[progressive.bytes.length - 1], 0xd9);
+  assert.equal(progressive.bytes.includes(Buffer.from([0xff, 0xc2])), true);
+  const firstScan = progressive.bytes.indexOf(Buffer.from([0xff, 0xda]));
+  const lastScan = progressive.bytes.lastIndexOf(Buffer.from([0xff, 0xda]));
+  assert.notEqual(firstScan, -1);
+  assert.notEqual(firstScan, lastScan);
+  assert.equal(progressive.bytes.includes(Buffer.from('JFIF')), true);
+  assert.equal(progressive.bytes.includes(Buffer.from(SECRET)), false);
+  assert.equal(progressive.bytes.includes(Buffer.from('APP3-VENDOR-SECRET')), false);
+  assert.equal(progressive.bytes.includes(Buffer.from('APP14-SECRET')), false);
+
+  const icc = Buffer.from('ICC-PROFILE-KEEP');
+  const withIcc = sanitizeImage(wrapWebp([vp8x(0x20), webpChunk('ICCP', icc), TINY_WEBP.subarray(12)]));
+  assert.equal(withIcc.mime, 'image/webp');
+  assert.equal(withIcc.bytes.includes(icc), true);
+  assert.equal(vp8xFlags(withIcc.bytes) & 0x20, 0x20);
+  assert.equal(vp8xFlags(withIcc.bytes) & 0x02, 0);
+
+  const alpha = Buffer.from('ALPHA-PIXEL');
+  const transparent = sanitizeImage(wrapWebp([
+    vp8x(0x10 | 0x08),
+    webpChunk('ALPH', alpha),
+    webpChunk('EXIF', Buffer.from(`Exif\0\0${SECRET}`)),
+    TINY_WEBP.subarray(12),
+  ]));
+  assert.equal(transparent.bytes.includes(alpha), true);
+  assert.equal(transparent.bytes.includes(Buffer.from(SECRET)), false);
+  assert.equal(vp8xFlags(transparent.bytes) & 0x10, 0x10);
+  assert.equal(vp8xFlags(transparent.bytes) & 0x08, 0);
+
+  assert.throws(() => sanitizeImage(wrapWebp([vp8x(0x02), TINY_WEBP.subarray(12)])), /PNG、JPEG 或 WebP/);
+  assert.throws(() => sanitizeImage(wrapWebp([webpChunk('ANIM', Buffer.alloc(6)), TINY_WEBP.subarray(12)])), /PNG、JPEG 或 WebP/);
+  assert.throws(() => sanitizeImage(wrapWebp([webpChunk('ANMF', Buffer.alloc(16)), TINY_WEBP.subarray(12)])), /PNG、JPEG 或 WebP/);
+});
 
 const app = express();
 app.use(express.json({ limit: '10mb' }));
