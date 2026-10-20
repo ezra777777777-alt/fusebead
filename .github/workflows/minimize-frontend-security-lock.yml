@@ -17,7 +17,8 @@ jobs:
         with:
           node-version: 24
       - run: |
-          git checkout origin/main -- package.json package-lock.json eslint.config.mjs
+          git fetch origin main
+          git checkout FETCH_HEAD -- package.json package-lock.json eslint.config.mjs
           npm install next@16.4.2 --save-exact --package-lock-only --ignore-scripts --no-audit --no-fund
           npm uninstall eslint-config-next --save-dev --package-lock-only --ignore-scripts --no-audit --no-fund
           npm install @eslint/js@9.39.4 typescript-eslint@8.59.3 --save-dev --package-lock-only --ignore-scripts --no-audit --no-fund
