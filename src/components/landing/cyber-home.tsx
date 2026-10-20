@@ -1,6 +1,8 @@
 "use client";
 
 import { categoryLabel, serverDate } from "@/lib/community";
+import { approvedWorksOnly, errorState, isAuthFailure, loadingState, presentLoad, readyState, runRequest, unauthorizedState } from "@/lib/load-state";
+import { LoadFailure, LoadingSkeleton } from "@/components/shared/LoadState";
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
@@ -45,7 +47,7 @@ const boards = [
   { name: "教程与求助", icon: Code2 },
 ];
 
-export function CyberHome() { return <Suspense fallback={<p className="p-32 text-center">正在打开社区…</p>}><CommunityFeed /></Suspense>; }
+export function CyberHome() { return <Suspense fallback={<div className="min-h-screen bg-[var(--background)] px-4 pt-24"><LoadingSkeleton label="正在打开社区…" variant="rows" /></div>}><CommunityFeed /></Suspense>; }
 function CommunityFeed() {
   const params = useSearchParams();
   const { user, loading: authLoading, openAuth, refreshUser } = useAuth();
@@ -60,6 +62,7 @@ function CommunityFeed() {
   const sort = params.get("sort") || "latest";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [authDenied, setAuthDenied] = useState(false);
   const [retry, setRetry] = useState(0);
   const [rankings, setRankings] = useState<any[]>([]);
   const [checkingIn, setCheckingIn] = useState(false);
@@ -81,23 +84,26 @@ function CommunityFeed() {
   }, [userId]);
   useEffect(() => {
     if (!user) { setRankings([]); return; }
-    api("/projects?sort=popular&limit=5").then(data => setRankings(data.projects)).catch(() => {});
+    let active = true;
+    api("/projects?sort=popular&limit=5").then(data => {
+      if (active) setRankings(approvedWorksOnly(data.projects));
+    }).catch(e => { if (active && isAuthFailure(e)) setRankings([]); });
+    return () => { active = false; };
   }, [user]);
 
   useEffect(() => {
     if (authLoading) return;
-    if (!user) { setLoading(false); setPosts([]); setTotal(0); setError(""); return; }
+    if (!user) { setLoading(false); setPosts([]); setTotal(0); setError(""); setAuthDenied(false); return; }
     let active = true;
-    setLoading(true); setError("");
+    setLoading(true); setError(""); setAuthDenied(false);
     const timer = window.setTimeout(() => {
     const query = new URLSearchParams({ sort, category: activeBoard, search: search.trim(), page: String(page), limit: "20" });
-    api(`/projects?${query}`)
-      .then((data) => {
-        if (!active) return;
-        setTotal(data.total);
-        const tones: Record<string, string> = { "AI 套壳": "#ff5b35", "网页小玩具": "#ffa51f", "能跑就行": "#66cc33", "游戏乱炖": "#8b5cf6", "纯抽象": "#06b6d4", "手机端": "#1769ff" };
-
-        setPosts(data.projects.map((project: any) => ({
+    const tones: Record<string, string> = { "AI 套壳": "#ff5b35", "网页小玩具": "#ffa51f", "能跑就行": "#66cc33", "游戏乱炖": "#8b5cf6", "纯抽象": "#06b6d4", "手机端": "#1769ff" };
+    void runRequest(async () => {
+      const data = await api<{ projects: any[]; total: number }>(`/projects?${query}`);
+      return {
+        total: Number(data.total) || 0,
+        posts: approvedWorksOnly(data.projects).map((project: any) => ({
           id: project.id,
           board: project.category,
           title: project.title,
@@ -112,15 +118,40 @@ function CommunityFeed() {
           badge: project.is_featured ? "重点" : "",
           tone: tones[project.category] || "#ff4f18",
           live: true,
-        })));
-      })
-      .catch((e) => { if (active) { setError(e.message || "加载失败"); setPosts([]); } })
-      .finally(() => { if (active) setLoading(false); });
+        })),
+      };
+    }, "加载失败").then(result => {
+      if (!active) return;
+      if (result.phase === "unauthorized") {
+        setAuthDenied(true);
+        setError("");
+        setPosts([]);
+        setTotal(0);
+        setRankings([]);
+        return;
+      }
+      setAuthDenied(false);
+      if (result.phase !== "ready" || !result.data) {
+        setError(result.error || "加载失败");
+        setPosts([]);
+        return;
+      }
+      setTotal(result.data.total);
+      setPosts(result.data.posts);
+    }).finally(() => { if (active) setLoading(false); });
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
   }, [activeBoard, search, sort, page, retry, user, authLoading]);
 
   const visiblePosts = posts;
+  const listState = !user || authDenied
+    ? unauthorizedState<typeof posts>()
+    : error
+      ? errorState<typeof posts>(error, "加载失败")
+      : loading
+        ? loadingState<typeof posts>()
+        : readyState(visiblePosts);
+  const listView = presentLoad(listState, !!user && !authDenied);
 
   const checkIn = async () => {
     if (!user) { openAuth(); return; }
@@ -163,21 +194,22 @@ function CommunityFeed() {
                 <Upload className="h-5 w-5" /> 上交本坨
               </Link>
               <span data-approved-works>
-                <button
-                  type="button"
+                <Link
+                  href="/works"
                   className="cyber-button bg-white text-black"
-                  onClick={() => {
-                    if (!user) openAuth("/?sort=latest#feed");
-                    else document.getElementById("feed")?.scrollIntoView({ behavior: "smooth" });
+                  onClick={(event) => {
+                    if (authLoading || user) return;
+                    event.preventDefault();
+                    openAuth("/works");
                   }}
                 >
                   <BadgeCheck className="h-5 w-5" /> 已审核作品
-                </button>
+                </Link>
               </span>
               {/* data-approved-works-end */}
             </div>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs font-bold text-white/50">
-              <span>{user ? `当前找到 ${total} 份作品` : "登录后查看已审核作品"}</span>
+              <span>{user && !authDenied ? `当前找到 ${total} 份作品` : "登录后查看已审核作品"}</span>
               <span>投稿先审后发</span>
               <span>外链先警告再跳转</span>
             </div>
@@ -224,7 +256,7 @@ function CommunityFeed() {
       </section>
 
       <section id="feed" className="mx-auto scroll-mt-16 max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
-        {authLoading ? <p className="py-16 text-center font-black">正在确认登录状态…</p> : !user ? <ContentLoginPrompt title="已审核作品需要登录" detail="这里不展示作品标题、摘要、评论或截图。登录后会回到作品列表。" returnTo={`/${params.size ? `?${params.toString()}` : ""}#feed`} /> : <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_310px]">
+        {authLoading ? <p className="py-16 text-center font-black">正在确认登录状态…</p> : listView === "login" ? <div data-phase="login"><ContentLoginPrompt title="已审核作品需要登录" detail="这里不展示作品标题、摘要、评论或截图。登录后会回到作品列表。" returnTo={`/${params.size ? `?${params.toString()}` : ""}#feed`} /></div> : <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_310px]">
         <main className="min-w-0">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -251,7 +283,7 @@ function CommunityFeed() {
               <span>{total} 个作品</span>
             </div>
 
-            {error ? <div role="alert" className="p-10 text-center"><p>{error}</p><button onClick={() => setRetry(value => value + 1)} className="mt-3 underline">重新加载</button></div> : loading ? <p className="p-16 text-center font-bold">正在清点作品…</p> : visiblePosts.length ? visiblePosts.map((post) => (
+            {listView === "retry" ? <div className="p-6"><LoadFailure message={listState.error || "加载失败"} onRetry={() => setRetry(value => value + 1)} /></div> : listView === "skeleton" ? <LoadingSkeleton label="正在清点作品…" variant="rows" /> : visiblePosts.length ? visiblePosts.map((post) => (
               <article key={post.id} className="group grid gap-4 border-b border-black/15 p-4 last:border-b-0 hover:bg-[#fffdf5] sm:grid-cols-[76px_minmax(0,1fr)_110px] sm:p-5">
                 <div className="hidden sm:block">
                   <div className="flex h-14 w-14 rotate-[-2deg] items-center justify-center border-2 border-black text-xl font-black text-white shadow-[3px_3px_0_#000]" style={{ background: post.tone }}>
