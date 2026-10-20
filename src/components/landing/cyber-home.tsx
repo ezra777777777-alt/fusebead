@@ -1,6 +1,8 @@
 "use client";
 
 import { categoryLabel, serverDate } from "@/lib/community";
+import { approvedWorksOnly, failureReason } from "@/lib/load-state";
+import { LoadingSkeleton } from "@/components/shared/LoadState";
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
@@ -44,7 +46,7 @@ const boards = [
   { name: "教程与求助", icon: Code2 },
 ];
 
-export function CyberHome() { return <Suspense fallback={<p className="p-32 text-center">正在打开社区…</p>}><CommunityFeed /></Suspense>; }
+export function CyberHome() { return <Suspense fallback={<div className="min-h-screen bg-[var(--background)] px-4 pt-24"><LoadingSkeleton label="正在打开社区…" variant="rows" /></div>}><CommunityFeed /></Suspense>; }
 function CommunityFeed() {
   const params = useSearchParams();
   const { user, openAuth, refreshUser } = useAuth();
@@ -78,7 +80,7 @@ function CommunityFeed() {
     if (userId) api<{checkedIn:boolean}>("/user/me/check-in").then(data => { if (active) { setCheckedIn(data.checkedIn); if (data.checkedIn) setCheckinText("今日已签到"); } }).catch(() => {});
     return () => { active = false; };
   }, [userId]);
-  useEffect(() => { api("/projects?sort=popular&limit=5").then(data => setRankings(data.projects)).catch(() => {}); }, []);
+  useEffect(() => { api("/projects?sort=popular&limit=5").then(data => setRankings(approvedWorksOnly(data.projects))).catch(() => {}); }, []);
 
   useEffect(() => {
     let active = true;
@@ -91,7 +93,7 @@ function CommunityFeed() {
         setTotal(data.total);
         const tones: Record<string, string> = { "AI 套壳": "#ff5b35", "网页小玩具": "#ffa51f", "能跑就行": "#66cc33", "游戏乱炖": "#8b5cf6", "纯抽象": "#06b6d4", "手机端": "#1769ff" };
 
-        setPosts(data.projects.map((project: any) => ({
+        setPosts(approvedWorksOnly(data.projects).map((project: any) => ({
           id: project.id,
           board: project.category,
           title: project.title,
@@ -108,7 +110,7 @@ function CommunityFeed() {
           live: true,
         })));
       })
-      .catch((e) => { if (active) { setError(e.message || "加载失败"); setPosts([]); } })
+      .catch((e) => { if (active) { setError(failureReason(e, "加载失败")); setPosts([]); } })
       .finally(() => { if (active) setLoading(false); });
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
@@ -155,6 +157,9 @@ function CommunityFeed() {
             <div className="mt-8 flex flex-wrap gap-3">
               <Link href="/submit" className="cyber-button bg-[var(--orange)] text-white">
                 <Upload className="h-5 w-5" /> 上交本坨
+              </Link>
+              <Link href="/works" className="cyber-button bg-[var(--acid)] text-black">
+                <BadgeCheck className="h-5 w-5" /> 已审核作品
               </Link>
               <a href="#feed" className="cyber-button bg-white text-black">
                 <Eye className="h-5 w-5" /> 开始受害
@@ -234,7 +239,7 @@ function CommunityFeed() {
               <span>{total} 个作品</span>
             </div>
 
-            {error ? <div role="alert" className="p-10 text-center"><p>{error}</p><button onClick={() => setRetry(value => value + 1)} className="mt-3 underline">重新加载</button></div> : loading ? <p className="p-16 text-center font-bold">正在清点作品…</p> : visiblePosts.length ? visiblePosts.map((post) => (
+            {error ? <div role="alert" data-phase="error" className="p-10 text-center"><p className="font-black">没有加载成功</p><p className="mt-2 text-sm font-semibold text-black/70">{error}</p><button type="button" onClick={() => setRetry(value => value + 1)} className="mt-4 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black">重试</button></div> : loading ? <LoadingSkeleton label="正在清点作品…" variant="rows" /> : visiblePosts.length ? visiblePosts.map((post) => (
               <article key={post.id} className="group grid gap-4 border-b border-black/15 p-4 last:border-b-0 hover:bg-[#fffdf5] sm:grid-cols-[76px_minmax(0,1fr)_110px] sm:p-5">
                 <div className="hidden sm:block">
                   <div className="flex h-14 w-14 rotate-[-2deg] items-center justify-center border-2 border-black text-xl font-black text-white shadow-[3px_3px_0_#000]" style={{ background: post.tone }}>

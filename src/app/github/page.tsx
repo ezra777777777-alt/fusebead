@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { GithubProjects } from "@/components/community/GithubProjects";
+import { LoadingSkeleton } from "@/components/shared/LoadState";
 
 export const metadata: Metadata = {
   title: "资源分享",
@@ -8,5 +9,5 @@ export const metadata: Metadata = {
 };
 
 export default function GithubPage() {
-  return <Suspense fallback={<p className="px-5 py-32 text-center">正在打开资源分享专区…</p>}><GithubProjects /></Suspense>;
+  return <Suspense fallback={<div className="min-h-screen bg-[var(--background)] px-4 pt-24"><LoadingSkeleton label="正在打开资源分享专区…" /></div>}><GithubProjects /></Suspense>;
 }

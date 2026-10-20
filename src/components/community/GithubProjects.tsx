@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Code2, MessageCircle, Plus, Search, ThumbsUp } from "lucide-react";
 import { api } from "@/lib/api";
+import { approvedWorksOnly, failureReason } from "@/lib/load-state";
+import { LoadingSkeleton } from "@/components/shared/LoadState";
 import { GITHUB_CATEGORY, Project, serverDate } from "@/lib/community";
 import { Pagination } from "@/components/shared/Pagination";
 
@@ -35,8 +37,8 @@ export function GithubProjects() {
     const timer = window.setTimeout(() => {
       const query = new URLSearchParams({ category: GITHUB_CATEGORY, search: search.trim(), sort, page: String(page), limit: "12" });
       api<{ projects: Project[]; total: number }>(`/projects?${query}`)
-        .then(data => { if (active) { setProjects(data.projects); setTotal(data.total); } })
-        .catch(e => { if (active) setError(e instanceof Error ? e.message : "暂时无法读取项目"); })
+        .then(data => { if (active) { setProjects(approvedWorksOnly(data.projects)); setTotal(data.total); } })
+        .catch(e => { if (active) setError(failureReason(e, "暂时无法读取项目")); })
         .finally(() => { if (active) setLoading(false); });
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
@@ -76,7 +78,7 @@ export function GithubProjects() {
         <label>排序 <select aria-label="资源排序" value={sort} onChange={e => changeFilters({ sort: e.target.value, page: "1" })} className="ml-2 bg-transparent"><option value="latest">最新分享</option><option value="popular">最多点赞</option><option value="discussed">最多讨论</option></select></label>
         {(search || page > 1) && <button onClick={() => changeFilters({ search: "", page: "1" })} className="ml-auto underline">清除筛选</button>}
       </div>
-      {error ? <div role="alert" className="border-2 border-black bg-white p-10 text-center"><p>{error}</p><button onClick={() => setRetry(value => value + 1)} className="mt-4 font-bold underline">重新加载</button></div> : loading ? <p className="py-16 text-center">正在读取分享…</p> : projects.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      {error ? <div role="alert" data-phase="error" className="border-2 border-black bg-white p-10 text-center"><p className="font-black">没有加载成功</p><p className="mt-2 text-sm font-semibold text-black/70">{error}</p><button type="button" onClick={() => setRetry(value => value + 1)} className="mt-4 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black">重试</button></div> : loading ? <LoadingSkeleton label="正在读取分享…" /> : projects.length ? <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
         {projects.map(project => <article key={project.id} className="flex min-w-0 flex-col border-2 border-black bg-white p-5 shadow-[5px_5px_0_#000]">
           <div className="flex items-center gap-2 text-xs font-bold text-black/55"><Code2 className="h-5 w-5 shrink-0" /><span className="min-w-0 [overflow-wrap:anywhere]">{project.repo_url?.replace("https://github.com/", "")}</span>{!!project.is_featured && <span className="ml-auto shrink-0 bg-[var(--acid)] px-2 py-1 text-black">推荐</span>}</div>
           <h3 className="mt-4 [overflow-wrap:anywhere] text-xl font-black"><Link href={`/projects/${project.id}?from=github&feed=${encodeURIComponent(params.toString())}`} className="hover:text-[var(--orange)]">{project.title}</Link></h3>
