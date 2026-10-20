@@ -161,7 +161,7 @@ projectAttachmentsRouter.get("/:id/attachments/:attachmentId", authMiddleware, a
   if (!filePath) throw new HttpError(404, "图片不存在");
   let real = "";
   try { real = await realpath(filePath); } catch { throw new HttpError(404, "图片不存在"); }
-  if (path.dirname(real) !== attachmentRoot()) throw new HttpError(404, "图片不存在");
+  if (path.dirname(real) !== await realpath(attachmentRoot())) throw new HttpError(404, "图片不存在");
   const bytes = await readFile(real);
   const magicOk = (row.mime === "image/png" && isPng(bytes)) || (row.mime === "image/jpeg" && isJpeg(bytes)) || (row.mime === "image/webp" && isWebp(bytes));
   if (!magicOk) throw new HttpError(404, "图片不存在");

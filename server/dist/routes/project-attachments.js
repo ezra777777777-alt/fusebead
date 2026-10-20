@@ -182,7 +182,7 @@ exports.projectAttachmentsRouter.get("/:id/attachments/:attachmentId", auth_1.au
     catch {
         throw new http_1.HttpError(404, "图片不存在");
     }
-    if (path_1.default.dirname(real) !== attachmentRoot())
+    if (path_1.default.dirname(real) !== await (0, promises_1.realpath)(attachmentRoot()))
         throw new http_1.HttpError(404, "图片不存在");
     const bytes = await (0, promises_1.readFile)(real);
     const magicOk = (row.mime === "image/png" && isPng(bytes)) || (row.mime === "image/jpeg" && isJpeg(bytes)) || (row.mime === "image/webp" && isWebp(bytes));
