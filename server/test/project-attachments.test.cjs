@@ -231,6 +231,8 @@ test('post image attachments stay private until review and cannot be spoofed', a
     const thumb = await raw(uploaded.attachment.thumbnailUrl.replace('/projects/', '/api/projects/'), author);
     assert.equal(thumb.response.status, 200);
     assert.equal(thumb.response.headers.get('content-type'), 'image/png');
+    assert.equal(thumb.response.headers.get('x-content-type-options'), 'nosniff');
+    assert.equal(thumb.response.headers.get('cache-control'), 'private, no-store');
     assert.deepEqual(thumb.buf, owned.buf);
 
     const outside = path.join(path.dirname(attachmentRoot()), 'secret.png');
