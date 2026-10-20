@@ -5,10 +5,13 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { ArrowRight, Code2, MessageCircle, Plus, Search, ThumbsUp } from "lucide-react";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
+import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
 import { GITHUB_CATEGORY, Project, serverDate } from "@/lib/community";
 import { Pagination } from "@/components/shared/Pagination";
 
 export function GithubProjects() {
+  const { user, loading: authLoading } = useAuth();
   const params = useSearchParams();
   const search = params.get("search") || "";
   const sort = ["latest", "popular", "discussed"].includes(params.get("sort") || "") ? params.get("sort")! : "latest";
@@ -30,6 +33,8 @@ export function GithubProjects() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setLoading(false); setProjects([]); setTotal(0); setError(""); return; }
     let active = true;
     setLoading(true); setError("");
     const timer = window.setTimeout(() => {
@@ -40,7 +45,7 @@ export function GithubProjects() {
         .finally(() => { if (active) setLoading(false); });
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [search, sort, page, retry]);
+  }, [search, sort, page, retry, user, authLoading]);
 
   return <div className="min-h-screen bg-[var(--background)] pt-16 text-black">
     <section className="cyber-hero border-b-4 border-black text-white">
@@ -68,6 +73,7 @@ export function GithubProjects() {
     </section>
 
     <section id="projects" className="mx-auto max-w-7xl scroll-mt-20 px-4 py-9 sm:px-6 lg:px-8">
+      {authLoading ? <p className="py-16 text-center font-black">正在确认登录状态…</p> : !user ? <ContentLoginPrompt title="资源分享需要登录" detail="未登录时不加载项目名称、仓库、摘要或截图。登录后回到资源区。" returnTo={`/github${params.size ? `?${params.toString()}` : ""}#projects`} /> : <>
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div><p className="text-xs font-black tracking-widest text-[var(--orange)]">COMMUNITY PICKS</p><h2 className="mt-1 text-2xl font-black">资源分享</h2><p aria-live="polite" className="mt-2 text-sm text-black/55">{loading ? "正在查找项目…" : error ? "项目暂时未加载" : `${total} 个已审核项目`}</p></div>
         <label className="flex min-w-0 items-center gap-2 border-2 border-black bg-white px-3 py-3 shadow-[3px_3px_0_#000] sm:w-80"><Search className="h-4 w-4 shrink-0" /><input aria-label="搜索资源" value={search} onChange={e => changeFilters({ search: e.target.value, page: "1" })} maxLength={80} placeholder="搜用途、技术栈或仓库名" className="min-w-0 flex-1 bg-transparent text-sm outline-none" /></label>
@@ -86,6 +92,7 @@ export function GithubProjects() {
         </article>)}
       </div> : <div className="border-2 border-dashed border-black/35 bg-white px-5 py-14 text-center"><Code2 className="mx-auto h-10 w-10 text-black/30" /><h3 className="mt-4 text-xl font-black">{search || page > 1 ? "没有找到匹配的项目" : "专区开张，等你分享第一个好项目"}</h3><p className="mt-3 text-sm leading-6 text-black/55">{search || page > 1 ? "换个关键词，或者清除筛选再看看。" : "推荐自己做的，也推荐别人做的；说清楚它帮你解决了什么。"}</p><Link href={submitHref} className="mt-5 inline-flex font-black underline">分享一个资源 →</Link></div>}
       {!error && !loading && total > 12 && <Pagination page={page} totalPages={Math.ceil(total / 12)} onChange={value => changeFilters({ page: String(value) })} />}
+      </>}
     </section>
   </div>;
 }

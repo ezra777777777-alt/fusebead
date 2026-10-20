@@ -263,8 +263,8 @@ captchaId 用于后续注册/登录/发送验证码。
 
 ## 三、作品模块 `/api/patterns`
 
-### `GET /api/patterns/`
-获取公开作品列表（支持分页、筛选、搜索）。
+### `GET /api/patterns/` 🔒
+获取公开作品列表（支持分页、筛选、搜索）。未登录或 token 无效时返回 401，响应里没有作品数据。
 
 **查询参数:**
 | 参数 | 类型 | 默认值 | 说明 |
@@ -298,8 +298,8 @@ captchaId 用于后续注册/登录/发送验证码。
 
 ---
 
-### `GET /api/patterns/:id`
-获取单个作品详情（含点赞状态）。支持 optional auth — 登录后返回 `is_liked`。
+### `GET /api/patterns/:id` 🔒
+获取单个作品详情（含点赞状态）。必须携带有效登录 token，响应包含 `is_liked`。未登录返回 401，没有图纸内容。
 
 **响应:**
 ```json
@@ -368,8 +368,8 @@ captchaId 用于后续注册/登录/发送验证码。
 
 ### 评论子路由
 
-### `GET /api/patterns/:id/comments`
-获取作品评论列表。
+### `GET /api/patterns/:id/comments` 🔒
+获取作品评论列表。未登录返回 401，没有评论内容。
 
 **响应:**
 ```json
@@ -587,6 +587,22 @@ action 取值: `approve` | `reject` | `feature` | `unfeature` | `softDelete` | `
 ```
 
 ---
+
+## 五之二、社区作品、资源与图片 🔒
+
+以下读取都要求有效登录 token。没有 token、token 无效、或账号被封禁/未验证时，不返回作品、资源、帖子、评论或图片内容。缺少 token 时状态码为 401，`code` 为 `AUTH_REQUIRED`。
+
+| 方法 | 路径 | 内容 |
+|------|------|------|
+| GET | `/api/projects` | 作品列表；`category=GitHub 实用项目` 即资源区 |
+| GET | `/api/projects/:id` | 帖子/作品详情 |
+| GET | `/api/projects/:id/comments` | 帖子评论 |
+| GET | `/api/projects/covers/:filename` | 站内封面直链；`?variant=thumbnail` 同样需要 token，响应为图片字节 |
+| GET | `/api/patterns` | 拼豆图纸列表（含缩略网格） |
+| GET | `/api/patterns/:id` | 图纸详情 |
+| GET | `/api/patterns/:id/comments` | 图纸评论 |
+
+作者填写的站外图片地址不经过本站，接口不再把地址发给未登录访客。注册、登录、验证码和 `GET /api/health` 仍不需要登录 token。
 
 ## 六、工具模块 `/api/tool`
 

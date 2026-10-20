@@ -345,38 +345,38 @@ export function AuthModal() {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[100] flex items-center justify-center p-4"
         >
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={handleClose} />
+          <div className="absolute inset-0 bg-black/80" onClick={handleClose} />
           <motion.div
-            initial={{ scale: 0.95, opacity: 0, y: 20 }}
+            initial={{ scale: 0.98, opacity: 0, y: 12 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0.95, opacity: 0, y: 20 }}
-            className="relative bg-[var(--surface)] rounded-2xl border border-[var(--border)] p-6 sm:p-8 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto"
+            exit={{ scale: 0.98, opacity: 0, y: 12 }}
+            className="cyber-paper relative w-full max-w-sm max-h-[90vh] overflow-y-auto border-4 border-black p-6 shadow-[8px_8px_0_var(--orange)] sm:p-8"
           >
-            <button aria-label="关闭登录窗口" onClick={handleClose} className="absolute top-4 right-4 p-1 rounded-lg hover:bg-[var(--surface-hover)]">
-              <X className="h-5 w-5 text-foreground/40" />
+            <button aria-label="关闭登录窗口" onClick={handleClose} className="absolute top-3 right-3 border-2 border-black bg-black p-1 text-[var(--acid)]">
+              <X className="h-5 w-5" />
             </button>
 
             {mode === "form" && (
               <>
-                <h2 className="text-xl font-bold mb-1" style={{ fontFamily: "var(--font-display)" }}>
-                  {lang === "zh" ? "欢迎来到赛博搬屎" : "Welcome to Cyber Haul"}
+                <p className="text-xs font-black tracking-[0.18em] text-[var(--orange)]">ACCESS GATE · 登录口</p>
+                <h2 className="mb-1 mt-2 text-2xl font-black">
+                  {lang === "zh" ? "先登录，再往里看。" : "Sign in to continue"}
                 </h2>
-                <p className="text-sm text-foreground/50 mb-5">
-                  {lang === "zh" ? "登录后投稿、查看审核进度" : "Sign in to save and sync your creations"}
+                <p className="mb-5 text-sm font-semibold text-black/60">
+                  {lang === "zh" ? "作品、资源和帖子需要登录。注册和验证码就在这里。" : "Works, resources and posts require a login."}
                 </p>
 
                 {/* Tabs */}
-                <div className="flex gap-1 p-1 rounded-xl bg-[var(--surface-hover)] mb-5">
+                <div className="mb-5 flex gap-2">
                   {(["login", "register"] as const).map((t) => (
                     <button
                       key={t}
                       onClick={() => switchTab(t)}
-                      className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-all ${
+                      className={`flex-1 border-2 border-black py-2 text-sm font-black ${
                         tab === t
-                          ? "bg-white text-[var(--primary)] shadow-sm"
-                          : "text-foreground/40 hover:text-foreground"
+                          ? "bg-black text-[var(--acid)]"
+                          : "bg-[#fffdf8] text-black"
                       }`}
-                      style={{ fontFamily: "var(--font-display)" }}
                     >
                       {t === "login" ? (lang === "zh" ? "登录" : "Login") : (lang === "zh" ? "注册" : "Register")}
                     </button>
@@ -392,7 +392,7 @@ export function AuthModal() {
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         placeholder={lang === "zh" ? "用户名" : "Username"}
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)]"
+                        className="cyber-input with-icon"
                       />
                     </div>
                   )}
@@ -405,7 +405,7 @@ export function AuthModal() {
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="Email"
                       autoComplete="email"
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)]"
+                      className="cyber-input with-icon"
                     />
                   </div>
 
@@ -417,7 +417,7 @@ export function AuthModal() {
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder={lang === "zh" ? "密码" : "Password"}
                       autoComplete={tab === "login" ? "current-password" : "new-password"}
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)]"
+                      className="cyber-input with-icon"
                     />
                   </div>
 
@@ -430,7 +430,7 @@ export function AuthModal() {
                         onChange={(e) => setConfirm(e.target.value)}
                         placeholder={lang === "zh" ? "确认密码" : "Confirm password"}
                         autoComplete="new-password"
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)]"
+                        className="cyber-input with-icon"
                       />
                     </div>
                   )}
@@ -438,7 +438,7 @@ export function AuthModal() {
                   {/* CAPTCHA */}
                   <div className="space-y-2">
                     <div className="flex gap-2 items-stretch">
-                      <div className="flex-1 relative bg-[var(--background)] rounded-xl border border-[var(--border)] overflow-hidden" style={{ minHeight: 48 }}>
+                      <div className="relative flex-1 overflow-hidden border-2 border-black bg-[#fffdf8]" style={{ minHeight: 48 }}>
                         {captchaSvg ? (
                           <img
                             src={`data:image/svg+xml;base64,${captchaSvg}`}
@@ -455,7 +455,7 @@ export function AuthModal() {
                       <button
                         type="button"
                         onClick={fetchCaptcha}
-                        className="px-3 rounded-xl border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors flex items-center justify-center"
+                        className="flex items-center justify-center border-2 border-black bg-[#fffdf8] px-3"
                         title={l("auth.captchaRefresh")}
                       >
                         <RefreshCw className="h-4 w-4 text-foreground/40" />
@@ -470,7 +470,7 @@ export function AuthModal() {
                         placeholder={l("auth.captchaPlaceholder")}
                         maxLength={4}
                         autoComplete="off"
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-10 pr-4 py-2.5 text-sm tracking-widest font-mono focus:outline-none focus:border-[var(--primary)] uppercase"
+                        className="cyber-input with-icon font-mono uppercase tracking-widest"
                       />
                     </div>
                   </div>
@@ -483,8 +483,7 @@ export function AuthModal() {
                   <button
                     type="submit"
                     disabled={loading}
-                    className="w-full rounded-xl py-3 text-sm font-semibold text-white disabled:opacity-60 transition-opacity flex items-center justify-center gap-2"
-                    style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}
+                    className="cyber-button w-full bg-[var(--orange)] text-white disabled:opacity-60"
                   >
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                     {tab === "login"
@@ -505,8 +504,8 @@ export function AuthModal() {
             {mode === "verify" && (
               <>
                 <div className="text-center mb-6">
-                  <div className="w-12 h-12 rounded-full bg-[var(--bead-coral)]/10 flex items-center justify-center mx-auto mb-3">
-                    <Mail className="h-6 w-6 text-[var(--bead-coral)]" />
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center border-2 border-black bg-[var(--acid)]">
+                    <Mail className="h-6 w-6 text-black" />
                   </div>
                   <h2 className="text-xl font-bold mb-1" style={{ fontFamily: "var(--font-display)" }}>
                     {l("auth.verifyTitle")}
@@ -530,7 +529,7 @@ export function AuthModal() {
                       placeholder={l("auth.verifyCodePlaceholder")}
                       maxLength={6}
                       autoComplete="one-time-code"
-                      className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-center text-lg tracking-[0.3em] font-mono focus:outline-none focus:border-[var(--primary)]"
+                      className="cyber-input text-center font-mono text-lg tracking-[0.3em]"
                     />
                   </div>
 
@@ -541,8 +540,7 @@ export function AuthModal() {
                   <button
                     type="submit"
                     disabled={loading || code.length !== 6}
-                    className="w-full rounded-xl py-3 text-sm font-semibold text-white disabled:opacity-60 transition-opacity flex items-center justify-center gap-2"
-                    style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}
+                    className="cyber-button w-full bg-[var(--orange)] text-white disabled:opacity-60"
                   >
                     {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                     {l("auth.verifyBtn")}
@@ -564,7 +562,7 @@ export function AuthModal() {
                   ) : (
                     <div className="space-y-3">
                       <div className="flex gap-2 items-stretch">
-                        <div className="flex-1 relative bg-[var(--background)] rounded-lg border border-[var(--border)] overflow-hidden" style={{ minHeight: 40 }}>
+                        <div className="relative flex-1 overflow-hidden border-2 border-black bg-[#fffdf8]" style={{ minHeight: 40 }}>
                           {resendCaptchaSvg ? (
                             <img
                               src={`data:image/svg+xml;base64,${resendCaptchaSvg}`}
@@ -580,7 +578,7 @@ export function AuthModal() {
                         <button
                           type="button"
                           onClick={fetchResendCaptcha}
-                          className="px-3 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors"
+                          className="border-2 border-black bg-[#fffdf8] px-3"
                         >
                           <RefreshCw className="h-3.5 w-3.5 text-foreground/40" />
                         </button>
@@ -593,14 +591,13 @@ export function AuthModal() {
                           placeholder={l("auth.captchaPlaceholder")}
                           maxLength={4}
                           autoComplete="off"
-                          className="flex-1 rounded-lg border border-[var(--border)] bg-[var(--background)] px-3 py-2 text-sm tracking-widest font-mono focus:outline-none focus:border-[var(--primary)] uppercase"
+                          className="cyber-input font-mono uppercase tracking-widest"
                         />
                         <button
                           type="button"
                           onClick={handleResend}
                           disabled={loading || !resendCaptchaText.trim()}
-                          className="px-4 rounded-lg text-sm font-semibold text-white disabled:opacity-60 transition-opacity"
-                          style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))" }}
+                          className="cyber-button bg-[var(--orange)] px-4 text-white disabled:opacity-60"
                         >
                           {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : l("auth.verifySent")}
                         </button>
@@ -627,8 +624,8 @@ export function AuthModal() {
             {mode === "forgot" && (
               <>
                 <div className="text-center mb-6">
-                  <div className="w-12 h-12 rounded-full bg-[var(--bead-coral)]/10 flex items-center justify-center mx-auto mb-3">
-                    <Lock className="h-6 w-6 text-[var(--bead-coral)]" />
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center border-2 border-black bg-[var(--orange)] text-white">
+                    <Lock className="h-6 w-6" />
                   </div>
                   <h2 className="text-xl font-bold mb-1" style={{ fontFamily: "var(--font-display)" }}>
                     {lang === "zh" ? "忘记密码" : "Forgot Password"}
@@ -648,15 +645,14 @@ export function AuthModal() {
                         onChange={(e) => setForgotEmail(e.target.value)}
                         placeholder="Email"
                         autoComplete="email"
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)]"
+                        className="cyber-input with-icon"
                       />
                     </div>
                     {error && <p className="text-xs text-red-400 text-center">{error}</p>}
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full rounded-xl py-3 text-sm font-semibold text-white disabled:opacity-60 transition-opacity flex items-center justify-center gap-2"
-                      style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}
+                      className="cyber-button w-full bg-[var(--orange)] text-white disabled:opacity-60"
                     >
                       {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                       {lang === "zh" ? "发送验证码" : "Send Code"}
@@ -669,8 +665,7 @@ export function AuthModal() {
                     </p>
                     <button
                       onClick={() => { setMode("reset"); setCode(""); setResetPassword(""); setResetConfirm(""); setResetDone(false); setError(""); }}
-                      className="w-full rounded-xl py-3 text-sm font-semibold text-white"
-                      style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}
+                      className="cyber-button w-full bg-[var(--acid)] text-black"
                     >
                       {lang === "zh" ? "下一步：重置密码" : "Next: Reset Password"}
                     </button>
@@ -689,8 +684,8 @@ export function AuthModal() {
             {mode === "reset" && (
               <>
                 <div className="text-center mb-6">
-                  <div className="w-12 h-12 rounded-full bg-[var(--primary)]/10 flex items-center justify-center mx-auto mb-3">
-                    <Shield className="h-6 w-6 text-[var(--primary)]" />
+                  <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center border-2 border-black bg-black text-[var(--acid)]">
+                    <Shield className="h-6 w-6" />
                   </div>
                   <h2 className="text-xl font-bold mb-1" style={{ fontFamily: "var(--font-display)" }}>
                     {lang === "zh" ? "重置密码" : "Reset Password"}
@@ -707,8 +702,7 @@ export function AuthModal() {
                     </p>
                     <button
                       onClick={handleBackToLogin}
-                      className="w-full rounded-xl py-3 text-sm font-semibold text-white"
-                      style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}
+                      className="cyber-button w-full bg-[var(--acid)] text-black"
                     >
                       {lang === "zh" ? "返回登录" : "Back to Sign In"}
                     </button>
@@ -723,7 +717,7 @@ export function AuthModal() {
                         placeholder={lang === "zh" ? "输入6位验证码" : "Enter 6-digit code"}
                         maxLength={6}
                         autoComplete="one-time-code"
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-4 py-3 text-center text-lg tracking-[0.3em] font-mono focus:outline-none focus:border-[var(--primary)]"
+                        className="cyber-input text-center font-mono text-lg tracking-[0.3em]"
                       />
                     </div>
                     <div className="relative">
@@ -734,7 +728,7 @@ export function AuthModal() {
                         onChange={(e) => setResetPassword(e.target.value)}
                         placeholder={lang === "zh" ? "新密码" : "New password"}
                         autoComplete="new-password"
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)]"
+                        className="cyber-input with-icon"
                       />
                     </div>
                     <div className="relative">
@@ -745,15 +739,14 @@ export function AuthModal() {
                         onChange={(e) => setResetConfirm(e.target.value)}
                         placeholder={lang === "zh" ? "确认新密码" : "Confirm new password"}
                         autoComplete="new-password"
-                        className="w-full rounded-xl border border-[var(--border)] bg-[var(--background)] pl-10 pr-4 py-3 text-sm focus:outline-none focus:border-[var(--primary)]"
+                        className="cyber-input with-icon"
                       />
                     </div>
                     {error && <p className="text-xs text-red-400 text-center">{error}</p>}
                     <button
                       type="submit"
                       disabled={loading}
-                      className="w-full rounded-xl py-3 text-sm font-semibold text-white disabled:opacity-60 transition-opacity flex items-center justify-center gap-2"
-                      style={{ background: "linear-gradient(135deg, var(--bead-coral), var(--bead-amber))", fontFamily: "var(--font-display)" }}
+                      className="cyber-button w-full bg-[var(--orange)] text-white disabled:opacity-60"
                     >
                       {loading && <Loader2 className="h-4 w-4 animate-spin" />}
                       {lang === "zh" ? "重置密码" : "Reset Password"}

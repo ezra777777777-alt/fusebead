@@ -1,8 +1,8 @@
-import { Router, Request, static as serveStatic } from "express";
+import { Router, Request } from "express";
 import { randomUUID } from "crypto";
-import { mkdir, writeFile } from "fs/promises";
+import { access, mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { authMiddleware, optionalAuth } from "../middleware/auth";
+import { authMiddleware } from "../middleware/auth";
 import { rateLimit } from "../middleware/rateLimit";
 import { query, transaction } from "../config/db";
 import { asyncRoute, HttpError, positiveInt } from "../utils/http";
@@ -10,7 +10,18 @@ import { checkWebsiteResource, guardWebsiteRegistry, guardWebsiteRegistryForRemo
 
 export const projectsRouter = Router();
 const coverDirectory = path.resolve(process.env.DB_PATH ? path.dirname(process.env.DB_PATH) : "data", "covers");
-projectsRouter.use("/covers", serveStatic(coverDirectory, { index: false, dotfiles: "deny", setHeaders: res => res.setHeader("X-Content-Type-Options", "nosniff") }));
+const coverFileName = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$/i;
+
+projectsRouter.get("/covers/:filename", authMiddleware, asyncRoute(async (req, res) => {
+  const filename = String(req.params.filename || "");
+  const filePath = path.resolve(coverDirectory, filename);
+  if (!coverFileName.test(filename) || path.dirname(filePath) !== path.resolve(coverDirectory)) throw new HttpError(404, "图片不存在");
+  try { await access(filePath); } catch { throw new HttpError(404, "图片不存在"); }
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Cache-Control", "private, no-store");
+  res.type("image/jpeg");
+  res.sendFile(filePath);
+}));
 projectsRouter.post("/cover", authMiddleware, rateLimit(6), rateLimit(30, 24 * 60 * 60 * 1000), asyncRoute(async (req, res) => {
   const image = req.body.image;
   if (typeof image !== "string" || image.length > 2_800_000 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(image)) throw new HttpError(400, "请选择不超过 2 MB 的 PNG、JPEG 或 WebP 图片");
@@ -74,7 +85,7 @@ async function approvedProject(req: Request) {
   return project;
 }
 
-projectsRouter.get("/", optionalAuth, asyncRoute(async (req, res) => {
+projectsRouter.get("/", authMiddleware, asyncRoute(async (req, res) => {
   const page = positiveInt(req.query.page, 1);
   const limit = Math.min(50, positiveInt(req.query.limit, 20));
   const values: unknown[] = [];
@@ -103,7 +114,7 @@ projectsRouter.get("/my-reports", authMiddleware, asyncRoute(async (req, res) =>
     WHERE r.user_id = ? ORDER BY r.created_at DESC, r.id DESC`, [req.user!.userId]));
 }));
 
-projectsRouter.get("/:id", optionalAuth, asyncRoute(async (req, res) => {
+projectsRouter.get("/:id", authMiddleware, asyncRoute(async (req, res) => {
   const project = await visibleProject(req);
   const [author] = await query<any[]>("SELECT username, avatar_url, contribution_points FROM users WHERE id = ?", [project.user_id]);
   const votes = req.user ? await query<any[]>("SELECT id FROM project_votes WHERE project_id = ? AND user_id = ?", [project.id, req.user.userId]) : [];
@@ -175,7 +186,7 @@ projectsRouter.post("/:id/vote", authMiddleware, rateLimit(30), asyncRoute(async
   res.json(result);
 }));
 
-projectsRouter.get("/:id/comments", optionalAuth, asyncRoute(async (req, res) => {
+projectsRouter.get("/:id/comments", authMiddleware, asyncRoute(async (req, res) => {
   const project = await visibleProject(req);
   if (project.is_deleted && !req.user?.isAdmin && project.user_id !== req.user?.userId) throw new HttpError(404, "作品已下架");
   res.json(await query(`SELECT c.id, c.user_id, c.content, c.created_at, u.username, u.avatar_url,

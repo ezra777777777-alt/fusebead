@@ -5,7 +5,9 @@ import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { Search, Heart, Download, Grid3X3 } from "lucide-react";
 import { useLang } from "@/lib/LangContext";
+import { useAuth } from "@/lib/AuthContext";
 import { api } from "@/lib/api";
+import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
 import { GalleryFAB } from "@/components/gallery/GalleryFAB";
 import { Pagination } from "@/components/shared/Pagination";
 
@@ -38,6 +40,7 @@ function thumbnailFromGrid(gridData: string, maxSize = 8): string[][] {
 
 export default function GalleryPage() {
   const { t, lang } = useLang();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [category, setCategory] = useState<string>("all");
   const [search, setSearch] = useState("");
@@ -48,6 +51,7 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(false);
 
   const fetchPatterns = useCallback(() => {
+    if (!user) { setPatterns([]); setTotal(0); setLoading(false); return; }
     setLoading(true);
     const params = new URLSearchParams();
     if (category === "hot") params.set("sort", "popular");
@@ -62,13 +66,16 @@ export default function GalleryPage() {
       .then((d) => { setPatterns(d.patterns); setTotal(d.total); })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [category, sort, page, search]);
+  }, [category, sort, page, search, user]);
 
   useEffect(() => { fetchPatterns(); }, [fetchPatterns]);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const catLabel = (c: string) => t(`gallery.categories.${c}`);
+
+  if (authLoading) return <p className="px-5 py-32 text-center font-black">正在确认登录状态…</p>;
+  if (!user) return <div className="min-h-screen bg-[var(--background)] px-4 pt-28"><div className="mx-auto max-w-3xl"><ContentLoginPrompt title="图纸作品需要登录" detail="未登录时不读取图纸列表、缩略图和评论。登录后回到图纸库。" returnTo="/gallery" /></div></div>;
 
   return (<>
     <div className="min-h-screen pt-16 bg-[var(--background)]">

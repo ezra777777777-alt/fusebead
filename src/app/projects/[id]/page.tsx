@@ -8,6 +8,8 @@ import { useParams, useSearchParams } from "next/navigation";
 import { ArrowLeft, Code2, ExternalLink, Eye, Flag, Loader2, MessageCircle, Send, ShieldCheck, ThumbsUp, Trash2 } from "lucide-react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
+import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
+import { AuthedCover } from "@/components/community/AuthedCover";
 
 import { GITHUB_CATEGORY, Project, projectStatus } from "@/lib/community";
 
@@ -52,9 +54,10 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (Number.isSafeInteger(projectId) && projectId > 0) load();
+    if (!user) { setLoading(false); setProject(null); setComments([]); return; }
+    if (Number.isSafeInteger(projectId) && projectId > 0) { setLoading(true); void load(); }
     else { setLoading(false); setError("作品编号无效"); }
-  }, [load, projectId, authLoading]);
+  }, [load, projectId, authLoading, user]);
 
   const vote = async () => {
     if (!user) { openAuth(); return; }
@@ -101,7 +104,8 @@ export default function ProjectDetailPage() {
     finally { setBusy(false); }
   };
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center bg-[var(--background)] pt-16"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (authLoading || (user && loading)) return <div className="flex min-h-screen items-center justify-center bg-[var(--background)] pt-16"><Loader2 className="h-8 w-8 animate-spin" /></div>;
+  if (!user) return <div className="min-h-screen bg-[var(--background)] px-4 pt-28"><div className="mx-auto max-w-3xl"><ContentLoginPrompt title="这篇帖子需要登录" detail="未登录时不读取标题、正文、评论和截图。登录后回到这篇帖子。" returnTo={`/projects/${params.id}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`} /></div></div>;
   if (!project) return <div className="min-h-screen bg-[var(--background)] px-4 pt-32 text-center"><h1 className="text-3xl font-black">暂时无法打开这份作品</h1><p role="alert" className="mt-2 font-bold text-black/45">{error}</p><div className="mt-6 flex flex-wrap justify-center gap-5">{Number.isSafeInteger(projectId) && projectId > 0 && <button onClick={() => { setLoading(true); void load(); }} className="font-black underline">重新加载作品</button>}<Link href={backHref} className="font-black underline">回污染物列表</Link><Link href="/dashboard" className="font-black underline">查看我的投稿</Link></div></div>;
 
   const level = Math.max(1, Math.floor(Number(project.author_points || 0) / 50) + 1);
@@ -131,7 +135,7 @@ export default function ProjectDetailPage() {
         <main className="min-w-0 space-y-6">
           {error && <div role="alert" className="border-2 border-red-600 bg-red-50 p-4 text-red-700">{error}</div>}
           {(user?.id === project.user_id || user?.is_admin) && <div className="border-2 border-black bg-yellow-50 p-4 text-sm"><strong>{project.is_deleted ? "已下架" : projectStatus[project.status]} · 第 {project.revision} 版</strong>{project.moderation_note && <p className="mt-2">审核说明：{project.moderation_note}</p>}<div className="mt-3 flex gap-5"><Link href="/dashboard" className="underline">返回个人中心</Link>{user?.id === project.user_id && !project.is_deleted && <Link href={`/submit?edit=${project.id}`} className="font-black underline">修改并重新送审</Link>}</div></div>}
-          {project.cover_url && <div className="overflow-hidden border-2 border-black bg-black shadow-[6px_6px_0_#000]"><img src={project.cover_url} alt={`${project.title} 截图`} className="max-h-[520px] w-full object-contain" /></div>}
+          {project.cover_url && <div className="overflow-hidden border-2 border-black bg-black shadow-[6px_6px_0_#000]"><AuthedCover src={project.cover_url} alt={`${project.title} 截图`} className="max-h-[520px] w-full object-contain" /></div>}
 
           <section className="border-2 border-black bg-white p-5 shadow-[5px_5px_0_#000] sm:p-7">
             <div className="text-xs font-black uppercase tracking-[0.18em] text-[var(--orange)]">{github ? "PROJECT NOTES" : "INCIDENT REPORT"}</div>

@@ -62,7 +62,7 @@ function Dashboard() {
   };
 
   if (loading) return <div className="px-6 py-32 text-center">正在读取账号…</div>;
-  if (!user) return <div className="mx-auto min-h-[60vh] max-w-xl px-6 py-32 text-center"><h1 className="text-3xl font-black">你的环卫工作台</h1><p className="my-6">登录后查看投稿、审核结果和举报进度。</p><button onClick={openAuth} className="cyber-button bg-[var(--acid)]">登录 / 注册</button></div>;
+  if (!user) return <div className="mx-auto min-h-[60vh] max-w-xl px-6 py-32 text-center"><h1 className="text-3xl font-black">你的环卫工作台</h1><p className="my-6">登录后查看投稿、审核结果和举报进度。</p><button onClick={() => openAuth()} className="cyber-button bg-[var(--acid)]">登录 / 注册</button></div>;
   const visible = projects.filter(p => filter === "all" || (filter === "deleted" ? p.is_deleted : !p.is_deleted && p.status === filter));
   return <div className="min-h-screen pt-16 text-black">
     <div className="border-b-4 border-black bg-[#111] text-white"><div className="mx-auto max-w-6xl px-5 py-10">

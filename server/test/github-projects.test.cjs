@@ -35,7 +35,7 @@ test('GitHub sharing uses the moderated community lifecycle', async t => {
     assert.equal(response.status, status, `${method} ${url}: ${JSON.stringify(data)}`);
     return data;
   }
-  const list = (extra = '') => api(`/projects?category=${encodeURIComponent(draft.category)}${extra}`);
+  const list = (extra = '') => api(`/projects?category=${encodeURIComponent(draft.category)}${extra}`, reader.token);
   let project;
 
   await t.test('older mixed-case GitHub submissions still block the same pending project', async () => {
@@ -81,7 +81,7 @@ test('GitHub sharing uses the moderated community lifecycle', async t => {
     await api(`/projects/${project.id}/vote`, reader.token, 'POST', { voted: true });
     await api(`/projects/${project.id}/vote`, reader.token, 'POST', { voted: true });
     await api(`/projects/${project.id}/comments`, reader.token, 'POST', { content: '希望补充系统要求。' }, 201);
-    const published = await api(`/projects/${project.id}`);
+    const published = await api(`/projects/${project.id}`, reader.token);
     assert.equal(published.votes_count, 1); assert.equal(published.comments_count, 1);
     assert.equal((await query('SELECT contribution_points FROM users WHERE id = ?', [reader.id]))[0].contribution_points, 0);
   });

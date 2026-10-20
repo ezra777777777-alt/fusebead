@@ -41,7 +41,7 @@ const Favorite = __importStar(require("../models/favorite"));
 const db_1 = require("../config/db");
 exports.patternsRouter = (0, express_1.Router)();
 // List public patterns
-exports.patternsRouter.get("/", auth_1.optionalAuth, async (req, res) => {
+exports.patternsRouter.get("/", auth_1.authMiddleware, async (req, res) => {
     try {
         const { category, sort, page, limit, search, userId } = req.query;
         const result = await Pattern.findAll({
@@ -60,7 +60,7 @@ exports.patternsRouter.get("/", auth_1.optionalAuth, async (req, res) => {
     }
 });
 // Get single pattern
-exports.patternsRouter.get("/:id", auth_1.optionalAuth, async (req, res) => {
+exports.patternsRouter.get("/:id", auth_1.authMiddleware, async (req, res) => {
     try {
         const pattern = await Pattern.findById(Number(req.params.id));
         if (!pattern) {
@@ -177,7 +177,7 @@ exports.patternsRouter.post("/:id/download", async (req, res) => {
 });
 // ── Comments ──
 // List comments for a pattern
-exports.patternsRouter.get("/:id/comments", async (req, res) => {
+exports.patternsRouter.get("/:id/comments", auth_1.authMiddleware, async (req, res) => {
     try {
         const patternId = Number(req.params.id);
         const comments = await (0, db_1.query)(`SELECT c.id, c.content, c.created_at, u.username, u.avatar_url, u.id as user_id

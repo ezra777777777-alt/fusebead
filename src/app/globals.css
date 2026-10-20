@@ -101,6 +101,20 @@ body {
   color: rgba(0,0,0,.28);
 }
 
+.cyber-input.with-icon {
+  padding-left: 2.5rem;
+}
+
+.cyber-paper {
+  background-color: #f3efe3;
+  background-image:
+    radial-gradient(rgba(20, 20, 20, 0.055) 0.65px, transparent 0.7px),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.45), transparent 36%),
+    linear-gradient(90deg, rgba(202, 255, 54, 0.12), transparent 20%, transparent 80%, rgba(255, 79, 24, 0.1));
+  background-size: 4px 4px, 100% 100%, 100% 100%;
+  color: #141414;
+}
+
 /* Bead gradient — warm rainbow across the bead spectrum */
 .bead-gradient-text {
   background: linear-gradient(135deg, #FF9EB5, #FFE082, #87CEEB);

@@ -40,7 +40,7 @@ test('search, comments and public profiles', async t => {
     assert.equal(response.status, status, `${method} ${url}: ${JSON.stringify(data)}`);
     return data;
   }
-  const search = (term, extra = '') => api(`/api/projects?search=${encodeURIComponent(term)}${extra}`);
+  const search = (term, extra = '') => api(`/api/projects?search=${encodeURIComponent(term)}${extra}`, reader);
   await t.test('search matches title, summary, technology and author, with literal special characters', async () => {
     for (const term of ['100%', '_', '!', '精确简介', '  rEaCt  ']) assert.equal((await search(term)).total, 1, term);
     assert.equal((await search('作品作者')).total, 24);
@@ -56,9 +56,9 @@ test('search, comments and public profiles', async t => {
     assert.equal((await search('搜索验收', '&category=' + encodeURIComponent('能跑就行'))).total, 12);
     assert.equal((await search('搜索验收', '&page=99')).projects.length, 0);
     await query('UPDATE projects SET votes_count = 3 WHERE id = ?', [ids[0]]);
-    assert.equal((await api('/api/projects?sort=popular')).projects[0].id, ids[0]);
-    await api('/api/projects?page=0', null, 'GET', undefined, 400);
-    await api('/api/projects?search=' + 'x'.repeat(81), null, 'GET', undefined, 400);
+    assert.equal((await api('/api/projects?sort=popular', reader)).projects[0].id, ids[0]);
+    await api('/api/projects?page=0', reader, 'GET', undefined, 400);
+    await api('/api/projects?search=' + 'x'.repeat(81), reader, 'GET', undefined, 400);
   });
   await t.test('profile changes trim names, preserve account privileges and keep private fields private', async () => {
     await api('/api/user/me', null, 'PUT', { username: '改名' }, 401);
@@ -88,31 +88,31 @@ test('search, comments and public profiles', async t => {
     for (const content of ['   ', {}, 'x'.repeat(1001)]) await api(commentUrl, reader, 'POST', { content }, 400);
     const content = '<script>literal text</script> 中文 🙂';
     await api(commentUrl, reader, 'POST', { content: `  ${content}  ` }, 201);
-    const comments = await api(commentUrl);
+    const comments = await api(commentUrl, reader);
     assert.equal(comments[0].content, content);
     assert.equal(comments[0].username, '手机测试员');
     commentId = comments[0].id;
-    assert.equal((await api('/api/projects?sort=discussed')).projects[0].id, ids[0]);
+    assert.equal((await api('/api/projects?sort=discussed', reader)).projects[0].id, ids[0]);
     assert.equal((await api('/api/user/me', reader)).contribution_points, 0);
   });
   await t.test('concurrent duplicate comments create one row and update counts once', async () => {
     const responses = await Promise.all([1, 2, 3].map(() => fetch(base + commentUrl, { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${reader}` }, body: JSON.stringify({ content: '并发评论验收' }) })));
     assert.deepEqual(responses.map(r => r.status).sort(), [201, 409, 409]);
-    assert.equal((await api(commentUrl)).length, 2);
-    assert.equal((await api(`/api/projects/${ids[0]}`)).comments_count, 2);
+    assert.equal((await api(commentUrl, reader)).length, 2);
+    assert.equal((await api(`/api/projects/${ids[0]}`, reader)).comments_count, 2);
     await api('/api/user/me', reader, 'PUT', { username: '更新后的评论昵称' });
-    assert.equal((await api(commentUrl))[0].username, '更新后的评论昵称');
+    assert.equal((await api(commentUrl, reader))[0].username, '更新后的评论昵称');
   });
   await t.test('comment ownership, repeated deletion and moderation keep counters accurate', async () => {
     await api(`${commentUrl}/${commentId}`, author, 'DELETE');
-    assert.equal((await api(commentUrl)).length, 2);
+    assert.equal((await api(commentUrl, reader)).length, 2);
     await api(`${commentUrl}/${commentId}`, reader, 'DELETE');
     await api(`${commentUrl}/${commentId}`, reader, 'DELETE');
-    assert.equal((await api(`/api/projects/${ids[0]}`)).comments_count, 1);
-    const remaining = (await api(commentUrl))[0];
+    assert.equal((await api(`/api/projects/${ids[0]}`, reader)).comments_count, 1);
+    const remaining = (await api(commentUrl, reader))[0];
     await api(`/api/admin/project-comments/${remaining.id}`, admin, 'DELETE');
-    assert.equal((await api(commentUrl)).length, 0);
-    assert.equal((await api(`/api/projects/${ids[0]}`)).comments_count, 0);
+    assert.equal((await api(commentUrl, reader)).length, 0);
+    assert.equal((await api(`/api/projects/${ids[0]}`, reader)).comments_count, 0);
     assert.equal((await api('/api/user/me', reader)).contribution_points, 0);
   });
 });

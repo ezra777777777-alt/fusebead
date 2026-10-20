@@ -15,7 +15,23 @@ const http_1 = require("../utils/http");
 const resource_registry_1 = require("./resource-registry");
 exports.projectsRouter = (0, express_1.Router)();
 const coverDirectory = path_1.default.resolve(process.env.DB_PATH ? path_1.default.dirname(process.env.DB_PATH) : "data", "covers");
-exports.projectsRouter.use("/covers", (0, express_1.static)(coverDirectory, { index: false, dotfiles: "deny", setHeaders: res => res.setHeader("X-Content-Type-Options", "nosniff") }));
+const coverFileName = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.jpg$/i;
+exports.projectsRouter.get("/covers/:filename", auth_1.authMiddleware, (0, http_1.asyncRoute)(async (req, res) => {
+    const filename = String(req.params.filename || "");
+    const filePath = path_1.default.resolve(coverDirectory, filename);
+    if (!coverFileName.test(filename) || path_1.default.dirname(filePath) !== path_1.default.resolve(coverDirectory))
+        throw new http_1.HttpError(404, "图片不存在");
+    try {
+        await (0, promises_1.access)(filePath);
+    }
+    catch {
+        throw new http_1.HttpError(404, "图片不存在");
+    }
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Cache-Control", "private, no-store");
+    res.type("image/jpeg");
+    res.sendFile(filePath);
+}));
 exports.projectsRouter.post("/cover", auth_1.authMiddleware, (0, rateLimit_1.rateLimit)(6), (0, rateLimit_1.rateLimit)(30, 24 * 60 * 60 * 1000), (0, http_1.asyncRoute)(async (req, res) => {
     const image = req.body.image;
     if (typeof image !== "string" || image.length > 2800000 || !/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(image))
@@ -92,7 +108,7 @@ async function approvedProject(req) {
         throw new http_1.HttpError(409, "作品尚未公开或已下架");
     return project;
 }
-exports.projectsRouter.get("/", auth_1.optionalAuth, (0, http_1.asyncRoute)(async (req, res) => {
+exports.projectsRouter.get("/", auth_1.authMiddleware, (0, http_1.asyncRoute)(async (req, res) => {
     const page = (0, http_1.positiveInt)(req.query.page, 1);
     const limit = Math.min(50, (0, http_1.positiveInt)(req.query.limit, 20));
     const values = [];
@@ -125,7 +141,7 @@ exports.projectsRouter.get("/my-reports", auth_1.authMiddleware, (0, http_1.asyn
     res.json(await (0, db_1.query)(`SELECT r.*, p.title AS project_title FROM project_reports r LEFT JOIN projects p ON p.id = r.project_id
     WHERE r.user_id = ? ORDER BY r.created_at DESC, r.id DESC`, [req.user.userId]));
 }));
-exports.projectsRouter.get("/:id", auth_1.optionalAuth, (0, http_1.asyncRoute)(async (req, res) => {
+exports.projectsRouter.get("/:id", auth_1.authMiddleware, (0, http_1.asyncRoute)(async (req, res) => {
     const project = await visibleProject(req);
     const [author] = await (0, db_1.query)("SELECT username, avatar_url, contribution_points FROM users WHERE id = ?", [project.user_id]);
     const votes = req.user ? await (0, db_1.query)("SELECT id FROM project_votes WHERE project_id = ? AND user_id = ?", [project.id, req.user.userId]) : [];
@@ -206,7 +222,7 @@ exports.projectsRouter.post("/:id/vote", auth_1.authMiddleware, (0, rateLimit_1.
     });
     res.json(result);
 }));
-exports.projectsRouter.get("/:id/comments", auth_1.optionalAuth, (0, http_1.asyncRoute)(async (req, res) => {
+exports.projectsRouter.get("/:id/comments", auth_1.authMiddleware, (0, http_1.asyncRoute)(async (req, res) => {
     const project = await visibleProject(req);
     if (project.is_deleted && !req.user?.isAdmin && project.user_id !== req.user?.userId)
         throw new http_1.HttpError(404, "作品已下架");
