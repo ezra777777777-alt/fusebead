@@ -6,7 +6,10 @@ import { LogIn, Menu, Search, Upload, X } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export function Navbar() {
-  const { user, isAdmin, openAuth, logout } = useAuth();
+  const { user, loading, isAdmin, openAuth, logout } = useAuth();
+  const guard = (href: string) => (event: { preventDefault: () => void }) => {
+    if (!loading && !user) { event.preventDefault(); openAuth(href); setMobileOpen(false); }
+  };
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const links = [
@@ -31,20 +34,21 @@ export function Navbar() {
             <Link
               key={link.label}
               href={link.href}
+              onClick={guard(link.href)}
               className="text-sm font-bold text-white/65 hover:text-[var(--acid)]"
             >
               {link.label}
             </Link>
           ))}
           {isAdmin && <Link href="/admin" className="text-sm font-black text-[var(--acid)]">环卫后台</Link>}
-          <Link href="/#feed" className="p-1.5 text-white/45 hover:text-white" aria-label="搜索作品"><Search className="h-4 w-4" /></Link>
+          <Link href="/#feed" onClick={guard("/#feed")} className="p-1.5 text-white/45 hover:text-white" aria-label="搜索作品"><Search className="h-4 w-4" /></Link>
           {user ? (
             <div className="flex items-center gap-2 text-xs font-bold">
               <Link href="/dashboard" className="max-w-36 truncate border border-white/25 px-2 py-1.5 text-white/75 hover:border-[var(--acid)] hover:text-[var(--acid)]">{user.username}</Link>
               <button onClick={logout} className="text-white/40 hover:text-white">退出</button>
             </div>
           ) : (
-            <button onClick={openAuth} className="flex items-center gap-1.5 text-sm font-bold text-white/70 hover:text-white"><LogIn className="h-4 w-4" />登录</button>
+            <button onClick={() => openAuth()} className="flex items-center gap-1.5 border-2 border-[var(--acid)] bg-black px-3 py-1.5 text-sm font-black text-[var(--acid)]"><LogIn className="h-4 w-4" />登录</button>
           )}
           <Link href="/submit" className="flex items-center gap-1.5 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black text-black shadow-[3px_3px_0_#fff] transition-transform hover:-translate-y-0.5">
             <Upload className="h-4 w-4" /> 上交本坨
@@ -58,12 +62,12 @@ export function Navbar() {
         {mobileOpen && (
           <div id="mobile-navigation" className="max-h-[calc(100dvh-4rem)] overflow-y-auto absolute inset-x-0 top-16 border-b-2 border-black bg-[#111] p-4 xl:hidden">
             <div className="grid gap-1">
-              {links.map((link) => <Link key={link.label} href={link.href} onClick={() => setMobileOpen(false)} className="border-b border-white/10 px-2 py-3 text-sm font-bold text-white/70">{link.label}</Link>)}
+              {links.map((link) => <Link key={link.label} href={link.href} onClick={guard(link.href)} className="border-b border-white/10 px-2 py-3 text-sm font-bold text-white/70">{link.label}</Link>)}
               {isAdmin && <Link href="/admin" onClick={() => setMobileOpen(false)} className="px-2 py-3 text-sm font-black text-[var(--acid)]">环卫后台</Link>}
               <Link href="/dashboard" onClick={() => setMobileOpen(false)} className="px-2 py-3 text-sm font-bold text-white/70">个人中心</Link>
               <Link href="/help" onClick={() => setMobileOpen(false)} className="px-2 py-3 text-sm font-bold text-white/70">新手帮助</Link>
               <Link href="/submit" onClick={() => setMobileOpen(false)} className="px-2 py-3 text-sm font-black text-[var(--acid)]">上交本坨</Link>
-              {user ? <button onClick={() => { logout(); setMobileOpen(false); }} className="px-2 py-3 text-left text-sm font-bold text-white/60">退出登录</button> : <button onClick={() => { openAuth(); setMobileOpen(false); }} className="px-2 py-3 text-left text-sm font-bold text-white/70">登录 / 注册</button>}
+              {user ? <button onClick={() => { logout(); setMobileOpen(false); }} className="px-2 py-3 text-left text-sm font-bold text-white/60">退出登录</button> : <button onClick={() => { openAuth(); setMobileOpen(false); }} className="border-2 border-[var(--acid)] px-2 py-3 text-left text-sm font-black text-[var(--acid)]">登录 / 注册</button>}
             </div>
           </div>
         )}

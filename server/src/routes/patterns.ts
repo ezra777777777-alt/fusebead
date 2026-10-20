@@ -1,5 +1,5 @@
 import { Router, Request, Response } from "express";
-import { authMiddleware, optionalAuth } from "../middleware/auth";
+import { authMiddleware } from "../middleware/auth";
 import * as Pattern from "../models/pattern";
 import * as Favorite from "../models/favorite";
 import { query } from "../config/db";
@@ -7,7 +7,7 @@ import { query } from "../config/db";
 export const patternsRouter = Router();
 
 // List public patterns
-patternsRouter.get("/", optionalAuth, async (req: Request, res: Response) => {
+patternsRouter.get("/", authMiddleware, async (req: Request, res: Response) => {
   try {
     const { category, sort, page, limit, search, userId } = req.query;
     const result = await Pattern.findAll({
@@ -26,7 +26,7 @@ patternsRouter.get("/", optionalAuth, async (req: Request, res: Response) => {
 });
 
 // Get single pattern
-patternsRouter.get("/:id", optionalAuth, async (req: Request, res: Response) => {
+patternsRouter.get("/:id", authMiddleware, async (req: Request, res: Response) => {
   try {
     const pattern = await Pattern.findById(Number(req.params.id));
     if (!pattern) {
@@ -150,7 +150,7 @@ patternsRouter.post("/:id/download", async (req: Request, res: Response) => {
 // ── Comments ──
 
 // List comments for a pattern
-patternsRouter.get("/:id/comments", async (req: Request, res: Response) => {
+patternsRouter.get("/:id/comments", authMiddleware, async (req: Request, res: Response) => {
   try {
     const patternId = Number(req.params.id);
     const comments = await query<any[]>(

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "新手帮助", description: "了解�
 export default function HelpPage() {
   return <article className="mx-auto max-w-3xl px-5 pb-16 pt-28 text-black">
     <p className="text-xs font-black tracking-widest text-[var(--orange)]">GET STARTED · 公测使用指南</p><h1 className="mt-3 text-4xl font-black">第一次来，从这里开始。</h1>
-    <p className="mt-5 leading-8">浏览作品不需要账号。想评论、点赞、签到或投稿时，点击菜单里的“登录 / 注册”。社区公测功能免费使用。</p>
+    <p className="mt-5 leading-8">登录后才能查看作品、资源分享和帖子。注册、登录、验证码，以及本页、社区规则、用户协议和隐私政策都可以直接打开。想评论、点赞、签到或投稿时，使用菜单里的“登录 / 注册”。</p>
     <nav aria-label="帮助目录" className="my-7 flex flex-wrap gap-4 text-sm font-bold underline"><a href="#account">注册与登录</a><a href="#submit">投稿与草稿</a><a href="#review">查看审核</a><a href="#feedback">举报与反馈</a><a href="#tools">拼豆工具</a><a href="#github">资源分享</a></nav>
     <div className="space-y-8 border-2 border-black bg-white p-6 shadow-[6px_6px_0_#000]">
       <section id="account" className="scroll-mt-24"><h2 className="text-xl font-black">01 / 注册、验证和找回密码</h2><p className="mt-3 leading-8">填写昵称、邮箱和密码，完成图形验证码并阅读协议后注册。使用邮件中的最新验证码验证邮箱，才能登录。没收到验证码时，先核对邮箱和垃圾邮件文件夹；等待页面倒计时结束后重发，旧验证码会失效。</p><p className="mt-3 leading-8">忘记密码时，在登录窗口选择“忘记密码”，按邮件验证码重置，再用新密码登录。无法登录或账号被封禁时，右下角反馈入口仍可提交账号申诉；不要在反馈里填写密码或验证码。</p><p className="mt-3 border-l-4 border-[var(--acid)] bg-[var(--paper)] p-3 text-sm leading-7">当前是本机预览，验证邮件只保存在这台电脑的测试收件目录，不会发送到真实邮箱。公开公测前需要启用真实邮件服务。</p></section>

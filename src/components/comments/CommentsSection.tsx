@@ -32,7 +32,10 @@ export function CommentsSection({ patternId }: { patternId: number }) {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { fetchComments(); }, [patternId]);
+  useEffect(() => {
+    if (!user) { setComments([]); setLoading(false); return; }
+    fetchComments();
+  }, [patternId, user]);
 
   const handlePost = async () => {
     if (!user) { openAuth(); return; }

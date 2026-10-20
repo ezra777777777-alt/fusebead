@@ -8,12 +8,13 @@ import Link from "next/link";
 import { useLang } from "@/lib/LangContext";
 import { useAuth } from "@/lib/AuthContext";
 import { api } from "@/lib/api";
+import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
 import { CommentsSection } from "@/components/comments/CommentsSection";
 
 export default function GalleryDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { t, lang } = useLang();
-  const { user, openAuth } = useAuth();
+  const { user, loading: authLoading, openAuth } = useAuth();
   const router = useRouter();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pattern, setPattern] = useState<any>(null);
@@ -25,6 +26,8 @@ export default function GalleryDetailPage() {
   const [likeLoading, setLikeLoading] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setLoading(false); setPattern(null); return; }
     setLoading(true);
     api(`/patterns/${id}`)
       .then((d) => {
@@ -34,7 +37,7 @@ export default function GalleryDetailPage() {
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [id, user, authLoading]);
 
   // Render pixel preview to canvas
   useEffect(() => {
@@ -111,12 +114,16 @@ export default function GalleryDetailPage() {
     try { return JSON.parse(pattern.color_counts); } catch { return {}; }
   })();
 
-  if (loading) {
+  if (authLoading || (user && loading)) {
     return (
       <div className="min-h-screen pt-16 flex items-center justify-center bg-[var(--background)]">
         <Loader2 className="h-8 w-8 animate-spin text-[var(--primary)]" />
       </div>
     );
+  }
+
+  if (!user) {
+    return <div className="min-h-screen bg-[var(--background)] px-4 pt-28"><div className="mx-auto max-w-3xl"><ContentLoginPrompt title="这张图纸需要登录" detail="未登录时不读取图纸、缩略图和评论。登录后回到这张图纸。" returnTo={`/gallery/${id}`} /></div></div>;
   }
 
   if (notFound || !pattern) {

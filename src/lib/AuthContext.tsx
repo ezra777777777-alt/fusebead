@@ -30,7 +30,7 @@ type AuthContextType = {
   refreshToken: () => Promise<void>;
   logout: () => void;
   isOpen: boolean;
-  openAuth: () => void;
+  openAuth: (returnTo?: string) => void;
   closeAuth: () => void;
 };
 
@@ -93,6 +93,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setPendingEmail(null);
     setRestoreError("");
     setIsOpen(false);
+    const next = sessionStorage.getItem("authReturnTo");
+    sessionStorage.removeItem("authReturnTo");
+    if (next && next.startsWith("/") && !next.startsWith("//") && !next.includes("://")) {
+      const here = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      if (next !== here) window.location.assign(next);
+    }
   };
 
   const login = useCallback(async (email: string, password: string, captchaId: string, captchaText: string) => {
@@ -171,7 +177,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user, loading: loading || !!restoreError, isAdmin, pendingEmail, verificationMessage,
       login, register, verifyEmail, sendCode, clearPendingEmail,
       refreshUser, refreshToken, logout,
-      isOpen, openAuth: () => setIsOpen(true), closeAuth: () => setIsOpen(false),
+      isOpen, openAuth: (returnTo?: string) => {
+        if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("://")) sessionStorage.setItem("authReturnTo", returnTo);
+        else sessionStorage.removeItem("authReturnTo");
+        setIsOpen(true);
+      }, closeAuth: () => setIsOpen(false),
     }}>
       {children}
       {restoreError && <div role="alert" className="fixed inset-x-4 top-20 z-[140] mx-auto max-w-xl border-2 border-black bg-yellow-50 p-4 text-sm text-black shadow-lg">{restoreError}<button onClick={() => window.location.reload()} className="ml-3 font-bold underline">重新读取账号</button></div>}

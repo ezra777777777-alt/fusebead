@@ -8,6 +8,7 @@ import { useSearchParams } from "next/navigation";
 import { Pagination } from "@/components/shared/Pagination";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/AuthContext";
+import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
 import {
   BadgeCheck,
   BellRing,
@@ -47,7 +48,7 @@ const boards = [
 export function CyberHome() { return <Suspense fallback={<p className="p-32 text-center">正在打开社区…</p>}><CommunityFeed /></Suspense>; }
 function CommunityFeed() {
   const params = useSearchParams();
-  const { user, openAuth, refreshUser } = useAuth();
+  const { user, loading: authLoading, openAuth, refreshUser } = useAuth();
   const activeBoard = params.get("category") || "全部";
   const search = params.get("search") || "";
   const [checkedIn, setCheckedIn] = useState(false);
@@ -78,9 +79,14 @@ function CommunityFeed() {
     if (userId) api<{checkedIn:boolean}>("/user/me/check-in").then(data => { if (active) { setCheckedIn(data.checkedIn); if (data.checkedIn) setCheckinText("今日已签到"); } }).catch(() => {});
     return () => { active = false; };
   }, [userId]);
-  useEffect(() => { api("/projects?sort=popular&limit=5").then(data => setRankings(data.projects)).catch(() => {}); }, []);
+  useEffect(() => {
+    if (!user) { setRankings([]); return; }
+    api("/projects?sort=popular&limit=5").then(data => setRankings(data.projects)).catch(() => {});
+  }, [user]);
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setLoading(false); setPosts([]); setTotal(0); setError(""); return; }
     let active = true;
     setLoading(true); setError("");
     const timer = window.setTimeout(() => {
@@ -112,7 +118,7 @@ function CommunityFeed() {
       .finally(() => { if (active) setLoading(false); });
     }, 250);
     return () => { active = false; window.clearTimeout(timer); };
-  }, [activeBoard, search, sort, page, retry]);
+  }, [activeBoard, search, sort, page, retry, user, authLoading]);
 
   const visiblePosts = posts;
 
@@ -156,12 +162,22 @@ function CommunityFeed() {
               <Link href="/submit" className="cyber-button bg-[var(--orange)] text-white">
                 <Upload className="h-5 w-5" /> 上交本坨
               </Link>
-              <a href="#feed" className="cyber-button bg-white text-black">
-                <Eye className="h-5 w-5" /> 开始受害
-              </a>
+              <span data-approved-works>
+                <button
+                  type="button"
+                  className="cyber-button bg-white text-black"
+                  onClick={() => {
+                    if (!user) openAuth("/?sort=latest#feed");
+                    else document.getElementById("feed")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  <BadgeCheck className="h-5 w-5" /> 已审核作品
+                </button>
+              </span>
+              {/* data-approved-works-end */}
             </div>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs font-bold text-white/50">
-              <span>{`当前找到 ${total} 份作品`}</span>
+              <span>{user ? `当前找到 ${total} 份作品` : "登录后查看已审核作品"}</span>
               <span>投稿先审后发</span>
               <span>外链先警告再跳转</span>
             </div>
@@ -186,14 +202,14 @@ function CommunityFeed() {
       <section id="community-boards" className="scroll-mt-16 border-b-2 border-black bg-white" aria-label="社区分区">
         <div className="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6 lg:px-8">
           <div className="flex min-w-max py-3">
-            <Link href="/github" className="mr-2 flex items-center gap-2 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black text-black hover:-translate-y-0.5"><Code2 className="h-4 w-4" /> 资源分享</Link>
+            {user ? <Link href="/github" className="mr-2 flex items-center gap-2 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black text-black hover:-translate-y-0.5"><Code2 className="h-4 w-4" /> 资源分享</Link> : <button type="button" onClick={() => openAuth("/github")} className="mr-2 flex items-center gap-2 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black text-black hover:-translate-y-0.5"><Code2 className="h-4 w-4" /> 资源分享</button>}
             {boards.map((board) => {
               const Icon = board.icon;
               const active = board.name === activeBoard;
               return (
                 <button
                   key={board.name}
-                  onClick={() => { changeFilters({ category: board.name, page: "1" }); }}
+                  onClick={() => { if (!user) { openAuth(board.name === "全部" ? "/#feed" : `/?category=${encodeURIComponent(board.name)}#feed`); return; } changeFilters({ category: board.name, page: "1" }); }}
                   className={`mr-2 flex items-center gap-2 border-2 border-black px-4 py-2 text-sm font-black transition-transform hover:-translate-y-0.5 ${
                     active ? "bg-black text-[var(--acid)]" : "bg-white text-black hover:bg-[var(--paper)]"
                   }`}
@@ -207,7 +223,8 @@ function CommunityFeed() {
         </div>
       </section>
 
-      <section id="feed" className="mx-auto grid grid-cols-1 scroll-mt-16 max-w-7xl gap-6 px-4 py-8 sm:px-6 lg:grid-cols-[minmax(0,1fr)_310px] lg:px-8 lg:py-10">
+      <section id="feed" className="mx-auto scroll-mt-16 max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
+        {authLoading ? <p className="py-16 text-center font-black">正在确认登录状态…</p> : !user ? <ContentLoginPrompt title="已审核作品需要登录" detail="这里不展示作品标题、摘要、评论或截图。登录后会回到作品列表。" returnTo={`/${params.size ? `?${params.toString()}` : ""}#feed`} /> : <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_310px]">
         <main className="min-w-0">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
@@ -328,6 +345,7 @@ function CommunityFeed() {
             </ul>
           </section>
         </aside>
+        </div>}
       </section>
 
       <div className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-4 border-t-2 border-black bg-white pb-[env(safe-area-inset-bottom)] md:hidden">

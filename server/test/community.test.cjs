@@ -57,7 +57,14 @@ test('local public beta lifecycle and permissions', async t => {
       await api('/api/projects/cover', author, 'POST', { image: 'data:image/png;base64,YmFk' }, 400);
       const uploaded = await api('/api/projects/cover', author, 'POST', { image: 'data:image/png;base64,YQ==' }, 201);
       assert.match(uploaded.path, /^\/projects\/covers\/[a-f0-9-]+\.jpg$/);
-      const image = await fetch(base + '/api' + uploaded.path);
+      const denied = await fetch(base + '/api' + uploaded.path);
+      assert.equal(denied.status, 401);
+      assert.equal((denied.headers.get('content-type') || '').includes('image/'), false);
+      assert.equal(Buffer.from(await denied.arrayBuffer()).includes(Buffer.from([255, 216, 255, 217])), false);
+      const thumb = await fetch(base + '/api' + uploaded.path + '?variant=thumbnail');
+      assert.equal(thumb.status, 401);
+      assert.equal(Buffer.from(await thumb.arrayBuffer()).includes(Buffer.from([255, 216, 255, 217])), false);
+      const image = await fetch(base + '/api' + uploaded.path, { headers: { Authorization: `Bearer ${author}` } });
       assert.equal(image.status, 200);
       assert.match(image.headers.get('content-type'), /image\/jpeg/);
       assert.equal(image.headers.get('x-content-type-options'), 'nosniff');
@@ -77,8 +84,8 @@ test('local public beta lifecycle and permissions', async t => {
     project = await api(`/api/projects/${created.id}`, author);
     assert.equal(project.status, 'pending');
     assert.equal(await points(authorId), 0);
-    assert.equal((await api('/api/projects')).total, 0);
-    await api(`/api/projects/${project.id}`, null, 'GET', undefined, 404);
+    assert.equal((await api('/api/projects', other)).total, 0);
+    await api(`/api/projects/${project.id}`, null, 'GET', undefined, 401);
     await api(`/api/projects/${project.id}/comments`, other, 'GET', undefined, 404);
     await api('/api/projects', author, 'POST', draft, 409);
     await api(`/api/projects/${project.id}`, other, 'PUT', { ...draft, revision: 1 }, 404);
@@ -102,14 +109,14 @@ test('local public beta lifecycle and permissions', async t => {
     assert.deepEqual(responses.map(r => r.status).sort(), [200, 409]);
     assert.equal(await points(authorId), 10);
     project = await api(`/api/projects/${project.id}`, author);
-    assert.equal((await api('/api/projects?search=补充')).total, 1);
+    assert.equal((await api('/api/projects?search=补充', other)).total, 1);
     await api(`/api/projects/${project.id}`, author, 'PUT', { ...draft, revision: project.revision });
-    assert.equal((await api('/api/projects')).total, 0);
+    assert.equal((await api('/api/projects', other)).total, 0);
     project = await api(`/api/projects/${project.id}`, author);
     await api(`/api/admin/projects/${project.id}`, admin, 'PUT', { action: 'approve', revision: project.revision });
     assert.equal(await points(authorId), 10);
-    await api('/api/projects?page=1.5', null, 'GET', undefined, 400);
-    assert.equal((await api(`/api/projects?authorId=${authorId}`)).total, 1);
+    await api('/api/projects?page=1.5', other, 'GET', undefined, 400);
+    assert.equal((await api(`/api/projects?authorId=${authorId}`, other)).total, 1);
   });
   await t.test('votes are idempotent and never generate points', async () => {
     const authorPoints = await points(authorId);
@@ -147,12 +154,12 @@ test('local public beta lifecycle and permissions', async t => {
   await t.test('comments, moderation and duplicate protection', async () => {
     await api(`/api/projects/${project.id}/comments`, other, 'POST', { content: '测试评论' }, 201);
     await api(`/api/projects/${project.id}/comments`, other, 'POST', { content: '测试评论' }, 409);
-    const comments = await api(`/api/projects/${project.id}/comments`);
+    const comments = await api(`/api/projects/${project.id}/comments`, other);
     assert.equal(comments.length, 1);
     assert.equal(await points(otherId), 5);
     await api(`/api/admin/project-comments/${comments[0].id}`, admin, 'DELETE');
     await api(`/api/admin/project-comments/${comments[0].id}`, admin, 'DELETE');
-    assert.equal((await api(`/api/projects/${project.id}`)).comments_count, 0);
+    assert.equal((await api(`/api/projects/${project.id}`, other)).comments_count, 0);
   });
   await t.test('report result returns to the reporter', async () => {
     await api(`/api/projects/${project.id}/report`, other, 'POST', { reason: '危险链接', detail: '需要核实' }, 201);
@@ -173,7 +180,7 @@ test('local public beta lifecycle and permissions', async t => {
   await t.test('withdrawal, resubmission and takedown preserve permissions', async () => {
     project = await api(`/api/projects/${project.id}`, author);
     await api(`/api/projects/${project.id}/withdraw`, author, 'POST', { revision: project.revision });
-    assert.equal((await api('/api/projects')).total, 0);
+    assert.equal((await api('/api/projects', other)).total, 0);
     project = await api(`/api/projects/${project.id}`, author);
     await api(`/api/projects/${project.id}`, author, 'PUT', { ...draft, revision: project.revision });
     project = await api(`/api/projects/${project.id}`, author);
@@ -181,7 +188,7 @@ test('local public beta lifecycle and permissions', async t => {
     assert.equal(await points(authorId), 10);
     project = await api(`/api/projects/${project.id}`, author);
     await api(`/api/admin/projects/${project.id}`, admin, 'PUT', { action: 'softDelete', note: '测试下架', revision: project.revision });
-    await api(`/api/projects/${project.id}/comments`, null, 'GET', undefined, 404);
+    await api(`/api/projects/${project.id}/comments`, null, 'GET', undefined, 401);
     assert.equal((await api('/api/projects/mine', author))[0].is_deleted, 1);
   });
   await t.test('admin user settings reject malformed flags and self lockout', async () => {

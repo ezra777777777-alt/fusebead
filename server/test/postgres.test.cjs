@@ -59,13 +59,14 @@ test('PostgreSQL release rehearsal: migration, auth, moderation and concurrent p
   await api('/projects', { title: '历史投稿', summary: '测试', category: 'GitHub 实用项目', repoUrl: 'https://github.com/owner/repo', acceptedRules: true }, 409, legacyToken);
   const draft = { title: `PG 测试 ${randomUUID()}`, summary: '独立副本测试', category: '网页小玩具', demoUrl: 'https://example.com/', acceptedRules: true };
   const project = await api('/projects', draft, 201, author.token);
-  await api(`/projects/${project.id}`, undefined, 404, undefined, 'GET');
+  await api(`/projects/${project.id}`, undefined, 401, undefined, 'GET');
   await api(`/admin/projects/${project.id}`, { action: 'reject', note: '补充说明', revision: 1 }, 200, adminToken, 'PUT');
   const rejected = await api(`/projects/${project.id}`, undefined, 200, author.token, 'GET');
   await api(`/projects/${project.id}`, { ...draft, summary: '已补充说明', revision: rejected.revision }, 200, author.token, 'PUT');
   const pending = await api(`/projects/${project.id}`, undefined, 200, author.token, 'GET');
   await api(`/admin/projects/${project.id}`, { action: 'approve', revision: pending.revision }, 200, adminToken, 'PUT');
-  assert.equal((await api(`/projects/${project.id}`, undefined, 200, undefined, 'GET')).status, 'approved');
+  await api(`/projects/${project.id}`, undefined, 401, undefined, 'GET');
+  assert.equal((await api(`/projects/${project.id}`, undefined, 200, author.token, 'GET')).status, 'approved');
   assert.equal((await api('/user/me', undefined, 200, author.token, 'GET')).contribution_points, 15);
   await api('/auth/forgot-password', { email });
   const resetCode = latest('password_reset');

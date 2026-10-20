@@ -5,12 +5,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { useAuth } from "@/lib/AuthContext";
+import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
 import { Project } from "@/lib/community";
 import { Pagination } from "@/components/shared/Pagination";
 import BeadProfile from "@/components/dashboard/BeadProfile";
 
 export default function UserProfile() {
   const { id } = useParams<{id:string}>();
+  const { user, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<any>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [page, setPage] = useState(1);
@@ -19,13 +22,17 @@ export default function UserProfile() {
   const [loading, setLoading] = useState(true);
   const [beads, setBeads] = useState(false);
   useEffect(() => {
+    if (authLoading) return;
+    if (!user) { setLoading(false); setProjects([]); setProfile(null); return; }
     let active = true;
     setLoading(true); setError("");
     Promise.all([api(`/user/profile/${id}`), api(`/projects?authorId=${id}&page=${page}&limit=12`)]).then(([user, data]) => {
       if (active) { setProfile(user); setProjects(data.projects); setTotal(data.total); }
     }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [id, page]);
+  }, [id, page, user, authLoading]);
+  if (authLoading || (user && loading)) return <p className="px-5 py-32 text-center font-black">正在确认登录状态…</p>;
+  if (!user) return <div className="min-h-[70vh] px-5 pt-28"><div className="mx-auto max-w-3xl"><ContentLoginPrompt title="这位作者的作品需要登录" detail="未登录时不读取作品列表、图纸缩略图和评论。登录后回到这个主页。" returnTo={`/user/${id}`} /></div></div>;
   return <div className="min-h-[70vh] px-5 pb-12 pt-28 text-black"><div className="mx-auto max-w-5xl">
     <Link href="/" className="text-sm font-bold underline">← 返回社区</Link>
     {error ? <p role="alert" className="my-8 border-2 border-red-500 p-5">{error}</p> : loading ? <p className="py-20 text-center">正在读取作者档案…</p> : profile && <>

@@ -7,6 +7,7 @@ import { categories, categoryLabel, GITHUB_CATEGORY, Project } from "@/lib/commu
 import { ArrowLeft, CheckCircle2, Code2, ExternalLink, ImagePlus, Loader2, Save, ShieldCheck, Upload } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 import { api, API_BASE } from "@/lib/api";
+import { AuthedCover } from "@/components/community/AuthedCover";
 
 type Draft = {
   title: string;
@@ -167,7 +168,7 @@ function SubmitForm({ editId, initialCategory }: { editId: string | null; initia
   };
 
   if (loading || reading) return <p className="px-5 py-32 text-center">正在读取投稿…</p>;
-  if (editId && !user) return <div className="px-5 py-32 text-center"><h1 className="mb-5 text-2xl font-black">登录后修改投稿</h1><button onClick={openAuth} className="cyber-button bg-[var(--acid)]">登录</button></div>;
+  if (editId && !user) return <div className="px-5 py-32 text-center"><h1 className="mb-5 text-2xl font-black">登录后修改投稿</h1><button onClick={() => openAuth()} className="cyber-button bg-[var(--acid)]">登录</button></div>;
   if (editId && !original && error) return <div className="mx-auto max-w-xl px-5 py-32 text-center"><h1 className="text-2xl font-black">暂时无法打开这份投稿</h1><p role="alert" className="my-5">{error}</p><div className="flex flex-wrap justify-center gap-5"><button onClick={() => window.location.reload()} className="underline">重新加载</button><Link href="/dashboard" className="underline">返回我的投稿</Link><Link href="/submit" className="underline">新建投稿</Link></div></div>;
   return (
     <div className="min-h-screen bg-[var(--background)] pt-16 text-black">
@@ -238,7 +239,7 @@ function SubmitForm({ editId, initialCategory }: { editId: string | null; initia
             <div className="border-2 border-dashed border-black/40 bg-[var(--paper)] p-5">
               {user ? <label className="block text-sm font-black">{uploading ? "正在处理截图…" : "也可以直接上传截图"}<input type="file" accept="image/png,image/jpeg,image/webp" disabled={uploading} onChange={e => { void uploadCover(e.target.files?.[0]); e.target.value = ""; }} className="mt-3 block w-full text-xs" /></label> : <button type="button" onClick={() => { saveDraft(); openAuth(); }} className="font-black underline">登录后上传截图</button>}
               <p className="mt-3 text-xs font-semibold leading-5 text-black/50">PNG / JPEG / WebP，最大 2 MB、1200 万像素。上传后会压缩并移除图片元数据。图片链接可直接访问，请勿包含私人信息。</p>
-              {draft.coverUrl && <img src={draft.coverUrl} alt="投稿截图预览" className="mt-4 max-h-64 w-full object-contain" />}
+              {draft.coverUrl && <AuthedCover src={draft.coverUrl} alt="投稿截图预览" className="mt-4 max-h-64 w-full object-contain" />}
             </div>
 
             <label className="flex cursor-pointer items-start gap-3 border-2 border-black bg-[#fff7d6] p-4">
