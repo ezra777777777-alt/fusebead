@@ -13,6 +13,7 @@ import { useAuth } from "@/lib/AuthContext";
 import { ContentLoginPrompt } from "@/components/auth/ContentLoginPrompt";
 import {
   BadgeCheck,
+  ArrowUpRight,
   BellRing,
   Bug,
   ChevronRight,
@@ -22,7 +23,6 @@ import {
   Eye,
   Flame,
   Gamepad2,
-  Hammer,
   MessageCircle,
   MonitorSmartphone,
   Radio,
@@ -59,7 +59,7 @@ function CommunityFeed() {
   const [total, setTotal] = useState(0);
   const requestedPage = Number(params.get("page") || 1);
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
-  const sort = params.get("sort") || "latest";
+  const sort = ["latest", "popular", "discussed"].includes(params.get("sort") || "") ? params.get("sort")! : "latest";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [authDenied, setAuthDenied] = useState(false);
@@ -166,32 +166,36 @@ function CommunityFeed() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--background)] pt-16">
-      <section className="cyber-hero border-b-4 border-black">
-        <div className="relative mx-auto grid max-w-7xl gap-8 px-4 pb-10 pt-16 sm:px-6 sm:py-10 lg:grid-cols-[1.5fr_0.5fr] lg:px-8 lg:py-14">
+    <div className="editorial-site min-h-screen pt-16">
+      <section className="editorial-hero">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 pt-7 font-mono text-[10px] tracking-[.16em] text-white/60 sm:px-6 lg:px-8">
+          <span>VIBE CODING / 独立开发者社区</span>
+          <span className="hidden sm:block">不必完美，先让它被看见。</span>
+        </div>
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 pb-12 pt-10 sm:px-6 md:grid-cols-[minmax(0,1fr)_280px] md:gap-8 lg:grid-cols-[minmax(0,1fr)_320px] lg:gap-16 lg:px-8 lg:py-16">
           <Link
             href="/beads"
             aria-label="奇怪的按钮，打开拼豆工坊"
-            className="group absolute right-4 top-0 z-10 flex h-16 w-40 touch-manipulation items-center justify-center outline-none sm:right-6 sm:top-16 lg:right-8 lg:top-20"
+            className="group absolute right-4 top-0 z-10 flex h-11 w-40 touch-manipulation items-center justify-center outline-none sm:right-6 lg:right-8"
           >
             <span className="flex min-h-11 items-center gap-2 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black text-black opacity-0 shadow-[4px_4px_0_var(--orange)] transition-opacity group-hover:opacity-100 group-focus:opacity-100 group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-white">
               <span aria-hidden="true">?</span> 奇怪的按钮
             </span>
           </Link>
           <div>
-            <div className="mb-5 inline-flex rotate-[-1deg] items-center gap-2 border-2 border-black bg-[var(--acid)] px-3 py-1 text-xs font-black uppercase tracking-[0.18em] text-black shadow-[3px_3px_0_#000]">
-              <Radio className="h-3.5 w-3.5" /> CYBER SANITATION SYSTEM · 404 环卫站
+            <div className="mb-6 inline-flex items-center gap-2 text-xs font-bold tracking-[0.16em] text-[var(--acid)]">
+              <Radio className="h-4 w-4" /> 404 环卫站 / 持续收容中
             </div>
-            <h1 className="max-w-4xl text-5xl font-black leading-[0.94] tracking-[-0.07em] text-white sm:text-7xl lg:text-[92px]">
+            <h1 className="editorial-headline font-black text-white">
               你负责现拉，<br />
               <span className="text-[var(--acid)]">我们负责端上来。</span>
             </h1>
-            <p className="mt-6 max-w-2xl text-base font-semibold leading-7 text-white/70 sm:text-lg">
-              全国 Vibe Coding 屎山统一收容点。项目没用不要紧，能打开就算成功。别藏着了，端出来让老哥们看看这坨到底熟没熟。
+            <p className="mt-6 max-w-xl text-sm leading-7 text-white/70 sm:text-base">
+              全国 Vibe Coding 屎山统一收容点。奇葩软件、网页小玩具、AI 套壳——把你的脑洞端出来，让老哥们试用、锐评、一起折腾。
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <Link href="/submit" className="cyber-button bg-[var(--orange)] text-white">
-                <Upload className="h-5 w-5" /> 上交本坨
+              <Link href="/submit" className="cyber-button bg-[var(--orange)] text-black">
+                <Upload className="h-5 w-5" /> 上交本坨 <ArrowUpRight className="h-4 w-4" />
               </Link>
               <span data-approved-works>
                 <Link
@@ -208,32 +212,27 @@ function CommunityFeed() {
               </span>
               {/* data-approved-works-end */}
             </div>
-            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-xs font-bold text-white/50">
-              <span>{user && !authDenied ? `当前找到 ${total} 份作品` : "登录后查看已审核作品"}</span>
-              <span>投稿先审后发</span>
-              <span>外链先警告再跳转</span>
+            <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 border-t border-white/15 pt-5 text-xs text-white/65">
+              <span className="flex items-center gap-1.5"><BadgeCheck className="h-3.5 w-3.5" /> 投稿先审后发</span>
+              <span>登录后查看作品与资源</span>
+              <Link href="/rules" className="underline underline-offset-4 hover:text-white">社区规则 ↗</Link>
             </div>
           </div>
 
-          <div className="flex items-end justify-center lg:justify-end">
-            <div className="relative w-full max-w-sm rotate-[2deg] border-4 border-black bg-[#fff7d6] p-5 text-black shadow-[10px_10px_0_var(--orange)]">
-              <div className="absolute -right-3 -top-4 rotate-6 border-2 border-black bg-[var(--acid)] px-3 py-1 text-sm font-black">今日公告</div>
-              <div className="mb-5 font-mono text-xs font-bold text-black/50">NOTICE_2026_1016.TXT</div>
-              <h2 className="text-2xl font-black leading-tight">本站收电子垃圾，<br />不收真病毒。</h2>
-              <p className="mt-4 text-sm font-semibold leading-6 text-black/65">
-                木马、钓鱼、偷数据、违法内容直接抬走。玩梗可以，害人不行。所有投稿先过环卫质检。
-              </p>
-              <div className="mt-5 flex items-center gap-2 border-t-2 border-dashed border-black/30 pt-4 text-xs font-black">
-                <ShieldCheck className="h-4 w-4" /> 管理员「扫地僧」发布
-              </div>
-            </div>
-          </div>
+          <aside className="poster-note">
+            <div className="flex items-center justify-between border-b border-black/40 pb-3 font-mono text-[10px] font-bold tracking-wider"><span>CYBER SANITATION</span><ArrowUpRight className="h-5 w-5" /></div>
+            <div aria-hidden="true" className="poster-number">404<span>好代码没找到<br />好玩的倒是不少</span></div>
+            <div className="poster-sticker" aria-hidden="true">BAD CODE. GOOD VIBES.</div>
+            <h2 className="mt-7 text-2xl font-black leading-snug">收电子垃圾，<br />不收真病毒。</h2>
+            <p className="mt-3 text-sm leading-6 text-black/75">玩梗可以，害人不行。木马、钓鱼和偷数据的项目，一律抬走。</p>
+            <Link href="/rules" className="mt-5 flex items-center justify-between border-t border-black/40 pt-4 text-xs font-bold"><span className="flex items-center gap-2"><ShieldCheck className="h-4 w-4" /> 环卫公约</span><ArrowUpRight className="h-4 w-4" /></Link>
+          </aside>
         </div>
       </section>
 
-      <section id="community-boards" className="scroll-mt-16 border-b-2 border-black bg-white" aria-label="社区分区">
+      <section id="community-boards" className="scroll-mt-20 border-b border-black/15 bg-[#fffdf8]" aria-label="社区分区">
         <div className="mx-auto max-w-7xl overflow-x-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex min-w-max py-3">
+          <div className="flex min-w-max py-4">
             {user ? <Link href="/github" className="mr-2 flex items-center gap-2 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black text-black hover:-translate-y-0.5"><Code2 className="h-4 w-4" /> 资源分享</Link> : <button type="button" onClick={() => openAuth("/github")} className="mr-2 flex items-center gap-2 border-2 border-black bg-[var(--acid)] px-4 py-2 text-sm font-black text-black hover:-translate-y-0.5"><Code2 className="h-4 w-4" /> 资源分享</button>}
             {boards.map((board) => {
               const Icon = board.icon;
@@ -241,9 +240,10 @@ function CommunityFeed() {
               return (
                 <button
                   key={board.name}
+                  aria-pressed={active}
                   onClick={() => { if (!user) { openAuth(board.name === "全部" ? "/#feed" : `/?category=${encodeURIComponent(board.name)}#feed`); return; } changeFilters({ category: board.name, page: "1" }); }}
-                  className={`mr-2 flex items-center gap-2 border-2 border-black px-4 py-2 text-sm font-black transition-transform hover:-translate-y-0.5 ${
-                    active ? "bg-black text-[var(--acid)]" : "bg-white text-black hover:bg-[var(--paper)]"
+                  className={`mr-2 flex min-h-11 items-center gap-2 border px-4 py-2 text-sm font-bold transition-colors ${
+                    active ? "border-black bg-black text-[var(--acid)]" : "border-transparent text-black/65 hover:border-black/20 hover:bg-[var(--paper)]"
                   }`}
                 >
                   <Icon className="h-4 w-4" /> {board.name}
@@ -257,13 +257,13 @@ function CommunityFeed() {
 
       <section id="feed" className="mx-auto scroll-mt-16 max-w-7xl px-4 py-8 sm:px-6 lg:px-8 lg:py-10">
         {authLoading ? <p className="py-16 text-center font-black">正在确认登录状态…</p> : listView === "login" ? <div data-phase="login"><ContentLoginPrompt title="已审核作品需要登录" detail="这里不展示作品标题、摘要、评论或截图。登录后会回到作品列表。" returnTo={`/${params.size ? `?${params.toString()}` : ""}#feed`} /></div> : <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_310px]">
-        <main className="min-w-0">
+        <div className="min-w-0">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="text-xs font-black uppercase tracking-[0.18em] text-[var(--orange)]">COMMUNITY FEED</div>
-              <h2 className="mt-1 text-3xl font-black tracking-tight text-black">刚完成清运的污染物</h2>
+              <h2 className="mt-2 text-2xl font-black tracking-tight text-black sm:text-3xl">新鲜出炉，欢迎试用。</h2>
             </div>
-            <label className="flex h-11 items-center gap-2 border-2 border-black bg-white px-3 shadow-[3px_3px_0_#000] sm:w-72">
+            <label className="editorial-search sm:w-72">
               <Search className="h-4 w-4 text-black/45" />
               <input
                 value={search}
@@ -277,16 +277,20 @@ function CommunityFeed() {
             </label>
           </div>
 
-          <div className="border-2 border-black bg-white shadow-[6px_6px_0_#000]">
+          {(search || activeBoard !== "全部" || sort !== "latest" || page > 1) && <div className="mb-4 flex flex-wrap items-center gap-3 text-sm">
+            <span className="min-w-0 flex-1 break-words text-black/65">当前：{categoryLabel(activeBoard)}{search && ` · “${search}”`}</span>
+            <button onClick={() => changeFilters({ search: "", category: "", sort: "latest", page: "1" })} className="min-h-11 font-bold underline underline-offset-4">清除筛选</button>
+          </div>}
+          <div className="border border-black/25 bg-[#fffdf8]">
             <div className="flex items-center justify-between border-b-2 border-black bg-[var(--paper)] px-4 py-3 text-xs font-black text-black">
               <div className="flex items-center gap-2"><Flame className="h-4 w-4 text-[var(--orange)]" /> {categoryLabel(activeBoard)} · <select aria-label="作品排序" value={sort} onChange={e => { changeFilters({ sort: e.target.value, page: "1" }); }} className="bg-transparent"><option value="latest">最新发布</option><option value="popular">最多点赞</option><option value="discussed">最多评论</option></select></div>
-              <span>{total} 个作品</span>
+              <span aria-live="polite">{loading ? "正在加载…" : error ? "加载失败" : `${total} 个作品`}</span>
             </div>
 
             {listView === "retry" ? <div className="p-6"><LoadFailure message={listState.error || "加载失败"} onRetry={() => setRetry(value => value + 1)} /></div> : listView === "skeleton" ? <LoadingSkeleton label="正在清点作品…" variant="rows" /> : visiblePosts.length ? visiblePosts.map((post) => (
-              <article key={post.id} className="group grid gap-4 border-b border-black/15 p-4 last:border-b-0 hover:bg-[#fffdf5] sm:grid-cols-[76px_minmax(0,1fr)_110px] sm:p-5">
+              <article key={post.id} className="group grid gap-4 border-b border-black/15 p-5 last:border-b-0 hover:bg-[var(--paper)] sm:grid-cols-[56px_minmax(0,1fr)_70px] sm:py-6">
                 <div className="hidden sm:block">
-                  <div className="flex h-14 w-14 rotate-[-2deg] items-center justify-center border-2 border-black text-xl font-black text-white shadow-[3px_3px_0_#000]" style={{ background: post.tone }}>
+                  <div className="flex h-12 w-12 items-center justify-center border border-black/25 font-mono text-base font-bold text-black" style={{ background: post.tone }}>
                     {String(post.id).padStart(3, "0")}
                   </div>
                   <div className="mt-2 text-center text-[10px] font-black text-black/40">污染编号</div>
@@ -327,12 +331,12 @@ function CommunityFeed() {
             )}
           </div>
 
-          {total > 20 && <Pagination page={page} totalPages={Math.ceil(total / 20)} onChange={value => changeFilters({ page: String(value) })} />}
+          {listView === "ready" && total > 20 && <Pagination page={page} totalPages={Math.ceil(total / 20)} onChange={value => changeFilters({ page: String(value) })} />}
           <Link href="/submit" className="mt-6 flex items-center justify-between border-2 border-black bg-[var(--acid)] px-5 py-4 text-black shadow-[5px_5px_0_#000] transition-transform hover:-translate-y-1">
             <span className="flex items-center gap-3 text-lg font-black"><Upload className="h-5 w-5" /> 没看到满意的？自己搬一坨。</span>
             <ChevronRight className="h-5 w-5" />
           </Link>
-        </main>
+        </div>
 
         <aside className="min-w-0 space-y-5">
           <section className="border-2 border-black bg-white shadow-[5px_5px_0_#000]">

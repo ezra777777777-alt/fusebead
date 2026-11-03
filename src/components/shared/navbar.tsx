@@ -1,16 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { LogIn, Menu, Search, Upload, X } from "lucide-react";
 import { useAuth } from "@/lib/AuthContext";
 
 export function Navbar() {
   const { user, loading, isAdmin, openAuth, logout } = useAuth();
   const guard = (href: string) => (event: { preventDefault: () => void }) => {
-    if (!loading && !user) { event.preventDefault(); openAuth(href); setMobileOpen(false); }
+    setMobileOpen(false);
+    if (!loading && !user) { event.preventDefault(); openAuth(href); }
   };
   const [mobileOpen, setMobileOpen] = useState(false);
+  const menuButton = useRef<HTMLButtonElement>(null);
+  const pathname = usePathname();
 
   const links = [
     { href: "/works", label: "已审核作品" },
@@ -22,21 +26,24 @@ export function Navbar() {
   ];
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 h-16 border-b-2 border-black bg-[#111] text-white">
+    <header className="site-nav fixed inset-x-0 top-0 z-50 h-16 border-b border-white/15 bg-[#111] text-white" onKeyDown={event => {
+      if (event.key === "Escape" && mobileOpen) { setMobileOpen(false); menuButton.current?.focus(); }
+    }}>
       <nav className="mx-auto flex h-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link href="/" className="group flex shrink-0 items-center gap-2 whitespace-nowrap">
+        <Link href="/" onClick={() => setMobileOpen(false)} className="group flex shrink-0 items-center gap-2 whitespace-nowrap">
           <span className="flex h-9 w-9 -rotate-3 items-center justify-center border-2 border-white bg-[var(--orange)] text-lg font-black text-white transition-transform group-hover:rotate-3">搬</span>
           <span className="text-lg font-black tracking-[-0.04em]">赛博搬屎</span>
           <span className="hidden border border-white/20 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-[var(--acid)] sm:inline">BETA</span>
         </Link>
 
-        <div className="hidden items-center gap-4 whitespace-nowrap xl:flex">
+        <div className="hidden items-center gap-3 whitespace-nowrap xl:flex">
           {links.map((link) => (
             <Link
               key={link.label}
               href={link.href}
               onClick={guard(link.href)}
-              className="text-sm font-bold text-white/65 hover:text-[var(--acid)]"
+              aria-current={link.href === pathname ? "page" : undefined}
+              className={`py-3 text-sm font-bold hover:text-[var(--acid)] ${link.href === pathname ? "text-[var(--acid)]" : "text-white/70"}`}
             >
               {link.label}
             </Link>
@@ -45,7 +52,7 @@ export function Navbar() {
           <Link href="/#feed" onClick={guard("/#feed")} className="p-1.5 text-white/45 hover:text-white" aria-label="搜索作品"><Search className="h-4 w-4" /></Link>
           {user ? (
             <div className="flex items-center gap-2 text-xs font-bold">
-              <Link href="/dashboard" className="max-w-36 truncate border border-white/25 px-2 py-1.5 text-white/75 hover:border-[var(--acid)] hover:text-[var(--acid)]">{user.username}</Link>
+              <Link href="/dashboard" className="max-w-24 truncate border border-white/25 px-2 py-1.5 text-white/75 hover:border-[var(--acid)] hover:text-[var(--acid)]">{user.username}</Link>
               <button onClick={logout} className="text-white/40 hover:text-white">退出</button>
             </div>
           ) : (
@@ -56,7 +63,7 @@ export function Navbar() {
           </Link>
         </div>
 
-        <button onClick={() => setMobileOpen((value) => !value)} className="border border-white/20 p-2 xl:hidden" aria-label="菜单" aria-expanded={mobileOpen} aria-controls="mobile-navigation">
+        <button ref={menuButton} onClick={() => setMobileOpen((value) => !value)} className="flex h-11 w-11 items-center justify-center border border-white/30 xl:hidden" aria-label="菜单" aria-expanded={mobileOpen} aria-controls="mobile-navigation">
           {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
         </button>
 
